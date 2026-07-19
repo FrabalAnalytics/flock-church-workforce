@@ -1,11 +1,13 @@
 import Link from "next/link";
+import { correctSubmittedAttendance } from "@/app/app/attendance/actions";
 import { WorkspaceNotice } from "@/components/workspace-notice";
 import { requireProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 
 type AttendanceLog = {
+  worker_id: string;
   status: "Present" | "Absent";
-  workers: { full_name: string } | null;
+  workers: { id: string; full_name: string } | null;
 };
 
 function formatDate(value: string) {
@@ -33,9 +35,10 @@ export default async function AttendanceHistoryPage({
       present_count,
       absent_count,
       submitted_at,
+      corrected_at,
       departments(name),
       services(service_date, service_type),
-      attendance_logs(status, workers(full_name))
+      attendance_logs(worker_id, status, workers(id, full_name))
     `)
     .order("submitted_at", { ascending: false });
 
@@ -65,6 +68,7 @@ export default async function AttendanceHistoryPage({
                   <div>
                     <p className="text-lg font-semibold text-[#253252]">{service?.service_type ?? "Service"}</p>
                     <p className="mt-1 text-sm text-[#7b8599]">{service ? formatDate(service.service_date) : "Unknown date"} · {department?.name ?? "Department"}</p>
+                    {submission.corrected_at && <p className="mt-1 text-xs font-medium text-[#8a6b22]">Corrected {new Intl.DateTimeFormat("en-NG", { dateStyle: "medium", timeStyle: "short" }).format(new Date(submission.corrected_at))}</p>}
                   </div>
                   <div className="flex flex-wrap gap-2 text-xs font-semibold">
                     <span className="rounded-full bg-[#f2f5fb] px-3 py-1.5 text-[#617087]">Roster {submission.roster_count}</span>
@@ -83,6 +87,24 @@ export default async function AttendanceHistoryPage({
                       <span className={`rounded-full px-3 py-1 text-xs font-semibold ${log.status === "Present" ? "bg-[#edf7f1] text-[#347457]" : "bg-[#fff1f0] text-[#b5524b]"}`}>{log.status}</span>
                     </div>
                   )) : <p className="py-5 text-sm text-[#8993a7]">No individual records are available.</p>}
+                {profile.role === "super_admin" && logs.length > 0 && (
+                  <details className="my-3 rounded-2xl border border-[#dce3f1] bg-[#f8faff] p-4">
+                    <summary className="cursor-pointer text-sm font-semibold text-[#4168cd]">Correct submitted attendance</summary>
+                    <p className="mt-2 text-xs leading-5 text-[#758097]">Select every worker who was present. The original service, department, and submitted roster cannot be changed.</p>
+                    <form action={correctSubmittedAttendance} className="mt-4">
+                      <input type="hidden" name="submission_id" value={submission.id} />
+                      <div className="grid gap-2 sm:grid-cols-2">
+                        {logs.map((log) => (
+                          <label key={log.worker_id} className="flex cursor-pointer items-center gap-3 rounded-xl border border-[#e3e8f2] bg-white px-3 py-3 text-sm font-medium text-[#34415f]">
+                            <input type="checkbox" name="present_worker_ids" value={log.worker_id} defaultChecked={log.status === "Present"} className="h-4 w-4 accent-[#4f7df3]" />
+                            <span>{log.workers?.full_name ?? "Unknown worker"}</span>
+                          </label>
+                        ))}
+                      </div>
+                      <div className="mt-4 flex justify-end"><button className="rounded-xl bg-[#4f7df3] px-4 py-2.5 text-sm font-semibold text-white">Save correction</button></div>
+                    </form>
+                  </details>
+                )}
               </div>
             </details>
           );

@@ -29,7 +29,10 @@ export async function GET(request: Request) {
   if (service && serviceTypes.has(service)) query = query.eq("services.service_type", service);
 
   const { data, error } = await query;
-  if (error) return new Response(error.message, { status: 400 });
+  if (error) {
+    console.error("Attendance export failed", error);
+    return new Response("The attendance export could not be generated.", { status: 500 });
+  }
   const header = ["Service date", "Service type", "Department", "Worker", "Status", "Recorded at"];
   const lines = (data ?? []).map((row) => {
     const worker = row.workers as unknown as { full_name: string } | null;

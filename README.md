@@ -34,3 +34,16 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
+## Database changes
+
+Database changes are versioned in `supabase/migrations`. Read
+[`supabase/MIGRATIONS.md`](supabase/MIGRATIONS.md) before changing or deploying
+the production schema. The existing production database must have the initial
+baseline marked as applied once; it must not be replayed blindly.
+
+## Backup and recovery
+
+The non-destructive logical backup procedure is documented in
+[`docs/BACKUP_RECOVERY.md`](docs/BACKUP_RECOVERY.md). Backup output is excluded
+from Git because it may contain workers' contact details and attendance data.

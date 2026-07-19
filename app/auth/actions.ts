@@ -14,8 +14,25 @@ function validEmail(value: string) {
 }
 
 async function origin() {
+  const configuredOrigin = process.env.NEXT_PUBLIC_APP_URL?.trim().replace(/\/$/, "");
+  if (configuredOrigin) {
+    const configuredUrl = new URL(configuredOrigin);
+    if (configuredUrl.protocol !== "https:" && configuredUrl.hostname !== "localhost") {
+      throw new Error("NEXT_PUBLIC_APP_URL must use HTTPS in production.");
+    }
+    return configuredUrl.origin;
+  }
+
+  const vercelHost = (
+    process.env.VERCEL_PROJECT_PRODUCTION_URL ?? process.env.VERCEL_URL
+  )?.trim();
+  if (vercelHost) return `https://${vercelHost}`;
+
   const requestHeaders = await headers();
-  return requestHeaders.get("origin") ?? "http://localhost:3000";
+  const requestOrigin = requestHeaders.get("origin");
+  if (requestOrigin) return new URL(requestOrigin).origin;
+
+  throw new Error("The public application URL is not configured.");
 }
 
 export async function signIn(formData: FormData) {

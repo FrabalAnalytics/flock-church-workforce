@@ -20,6 +20,14 @@
 # production
 /build
 
+# local database backups (may contain personal data)
+/.backups/
+/backups/
+*.backup.sql
+*.backup.dump
+*.backup.tar
+*.backup.zip
+
 # misc
 .DS_Store
 *.pem

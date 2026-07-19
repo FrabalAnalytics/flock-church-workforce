@@ -28,7 +28,10 @@ export async function GET(request: Request) {
   if (to) query = query.lte("services.service_date", to);
   if (service && serviceTypes.has(service)) query = query.eq("services.service_type", service);
   const { data, error } = await query;
-  if (error) return new Response(error.message, { status: 400 });
+  if (error) {
+    console.error("Church attendance export failed", error);
+    return new Response("The church attendance export could not be generated.", { status: 500 });
+  }
 
   const header = ["Service date", "Service type", "Minister", "Service notes", "Adult male", "Adult female", "Children", "New members male", "New members female", "New members total", "New converts male", "New converts female", "New converts total", "Total attendance", "Updated at"];
   const lines = (data ?? []).map((row) => {

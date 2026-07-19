@@ -48,3 +48,37 @@ export async function submitAttendance(formData: FormData) {
   revalidatePath("/app");
   redirect(destination("message", `${serviceType} attendance was submitted.`));
 }
+
+export async function correctSubmittedAttendance(formData: FormData) {
+  const { profile } = await requireProfile();
+
+  if (profile.role !== "super_admin") {
+    redirect(`/app/attendance?error=${encodeURIComponent("Only a super admin can correct submitted attendance.")}`);
+  }
+
+  const submissionId = String(formData.get("submission_id") ?? "").trim();
+  const presentWorkerIds = formData
+    .getAll("present_worker_ids")
+    .map(String)
+    .filter(Boolean);
+
+  if (!submissionId) {
+    redirect(`/app/attendance?error=${encodeURIComponent("Select a valid attendance submission.")}`);
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("correct_department_attendance", {
+    p_submission_id: submissionId,
+    p_present_worker_ids: presentWorkerIds,
+  });
+
+  if (error) {
+    redirect(`/app/attendance?error=${encodeURIComponent(error.message)}`);
+  }
+
+  revalidatePath("/app/attendance");
+  revalidatePath("/app");
+  revalidatePath("/app/reports");
+  revalidatePath("/app/follow-ups");
+  redirect(destination("message", "Submitted worker attendance was corrected."));
+}

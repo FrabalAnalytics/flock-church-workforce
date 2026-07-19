@@ -46,6 +46,9 @@ export async function POST(request: NextRequest) {
   }
   const { error } = await update;
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) {
+    console.error("Twilio status update failed", error);
+    return NextResponse.json({ error: "Status update failed" }, { status: 500 });
+  }
   return new NextResponse(null, { status: 204 });
 }

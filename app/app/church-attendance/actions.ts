@@ -79,23 +79,52 @@ export async function submitChurchAttendance(formData: FormData) {
   redirect(destination("message", `${serviceType} congregation attendance was saved.`));
 }
 
-export async function updateChurchAttendanceDetails(formData: FormData) {
+export async function correctChurchAttendance(formData: FormData) {
   const { profile } = await requireProfile();
-  if (profile.role !== "super_admin") redirect(destination("error", "Only a super admin can update service details."));
+  if (profile.role !== "super_admin") redirect(destination("error", "Only a super admin can correct church attendance."));
 
   const attendanceId = String(formData.get("attendance_id") ?? "").trim();
   const ministerId = String(formData.get("minister_id") ?? "").trim();
   const serviceNotes = String(formData.get("service_notes") ?? "").trim();
+  const adultMaleCount = count(formData, "adult_male_count");
+  const adultFemaleCount = count(formData, "adult_female_count");
+  const childrenCount = count(formData, "children_count");
+  const newMembersMaleCount = count(formData, "new_members_male_count");
+  const newMembersFemaleCount = count(formData, "new_members_female_count");
+  const newConvertsMaleCount = count(formData, "new_converts_male_count");
+  const newConvertsFemaleCount = count(formData, "new_converts_female_count");
   if (!attendanceId || !ministerId) redirect(destination("error", "Select a valid service record and minister."));
   if (serviceNotes.length > 2000) redirect(destination("error", "Service notes cannot exceed 2,000 characters."));
+  if (
+    adultMaleCount === null || adultFemaleCount === null || childrenCount === null
+    || newMembersMaleCount === null || newMembersFemaleCount === null
+    || newConvertsMaleCount === null || newConvertsFemaleCount === null
+  ) {
+    redirect(destination("error", "Enter zero or a positive whole number for every attendance group."));
+  }
+  if (
+    newMembersMaleCount + newConvertsMaleCount > adultMaleCount
+    || newMembersFemaleCount + newConvertsFemaleCount > adultFemaleCount
+  ) {
+    redirect(destination("error", "New members and new converts must be different people already included in the matching adult total."));
+  }
 
   const supabase = await createClient();
-  const { error } = await supabase.rpc("update_church_attendance_details", {
+  const { error } = await supabase.rpc("correct_church_attendance", {
     p_attendance_id: attendanceId,
+    p_adult_male_count: adultMaleCount,
+    p_adult_female_count: adultFemaleCount,
+    p_children_count: childrenCount,
+    p_new_members_male_count: newMembersMaleCount,
+    p_new_members_female_count: newMembersFemaleCount,
+    p_new_converts_male_count: newConvertsMaleCount,
+    p_new_converts_female_count: newConvertsFemaleCount,
     p_minister_id: ministerId,
     p_service_notes: serviceNotes || null,
   });
   if (error) redirect(destination("error", error.message));
   revalidatePath("/app/church-attendance");
-  redirect(destination("message", "Service minister and notes were updated."));
+  revalidatePath("/app");
+  revalidatePath("/app/reports");
+  redirect(destination("message", "Church attendance correction was saved."));
 }
