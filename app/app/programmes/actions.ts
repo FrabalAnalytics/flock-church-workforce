@@ -123,10 +123,11 @@ export async function updateTemplateItem(formData: FormData) {
     redirect(destination("error", "Enter valid template item details."));
   }
   const supabase = await createClient();
-  const { error } = await supabase.from("service_programme_template_items").update({ start_time: startTime, end_time: endTime, duration_minutes: end - start, event_name: eventName, responsible_name: responsibleName }).eq("id", id);
+  const { data: updatedItem, error } = await supabase.from("service_programme_template_items").update({ start_time: startTime, end_time: endTime, duration_minutes: end - start, event_name: eventName, responsible_name: responsibleName }).eq("id", id).select("id").maybeSingle();
   if (error) redirect(destination("error", error.message));
+  if (!updatedItem) redirect(destination("error", "The template row was not updated. Refresh the page and try again."));
   revalidatePath("/app/programmes");
-  redirect(destination("message", "Reusable template updated."));
+  redirect(`/app/programmes?template=open&message=${encodeURIComponent("Template row saved successfully. Create a new dated programme to use this change.")}`);
 }
 
 export async function publishProgramme(formData: FormData) {
@@ -140,8 +141,9 @@ export async function publishProgramme(formData: FormData) {
     if (items[index].start_time < items[index - 1].end_time) redirect(destination("error", `Items ${items[index - 1].position} and ${items[index].position} overlap.`, programmeId));
   }
   const now = new Date().toISOString();
-  const { error } = await supabase.from("service_programmes").update({ status: "published", published_by: user.id, published_at: now, updated_at: now }).eq("id", programmeId);
+  const { data: publishedProgramme, error } = await supabase.from("service_programmes").update({ status: "published", published_by: user.id, published_at: now, updated_at: now }).eq("id", programmeId).select("id").maybeSingle();
   if (error) redirect(destination("error", error.message, programmeId));
+  if (!publishedProgramme) redirect(destination("error", "The programme was not published. Refresh the page and try again.", programmeId));
   revalidatePath("/app/programmes");
   redirect(destination("message", "Programme published to leaders and department heads.", programmeId));
 }

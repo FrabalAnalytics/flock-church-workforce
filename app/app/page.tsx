@@ -125,6 +125,7 @@ export default async function WorkspaceOverview({
   const quickActions = profile.role === "department_head"
     ? [
         { href: "/app/attendance/new", label: "Log attendance", primary: true },
+        { href: "/app/programmes", label: "View service programme", primary: false },
         { href: "/app/follow-ups", label: "Review follow-ups", primary: false },
       ]
     : profile.role === "super_admin"
