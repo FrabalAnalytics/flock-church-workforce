@@ -36,12 +36,46 @@ const features = [
       </svg>
     ),
   },
+  {
+    number: "04",
+    title: "Understand congregation growth",
+    description:
+      "Record adult male, adult female and children totals, then follow attendance trends across services without collecting attendee identities.",
+    icon: (
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M16 20v-1.5a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4V20m7-9a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm8-1v6m3-3h-6" />
+      </svg>
+    ),
+  },
+  {
+    number: "05",
+    title: "Recognize every first step",
+    description:
+      "Track new members and new converts by male and female while keeping them correctly included in the overall congregation count.",
+    icon: (
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M12 21s-7-4.35-7-11a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 6.65-7 11-7 11Z" />
+      </svg>
+    ),
+  },
+  {
+    number: "06",
+    title: "Lead with dependable reports",
+    description:
+      "Use trend charts, service logs and CSV exports to identify patterns and support better ministry decisions from phone or computer.",
+    icon: (
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M4 19V5m0 14h16M7 15l4-4 3 2 5-7" />
+      </svg>
+    ),
+  },
 ];
 
 const steps = [
-  ["After service", "A department head checks the Active workers who were present."],
-  ["On submit", "Flock records every Active worker as Present or Absent."],
-  ["From the first miss", "A gentle check-in starts an escalating path of human care."],
+  ["Department heads record workers", "After service, each head checks the Active workers who were present. Flock records the complete department result."],
+  ["The super admin records congregation", "Overall attendance is captured by adult male, adult female and children, with new members and converts identified as subsets."],
+  ["Leaders see the whole picture", "Role-based dashboards reveal attendance trends, department performance, newcomers and people who may need care."],
+  ["Care follows insight", "Opted-in messages and leadership alerts help the church respond to repeated absence with timely, human care."],
 ];
 
 function Arrow() {
@@ -70,6 +104,9 @@ export default function Home() {
             </a>
             <a className="transition hover:text-[#4f7df3]" href="#features">
               Features
+            </a>
+            <a className="transition hover:text-[#4f7df3]" href="#insights">
+              Insights
             </a>
             <a className="transition hover:text-[#4f7df3]" href="#how-it-works">
               How it works
@@ -104,16 +141,16 @@ export default function Home() {
           <div className="max-w-3xl">
             <div className="mb-7 inline-flex items-center gap-2 rounded-full border border-[#d9e3ff] bg-white px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-[#3f67ce] shadow-sm">
               <span className="h-2 w-2 rounded-full bg-[#4f7df3]" />
-              Church workforce, cared for
+              Church people and growth, understood
             </div>
             <h1 className="max-w-3xl text-balance text-[3.35rem] font-semibold leading-[0.98] tracking-[-0.055em] text-[#101c3d] sm:text-7xl lg:text-[5.2rem]">
-              Notice sooner.
-              <span className="block text-[#4f7df3]">Care better.</span>
+              See your church clearly.
+              <span className="block text-[#4f7df3]">Care more personally.</span>
           </h1>
             <p className="mt-7 max-w-xl text-lg leading-8 text-[#5e6880] sm:text-xl sm:leading-9">
-              Flock helps churches record worker attendance after every service,
-              understand engagement across departments, and begin caring
-              follow-up from the first missed service.
+              Flock brings worker attendance, congregation growth, newcomers,
+              converts and caring follow-up into one secure, mobile-friendly
+              ministry workspace.
             </p>
             <div className="mt-9 flex flex-wrap items-center gap-4">
               <Link
@@ -136,7 +173,7 @@ export default function Home() {
               <svg viewBox="0 0 20 20" className="h-4 w-4 stroke-[#4f7df3]" fill="none" strokeWidth="1.8">
                 <path d="m4.5 10 3.25 3.25 7.75-7.5" />
               </svg>
-              Built for the rhythm of real church life.
+              Clear records. Useful trends. Better-informed care.
             </p>
           </div>
 
@@ -146,10 +183,10 @@ export default function Home() {
               <div className="flex items-center justify-between border-b border-[#e8edf8] pb-5">
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#8993a8]">
-                    Workforce health
+                    Sunday ministry overview
                   </p>
                   <p className="mt-1 text-lg font-semibold text-[#172344]">
-                    Sunday service
+                    People and participation
                   </p>
                 </div>
                 <div className="rounded-full bg-[#edf2ff] px-3 py-1.5 text-xs font-semibold text-[#4f7df3]">
@@ -159,8 +196,8 @@ export default function Home() {
 
               <div className="grid gap-3 py-5 sm:grid-cols-3">
                 {[
-                  ["92%", "Attendance", "text-[#4f7df3]"],
-                  ["184", "Workers", "text-[#172344]"],
+                  ["426", "Congregation", "text-[#4f7df3]"],
+                  ["92%", "Worker attendance", "text-[#172344]"],
                   ["6", "Need care", "text-[#d26a4d]"],
                 ].map(([value, label, color]) => (
                   <div key={label} className="rounded-2xl bg-[#f6f8fd] p-4">
@@ -175,15 +212,15 @@ export default function Home() {
               <div className="rounded-2xl border border-[#e6ebf7] p-4 sm:p-5">
                 <div className="flex items-center justify-between">
                   <p className="text-sm font-semibold text-[#253252]">
-                    Department attendance
+                    Congregation composition
                   </p>
                   <p className="text-xs text-[#8a94a8]">This month</p>
                 </div>
                 <div className="mt-5 space-y-4">
                   {[
-                    ["Ushering", "94%", "94%"],
-                    ["Media", "88%", "88%"],
-                    ["Music", "81%", "81%"],
+                    ["Adult female", "48%", "48%"],
+                    ["Adult male", "39%", "39%"],
+                    ["Children", "13%", "13%"],
                   ].map(([name, value, width]) => (
                     <div key={name}>
                       <div className="mb-2 flex justify-between text-xs">
@@ -211,10 +248,10 @@ export default function Home() {
               </div>
               <div>
                 <p className="text-xs font-semibold text-[#253252]">
-                  Follow-up ready
+                  14 first steps recorded
                 </p>
                 <p className="mt-0.5 text-[11px] leading-4 text-[#7e889d]">
-                  An opt-in check-in, right on time.
+                  8 new members · 6 new converts
                 </p>
               </div>
             </div>
@@ -263,11 +300,11 @@ export default function Home() {
               One simple system
             </p>
             <h2 className="mt-4 text-4xl font-semibold tracking-[-0.04em] text-[#101c3d] sm:text-5xl">
-              From attendance to meaningful care.
+              From service records to meaningful ministry insight.
             </h2>
             <p className="mt-5 text-lg leading-8 text-[#667188]">
               Less administration for your team. More visibility for leaders.
-              Better care for every person who serves.
+              A clearer understanding of everyone who attends and serves.
             </p>
           </div>
 
@@ -300,7 +337,29 @@ export default function Home() {
         </div>
       </section>
 
-      <section id="how-it-works" className="px-5 pb-20 sm:px-8 sm:pb-28 lg:px-12">
+      <section id="insights" className="border-y border-[#e4e9f5] bg-white px-5 py-20 sm:px-8 sm:py-28 lg:px-12">
+        <div className="mx-auto grid max-w-7xl items-center gap-12 lg:grid-cols-[0.9fr_1.1fr] lg:gap-20">
+          <div>
+            <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#4f7df3]">More than a headcount</p>
+            <h2 className="mt-4 text-4xl font-semibold tracking-[-0.04em] text-[#101c3d] sm:text-5xl">See participation, growth and care in context.</h2>
+            <p className="mt-5 text-lg leading-8 text-[#667188]">Flock keeps overall congregation attendance accurate while separately showing new members and new converts. Leaders can recognize growth patterns without double-counting people or collecting unnecessary personal data.</p>
+            <div className="mt-8 grid gap-3 sm:grid-cols-2">
+              {["Male, female and children breakdown", "New members and converts by gender", "Service-by-service trend charts", "Exportable leadership reports"].map((item) => <div key={item} className="flex items-center gap-3 rounded-2xl border border-[#e2e8f5] bg-[#f8faff] px-4 py-3 text-sm font-medium text-[#42506d]"><span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#e8efff] text-[#4f7df3]">✓</span>{item}</div>)}
+            </div>
+          </div>
+          <div className="rounded-[2rem] bg-[#101c3d] p-5 text-white shadow-[0_26px_70px_rgba(16,28,61,0.18)] sm:p-7">
+            <div className="flex items-start justify-between gap-4"><div><p className="text-xs font-semibold uppercase tracking-[0.15em] text-[#8da9f6]">Attendance trend</p><p className="mt-2 text-xl font-semibold">Growing participation</p></div><span className="rounded-full bg-[#20335f] px-3 py-1.5 text-xs text-[#b9caf8]">Last 6 services</span></div>
+            <div className="mt-8 flex h-44 items-end gap-3 border-b border-l border-white/15 px-3 pb-3 sm:gap-5">
+              {[48, 58, 54, 70, 76, 88].map((height, index) => <div key={height + index} className="flex h-full flex-1 items-end"><div className="w-full rounded-t-lg bg-gradient-to-t from-[#4f7df3] to-[#90abf7]" style={{ height: `${height}%` }} /></div>)}
+            </div>
+            <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3">
+              {[["426", "Total attendance"], ["8", "New members"], ["6", "New converts"]].map(([value, label]) => <div key={label} className="rounded-2xl bg-white/8 p-4"><p className="text-2xl font-semibold">{value}</p><p className="mt-1 text-xs text-[#aab8da]">{label}</p></div>)}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="how-it-works" className="px-5 py-20 sm:px-8 sm:py-28 lg:px-12">
         <div className="mx-auto max-w-7xl overflow-hidden rounded-[2rem] bg-[#eef3ff] px-6 py-12 sm:px-10 sm:py-16 lg:px-16">
           <div className="grid gap-12 lg:grid-cols-[0.75fr_1.25fr] lg:gap-20">
             <div>
@@ -342,7 +401,7 @@ export default function Home() {
               Stronger teams start with seeing clearly
             </p>
             <h2 className="mt-5 text-4xl font-semibold leading-tight tracking-[-0.04em] sm:text-5xl">
-              Keep every worker seen, known, and cared for.
+              Turn every service into clearer insight and better care.
             </h2>
             <div className="mt-9 flex flex-wrap justify-center gap-3">
               <Link
@@ -371,19 +430,20 @@ export default function Home() {
             <div>
               <FlockBrand compact />
               <p className="mt-1 max-w-xs text-sm leading-6 text-[#7a8499]">
-                Helping churches care well for the people who serve.
+                Helping churches understand attendance, recognize growth and care well for people.
               </p>
             </div>
             <nav aria-label="Footer navigation" className="flex flex-wrap gap-x-7 gap-y-3 text-sm font-medium text-[#68738a]">
               <a className="hover:text-[#4f7df3]" href="#why-flock">Why Flock</a>
               <a className="hover:text-[#4f7df3]" href="#features">Features</a>
+              <a className="hover:text-[#4f7df3]" href="#insights">Insights</a>
               <a className="hover:text-[#4f7df3]" href="#how-it-works">How it works</a>
               <Link className="hover:text-[#4f7df3]" href="/privacy">Privacy</Link>
             </nav>
           </div>
           <div className="mt-10 flex flex-col gap-3 border-t border-[#e7ebf4] pt-6 text-xs text-[#9099ac] sm:flex-row sm:items-center sm:justify-between">
             <p>© {new Date().getFullYear()} Flock. All rights reserved.</p>
-            <p>Church workforce, cared for.</p>
+            <p>Church insight, participation and care in one place.</p>
           </div>
         </div>
       </footer>
