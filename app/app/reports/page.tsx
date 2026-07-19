@@ -1,6 +1,7 @@
 import { requireProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { WorkspaceNotice } from "@/components/workspace-notice";
+import { TrendLineChart, type TrendPoint } from "@/components/trend-line-chart";
 
 const serviceTypes = ["Sunday Service", "Tuesday Service", "Special Service", "Headquarters Service", "Tarry Night"];
 
@@ -88,6 +89,26 @@ export default async function ReportsPage({
     }))
     .sort((a, b) => b.count - a.count);
   const maxHeadcount = Math.max(1, ...headcountByDepartment.map((item) => item.count));
+  const attendanceByService = [...rows.reduce((groups, row) => {
+    if (!row.services) return groups;
+    const current = groups.get(row.services.id) ?? {
+      date: row.services.service_date,
+      type: row.services.service_type,
+      present: 0,
+      roster: 0,
+    };
+    current.present += row.present_count;
+    current.roster += row.roster_count;
+    groups.set(row.services.id, current);
+    return groups;
+  }, new Map<string, { date: string; type: string; present: number; roster: number }>())]
+    .map(([, service]) => service)
+    .sort((a, b) => a.date.localeCompare(b.date));
+  const trendPoints: TrendPoint[] = attendanceByService.map((service) => ({
+    label: new Intl.DateTimeFormat("en-NG", { day: "numeric", month: "short", timeZone: "UTC" }).format(new Date(`${service.date}T00:00:00Z`)),
+    value: percentage(service.present, service.roster),
+    detail: `${service.type} on ${displayDate(service.date)}: ${service.present} of ${service.roster} workers present (${percentage(service.present, service.roster)}%)`,
+  }));
 
   return (
     <div className="mx-auto max-w-6xl">
@@ -127,6 +148,16 @@ export default async function ReportsPage({
           ["Attendance rate", `${percentage(present, roster)}%`, `${present} of ${roster} records`],
         ].map(([label, value, detail]) => <section key={label} className="rounded-2xl border border-[#e8e5da] bg-[#fbfaf5] p-5"><p className="text-sm font-medium text-[#6d6a60]">{label}</p><p className="mt-2 text-3xl font-semibold text-[#24231f]">{value}</p><p className="mt-2 text-xs text-[#8e8a7e]">{detail}</p></section>)}
       </div>
+
+      <section className="mt-6 rounded-3xl border border-[#e0e6f2] bg-white p-5 sm:p-6">
+        <div>
+          <h2 className="text-lg font-semibold">Worker attendance trend</h2>
+          <p className="mt-1 text-xs text-[#8993a7]">Attendance rate by service for the active filters above.</p>
+        </div>
+        <div className="mt-5">
+          <TrendLineChart points={trendPoints} title="Worker attendance rate trend" suffix="%" fixedMaximum={100} />
+        </div>
+      </section>
 
       <div className="mt-6 grid gap-5 lg:grid-cols-[1.2fr_0.8fr]">
         <section className="rounded-3xl border border-[#e0e1e5] bg-white p-5 sm:p-6">

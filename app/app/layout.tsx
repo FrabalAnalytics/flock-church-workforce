@@ -26,11 +26,13 @@ export default async function WorkspaceLayout({ children }: { children: React.Re
       { label: "Departments", href: "/app/departments" },
       { label: "Users", href: "/app/users" },
       { label: "Attendance", href: "/app/attendance" },
+      { label: "Church attendance", href: "/app/church-attendance" },
       { label: "Care alerts", href: "/app/follow-ups" },
     ],
     church_leader: [
       { label: "Overview", href: "/app/reports" },
       { label: "Attendance", href: "/app/attendance" },
+      { label: "Church attendance", href: "/app/church-attendance" },
       { label: "Care alerts", href: "/app/follow-ups" },
     ],
     department_head: [

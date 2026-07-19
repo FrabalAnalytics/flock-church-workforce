@@ -99,6 +99,23 @@ create table if not exists public.attendance_submissions (
   unique (service_id, department_id)
 );
 
+-- Congregation attendance is intentionally aggregate-only. It shares the
+-- service calendar with worker attendance without storing attendee identities.
+create table if not exists public.church_attendance (
+  id uuid primary key default gen_random_uuid(),
+  service_id uuid not null unique references public.services(id) on delete cascade,
+  adult_male_count integer not null default 0 check (adult_male_count >= 0),
+  adult_female_count integer not null default 0 check (adult_female_count >= 0),
+  children_count integer not null default 0 check (children_count >= 0),
+  total_count integer generated always as (
+    adult_male_count + adult_female_count + children_count
+  ) stored,
+  submitted_by uuid references public.profiles(id) on delete set null,
+  submitted_at timestamptz not null default now(),
+  updated_by uuid references public.profiles(id) on delete set null,
+  updated_at timestamptz not null default now()
+);
+
 create table if not exists public.attendance_logs (
   id uuid primary key default gen_random_uuid(),
   submission_id uuid references public.attendance_submissions(id)
@@ -226,6 +243,8 @@ create index if not exists attendance_submissions_service_id_idx
   on public.attendance_submissions (service_id);
 create index if not exists attendance_submissions_department_id_idx
   on public.attendance_submissions (department_id);
+create index if not exists church_attendance_service_id_idx
+  on public.church_attendance (service_id);
 create index if not exists attendance_logs_worker_id_idx
   on public.attendance_logs (worker_id);
 create index if not exists attendance_logs_department_id_idx
@@ -750,6 +769,94 @@ revoke all on function public.submit_department_attendance(text, uuid[])
 grant execute on function public.submit_department_attendance(text, uuid[])
   to authenticated;
 
+-- Church leaders and super admins record one aggregate congregation total per
+-- service. Re-submitting corrects that record while preserving its creator.
+create or replace function public.submit_church_attendance(
+  p_service_date date,
+  p_service_type text,
+  p_adult_male_count integer,
+  p_adult_female_count integer,
+  p_children_count integer
+)
+returns uuid
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  actor_id uuid := (select auth.uid());
+  service_uuid uuid;
+  attendance_uuid uuid;
+begin
+  if actor_id is null or not public.is_church_leader() then
+    raise exception 'Only a church leader or super admin can record church attendance';
+  end if;
+
+  if p_service_date is null or p_service_date > (now() at time zone 'Africa/Lagos')::date then
+    raise exception 'Select a valid service date that is not in the future';
+  end if;
+
+  if p_service_type not in (
+    'Sunday Service',
+    'Tuesday Service',
+    'Special Service',
+    'Headquarters Service',
+    'Tarry Night'
+  ) then
+    raise exception 'Invalid service type';
+  end if;
+
+  if coalesce(p_adult_male_count, -1) < 0
+     or coalesce(p_adult_female_count, -1) < 0
+     or coalesce(p_children_count, -1) < 0
+  then
+    raise exception 'Attendance counts cannot be negative';
+  end if;
+
+  insert into public.services (service_date, service_type, created_by)
+  values (p_service_date, p_service_type, actor_id)
+  on conflict (service_date, service_type)
+  do update set service_date = excluded.service_date
+  returning id into service_uuid;
+
+  insert into public.church_attendance (
+    service_id,
+    adult_male_count,
+    adult_female_count,
+    children_count,
+    submitted_by,
+    submitted_at,
+    updated_by,
+    updated_at
+  )
+  values (
+    service_uuid,
+    p_adult_male_count,
+    p_adult_female_count,
+    p_children_count,
+    actor_id,
+    now(),
+    actor_id,
+    now()
+  )
+  on conflict (service_id)
+  do update set
+    adult_male_count = excluded.adult_male_count,
+    adult_female_count = excluded.adult_female_count,
+    children_count = excluded.children_count,
+    updated_by = actor_id,
+    updated_at = now()
+  returning id into attendance_uuid;
+
+  return attendance_uuid;
+end;
+$$;
+
+revoke all on function public.submit_church_attendance(date, text, integer, integer, integer)
+  from public;
+grant execute on function public.submit_church_attendance(date, text, integer, integer, integer)
+  to authenticated;
+
 -- Trusted delivery workers atomically claim queued messages before contacting
 -- Twilio. SKIP LOCKED prevents concurrent cron invocations from sending the
 -- same care message twice.
@@ -789,6 +896,7 @@ alter table public.profiles enable row level security;
 alter table public.workers enable row level security;
 alter table public.services enable row level security;
 alter table public.attendance_submissions enable row level security;
+alter table public.church_attendance enable row level security;
 alter table public.attendance_logs enable row level security;
 alter table public.absence_followups enable row level security;
 alter table public.followup_events enable row level security;
@@ -811,6 +919,7 @@ drop policy if exists "Dept heads can create services" on public.services;
 drop policy if exists "Creators and leaders can update services" on public.services;
 drop policy if exists "Creators and leaders can delete services" on public.services;
 drop policy if exists "View authorized attendance submissions" on public.attendance_submissions;
+drop policy if exists "Church leaders view church attendance" on public.church_attendance;
 drop policy if exists "Dept heads view own dept logs" on public.attendance_logs;
 drop policy if exists "Dept heads submit attendance" on public.attendance_logs;
 drop policy if exists "Authorized users can update attendance" on public.attendance_logs;
@@ -894,6 +1003,10 @@ create policy "View authorized attendance submissions"
     public.is_church_leader()
     or department_id = public.current_department_id()
   );
+
+create policy "Church leaders view church attendance"
+  on public.church_attendance for select to authenticated
+  using (public.is_church_leader());
 
 create policy "Dept heads view own dept logs"
   on public.attendance_logs for select to authenticated
@@ -1017,6 +1130,7 @@ revoke all on table public.profiles from anon;
 revoke all on table public.workers from anon;
 revoke all on table public.services from anon;
 revoke all on table public.attendance_submissions from anon;
+revoke all on table public.church_attendance from anon;
 revoke all on table public.attendance_logs from anon;
 revoke all on table public.absence_followups from anon;
 revoke all on table public.followup_events from anon;
@@ -1026,6 +1140,7 @@ grant select, insert, update, delete on table public.profiles to authenticated;
 grant select, insert, update, delete on table public.workers to authenticated;
 grant select, insert, update, delete on table public.services to authenticated;
 grant select on table public.attendance_submissions to authenticated;
+grant select on table public.church_attendance to authenticated;
 grant select on table public.attendance_logs to authenticated;
 grant select, update on table public.absence_followups to authenticated;
 grant select on table public.followup_events to authenticated;
