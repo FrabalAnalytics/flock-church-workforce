@@ -1,5 +1,6 @@
 import { requireProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
+import { WorkspaceNotice } from "@/components/workspace-notice";
 
 const serviceTypes = ["Sunday Service", "Tuesday Service", "Special Service", "Headquarters Service", "Tarry Night"];
 
@@ -35,7 +36,7 @@ function displayDate(value: string) {
 export default async function ReportsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ from?: string; to?: string; department?: string; service?: string; range?: string }>;
+  searchParams: Promise<{ from?: string; to?: string; department?: string; service?: string; range?: string; message?: string; error?: string }>;
 }) {
   const { profile } = await requireProfile();
   const params = await searchParams;
@@ -90,10 +91,11 @@ export default async function ReportsPage({
 
   return (
     <div className="mx-auto max-w-6xl">
+      <WorkspaceNotice message={params.message} error={params.error} />
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="text-sm font-semibold uppercase tracking-[0.15em] text-[#4f7df3]">Church leadership</p>
-          <h1 className="mt-2 text-3xl font-semibold tracking-[-0.035em]">Attendance overview</h1>
+          <h1 className="mt-2 text-3xl font-semibold tracking-[-0.035em]">{profile.role === "department_head" ? "Attendance reports" : "Overview"}</h1>
           <p className="mt-2 text-sm text-[#758097]">Track church workforce participation across services and departments.</p>
         </div>
         <a href={`/api/reports/attendance.csv?${exportParams}`} className="w-fit rounded-xl bg-[#4f7df3] px-5 py-3 text-sm font-semibold text-white">Export CSV</a>

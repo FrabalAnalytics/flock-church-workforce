@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { WorkspaceNotice } from "@/components/workspace-notice";
 import { requireProfile, type ProfileRole } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
@@ -47,6 +48,13 @@ export default async function WorkspaceOverview({
 }) {
   const { profile } = await requireProfile();
   const params = await searchParams;
+  const usesLeadershipOverview = ["super_admin", "church_leader"].includes(profile.role);
+  if (usesLeadershipOverview) {
+    const query = new URLSearchParams();
+    if (params.message) query.set("message", params.message);
+    if (params.error) query.set("error", params.error);
+    redirect(`/app/reports${query.size ? `?${query}` : ""}`);
+  }
   const supabase = await createClient();
 
   const [

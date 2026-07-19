@@ -21,18 +21,16 @@ export default async function WorkspaceLayout({ children }: { children: React.Re
 
   const links: Record<string, WorkspaceLink[]> = {
     super_admin: [
-      { label: "Overview", href: "/app" },
+      { label: "Overview", href: "/app/reports" },
       { label: "Workers", href: "/app/workers" },
       { label: "Departments", href: "/app/departments" },
       { label: "Users", href: "/app/users" },
       { label: "Attendance", href: "/app/attendance" },
-      { label: "Reports", href: "/app/reports" },
       { label: "Care alerts", href: "/app/follow-ups" },
     ],
     church_leader: [
-      { label: "Overview", href: "/app" },
+      { label: "Overview", href: "/app/reports" },
       { label: "Attendance", href: "/app/attendance" },
-      { label: "Reports", href: "/app/reports" },
       { label: "Care alerts", href: "/app/follow-ups" },
     ],
     department_head: [
