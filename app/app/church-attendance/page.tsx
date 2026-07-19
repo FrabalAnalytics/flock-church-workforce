@@ -12,6 +12,10 @@ type ChurchAttendanceRow = {
   adult_male_count: number;
   adult_female_count: number;
   children_count: number;
+  new_members_male_count: number;
+  new_members_female_count: number;
+  new_converts_male_count: number;
+  new_converts_female_count: number;
   total_count: number;
   submitted_at: string;
   updated_at: string;
@@ -58,7 +62,7 @@ export default async function ChurchAttendancePage({
   const supabase = await createClient();
   let query = supabase
     .from("church_attendance")
-    .select("id, adult_male_count, adult_female_count, children_count, total_count, submitted_at, updated_at, services!inner(id, service_date, service_type)")
+    .select("id, adult_male_count, adult_female_count, children_count, new_members_male_count, new_members_female_count, new_converts_male_count, new_converts_female_count, total_count, submitted_at, updated_at, services!inner(id, service_date, service_type)")
     .gte("services.service_date", from)
     .lte("services.service_date", to)
     .order("service_date", { referencedTable: "services", ascending: false })
@@ -70,12 +74,28 @@ export default async function ChurchAttendancePage({
   const adultMale = rows.reduce((sum, row) => sum + row.adult_male_count, 0);
   const adultFemale = rows.reduce((sum, row) => sum + row.adult_female_count, 0);
   const children = rows.reduce((sum, row) => sum + row.children_count, 0);
+  const newMembersMale = rows.reduce((sum, row) => sum + row.new_members_male_count, 0);
+  const newMembersFemale = rows.reduce((sum, row) => sum + row.new_members_female_count, 0);
+  const newConvertsMale = rows.reduce((sum, row) => sum + row.new_converts_male_count, 0);
+  const newConvertsFemale = rows.reduce((sum, row) => sum + row.new_converts_female_count, 0);
+  const newMembers = newMembersMale + newMembersFemale;
+  const newConverts = newConvertsMale + newConvertsFemale;
   const total = adultMale + adultFemale + children;
   const average = rows.length ? Math.round(total / rows.length) : 0;
   const trendPoints: TrendPoint[] = [...rows].reverse().map((row) => ({
     label: row.services ? displayDate(row.services.service_date, true) : "Service",
     value: row.total_count,
     detail: `${row.services?.service_type ?? "Service"} on ${row.services ? displayDate(row.services.service_date) : "unknown date"}: ${row.total_count} attendees`,
+  }));
+  const newMemberTrendPoints: TrendPoint[] = [...rows].reverse().map((row) => ({
+    label: row.services ? displayDate(row.services.service_date, true) : "Service",
+    value: row.new_members_male_count + row.new_members_female_count,
+    detail: `${row.services?.service_type ?? "Service"}: ${row.new_members_male_count + row.new_members_female_count} new members`,
+  }));
+  const newConvertTrendPoints: TrendPoint[] = [...rows].reverse().map((row) => ({
+    label: row.services ? displayDate(row.services.service_date, true) : "Service",
+    value: row.new_converts_male_count + row.new_converts_female_count,
+    detail: `${row.services?.service_type ?? "Service"}: ${row.new_converts_male_count + row.new_converts_female_count} new converts`,
   }));
   const byServiceType = [...rows.reduce((groups, row) => {
     const name = row.services?.service_type ?? "Unknown service";
@@ -102,13 +122,25 @@ export default async function ChurchAttendancePage({
           <div><h2 className="text-lg font-semibold">Record a service</h2><p className="mt-1 text-xs text-[#8993a7]">Only one church-attendance record is allowed for each calendar date.</p></div>
           <span className="w-fit rounded-full bg-[#edf8f1] px-3 py-1 text-xs font-semibold text-[#2f7b50]">Aggregate counts only</span>
         </div>
-        <form action={submitChurchAttendance} className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-          <label className="text-xs font-semibold text-[#68738a]">Service date<input type="date" name="service_date" max={isoDate(new Date())} defaultValue={isoDate(new Date())} required className="mt-2 h-11 w-full rounded-xl border border-[#dce3f1] px-3 text-sm font-normal" /></label>
-          <label className="text-xs font-semibold text-[#68738a]">Service type<select name="service_type" required className="mt-2 h-11 w-full rounded-xl border border-[#dce3f1] bg-white px-3 text-sm font-normal">{serviceTypes.map((service) => <option key={service}>{service}</option>)}</select></label>
-          <label className="text-xs font-semibold text-[#68738a]">Adult male<input type="number" name="adult_male_count" min="0" step="1" defaultValue="0" required className="mt-2 h-11 w-full rounded-xl border border-[#dce3f1] px-3 text-sm font-normal" /></label>
-          <label className="text-xs font-semibold text-[#68738a]">Adult female<input type="number" name="adult_female_count" min="0" step="1" defaultValue="0" required className="mt-2 h-11 w-full rounded-xl border border-[#dce3f1] px-3 text-sm font-normal" /></label>
-          <label className="text-xs font-semibold text-[#68738a]">Children<input type="number" name="children_count" min="0" step="1" defaultValue="0" required className="mt-2 h-11 w-full rounded-xl border border-[#dce3f1] px-3 text-sm font-normal" /></label>
-          <button className="rounded-xl bg-[#4f7df3] px-5 py-3 text-sm font-semibold text-white sm:col-span-2 lg:col-span-5 lg:justify-self-end">Save church attendance</button>
+        <form action={submitChurchAttendance} className="mt-5">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+            <label className="text-xs font-semibold text-[#68738a]">Service date<input type="date" name="service_date" max={isoDate(new Date())} defaultValue={isoDate(new Date())} required className="mt-2 h-11 w-full rounded-xl border border-[#dce3f1] px-3 text-sm font-normal" /></label>
+            <label className="text-xs font-semibold text-[#68738a]">Service type<select name="service_type" required className="mt-2 h-11 w-full rounded-xl border border-[#dce3f1] bg-white px-3 text-sm font-normal">{serviceTypes.map((service) => <option key={service}>{service}</option>)}</select></label>
+            <label className="text-xs font-semibold text-[#68738a]">Adult male<input type="number" name="adult_male_count" min="0" step="1" defaultValue="0" required className="mt-2 h-11 w-full rounded-xl border border-[#dce3f1] px-3 text-sm font-normal" /></label>
+            <label className="text-xs font-semibold text-[#68738a]">Adult female<input type="number" name="adult_female_count" min="0" step="1" defaultValue="0" required className="mt-2 h-11 w-full rounded-xl border border-[#dce3f1] px-3 text-sm font-normal" /></label>
+            <label className="text-xs font-semibold text-[#68738a]">Children<input type="number" name="children_count" min="0" step="1" defaultValue="0" required className="mt-2 h-11 w-full rounded-xl border border-[#dce3f1] px-3 text-sm font-normal" /></label>
+          </div>
+          <div className="mt-5 rounded-2xl border border-[#e3e8f2] bg-[#f8faff] p-4">
+            <h3 className="text-sm font-semibold text-[#34415f]">First-time response groups</h3>
+            <p className="mt-1 text-xs leading-5 text-[#758097]">These people are already included in the adult male and female totals. A person cannot be counted as both a new member and a new convert.</p>
+            <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <label className="text-xs font-semibold text-[#68738a]">New members — male<input type="number" name="new_members_male_count" min="0" step="1" defaultValue="0" required className="mt-2 h-11 w-full rounded-xl border border-[#dce3f1] bg-white px-3 text-sm font-normal" /></label>
+              <label className="text-xs font-semibold text-[#68738a]">New members — female<input type="number" name="new_members_female_count" min="0" step="1" defaultValue="0" required className="mt-2 h-11 w-full rounded-xl border border-[#dce3f1] bg-white px-3 text-sm font-normal" /></label>
+              <label className="text-xs font-semibold text-[#68738a]">New converts — male<input type="number" name="new_converts_male_count" min="0" step="1" defaultValue="0" required className="mt-2 h-11 w-full rounded-xl border border-[#dce3f1] bg-white px-3 text-sm font-normal" /></label>
+              <label className="text-xs font-semibold text-[#68738a]">New converts — female<input type="number" name="new_converts_female_count" min="0" step="1" defaultValue="0" required className="mt-2 h-11 w-full rounded-xl border border-[#dce3f1] bg-white px-3 text-sm font-normal" /></label>
+            </div>
+          </div>
+          <div className="mt-5 flex justify-end"><button className="rounded-xl bg-[#4f7df3] px-5 py-3 text-sm font-semibold text-white">Save church attendance</button></div>
         </form>
       </section> : <div className="mt-7 rounded-2xl border border-[#dbe3f2] bg-[#f7f9fd] px-5 py-4 text-sm text-[#68738a]">Church attendance is read-only for church leaders. A super admin records each service total.</div>}
 
@@ -125,10 +157,20 @@ export default async function ChurchAttendancePage({
         {[["Total attendance", total, `${rows.length} services`], ["Average per service", average, "All attendees"], ["Adult male", adultMale, `${percentage(adultMale, total)}% of attendance`], ["Adult female", adultFemale, `${percentage(adultFemale, total)}% of attendance`], ["Children", children, `${percentage(children, total)}% of attendance`]].map(([label, value, detail]) => <section key={label} className="rounded-2xl border border-[#e8e5da] bg-[#fbfaf5] p-5"><p className="text-sm text-[#6d6a60]">{label}</p><p className="mt-2 text-3xl font-semibold text-[#24231f]">{value}</p><p className="mt-2 text-xs text-[#8e8a7e]">{detail}</p></section>)}
       </div>
 
+      <div className="mt-4 grid gap-4 sm:grid-cols-2">
+        <section className="rounded-2xl border border-[#dbe8df] bg-[#f4faf6] p-5"><p className="text-sm text-[#52705c]">New members</p><p className="mt-2 text-3xl font-semibold text-[#244b32]">{newMembers}</p><p className="mt-2 text-xs text-[#718579]">{newMembersMale} male · {newMembersFemale} female</p></section>
+        <section className="rounded-2xl border border-[#eadfca] bg-[#fffaf0] p-5"><p className="text-sm text-[#766344]">New converts</p><p className="mt-2 text-3xl font-semibold text-[#5c451d]">{newConverts}</p><p className="mt-2 text-xs text-[#8d7c5f]">{newConvertsMale} male · {newConvertsFemale} female</p></section>
+      </div>
+
       <section className="mt-6 rounded-3xl border border-[#e0e6f2] bg-white p-5 sm:p-6">
         <div><h2 className="text-lg font-semibold">Total attendance trend</h2><p className="mt-1 text-xs text-[#8993a7]">Overall congregation attendance for each recorded service.</p></div>
         <div className="mt-5"><TrendLineChart points={trendPoints} title="Church attendance trend" /></div>
       </section>
+
+      <div className="mt-6 grid gap-5 lg:grid-cols-2">
+        <section className="rounded-3xl border border-[#e0e6f2] bg-white p-5 sm:p-6"><h2 className="text-lg font-semibold">New member trend</h2><p className="mt-1 text-xs text-[#8993a7]">New members identified at each service.</p><div className="mt-5"><TrendLineChart points={newMemberTrendPoints} title="New member trend" /></div></section>
+        <section className="rounded-3xl border border-[#e0e6f2] bg-white p-5 sm:p-6"><h2 className="text-lg font-semibold">New convert trend</h2><p className="mt-1 text-xs text-[#8993a7]">New converts identified at each service.</p><div className="mt-5"><TrendLineChart points={newConvertTrendPoints} title="New convert trend" /></div></section>
+      </div>
 
       <div className="mt-6 grid gap-5 lg:grid-cols-[0.8fr_1.2fr]">
         <section className="rounded-3xl border border-[#e0e6f2] bg-white p-5 sm:p-6"><h2 className="font-semibold">Attendance mix</h2><div className="mt-5 space-y-4">{[["Adult male", adultMale, "bg-[#4f7df3]"], ["Adult female", adultFemale, "bg-[#9b72d2]"], ["Children", children, "bg-[#e0ad35]"]].map(([label, value, color]) => <div key={label as string}><div className="flex justify-between text-xs font-semibold text-[#596274]"><span>{label}</span><span>{value} · {percentage(value as number, total)}%</span></div><div className="mt-2 h-2.5 overflow-hidden rounded-full bg-[#eef1f6]"><div className={`h-full rounded-full ${color}`} style={{ width: `${percentage(value as number, total)}%` }} /></div></div>)}</div></section>
@@ -137,7 +179,7 @@ export default async function ChurchAttendancePage({
 
       <section className="mt-6 overflow-hidden rounded-3xl border border-[#e0e1e5] bg-white">
         <div className="border-b border-[#e8ecf4] px-5 py-4 sm:px-6"><h2 className="font-semibold">Service log</h2></div>
-        {rows.length ? <div className="divide-y divide-[#edf0f6]">{rows.map((row) => <div key={row.id} className="grid gap-3 px-5 py-4 sm:grid-cols-[1fr_auto] sm:items-center sm:px-6"><div><p className="text-sm font-semibold text-[#34415f]">{row.services?.service_type ?? "Service"}</p><p className="mt-1 text-xs text-[#8993a7]">{row.services ? displayDate(row.services.service_date) : "Unknown date"} · Updated {new Intl.DateTimeFormat("en-NG", { dateStyle: "medium", timeStyle: "short" }).format(new Date(row.updated_at))}</p><div className="mt-2 flex flex-wrap gap-2 text-xs"><span className="rounded-full bg-[#edf2ff] px-2.5 py-1 text-[#4168cd]">{row.adult_male_count} male</span><span className="rounded-full bg-[#f3eef9] px-2.5 py-1 text-[#7951ae]">{row.adult_female_count} female</span><span className="rounded-full bg-[#fff6dd] px-2.5 py-1 text-[#936b10]">{row.children_count} children</span></div></div><p className="text-2xl font-semibold sm:text-right">{row.total_count}<span className="ml-1 text-xs font-normal text-[#8993a7]">total</span></p></div>)}</div> : <p className="px-6 py-14 text-center text-sm text-[#8993a7]">No church attendance matches these filters.</p>}
+        {rows.length ? <div className="divide-y divide-[#edf0f6]">{rows.map((row) => <div key={row.id} className="grid gap-3 px-5 py-4 sm:grid-cols-[1fr_auto] sm:items-center sm:px-6"><div><p className="text-sm font-semibold text-[#34415f]">{row.services?.service_type ?? "Service"}</p><p className="mt-1 text-xs text-[#8993a7]">{row.services ? displayDate(row.services.service_date) : "Unknown date"} · Updated {new Intl.DateTimeFormat("en-NG", { dateStyle: "medium", timeStyle: "short" }).format(new Date(row.updated_at))}</p><div className="mt-2 flex flex-wrap gap-2 text-xs"><span className="rounded-full bg-[#edf2ff] px-2.5 py-1 text-[#4168cd]">{row.adult_male_count} male</span><span className="rounded-full bg-[#f3eef9] px-2.5 py-1 text-[#7951ae]">{row.adult_female_count} female</span><span className="rounded-full bg-[#fff6dd] px-2.5 py-1 text-[#936b10]">{row.children_count} children</span><span className="rounded-full bg-[#edf8f1] px-2.5 py-1 text-[#2f7b50]">{row.new_members_male_count + row.new_members_female_count} new members ({row.new_members_male_count}M/{row.new_members_female_count}F)</span><span className="rounded-full bg-[#fff4e3] px-2.5 py-1 text-[#8d641d]">{row.new_converts_male_count + row.new_converts_female_count} new converts ({row.new_converts_male_count}M/{row.new_converts_female_count}F)</span></div></div><p className="text-2xl font-semibold sm:text-right">{row.total_count}<span className="ml-1 text-xs font-normal text-[#8993a7]">total</span></p></div>)}</div> : <p className="px-6 py-14 text-center text-sm text-[#8993a7]">No church attendance matches these filters.</p>}
       </section>
     </div>
   );

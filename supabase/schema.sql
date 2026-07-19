@@ -108,6 +108,10 @@ create table if not exists public.church_attendance (
   adult_male_count integer not null default 0 check (adult_male_count >= 0),
   adult_female_count integer not null default 0 check (adult_female_count >= 0),
   children_count integer not null default 0 check (children_count >= 0),
+  new_members_male_count integer not null default 0,
+  new_members_female_count integer not null default 0,
+  new_converts_male_count integer not null default 0,
+  new_converts_female_count integer not null default 0,
   total_count integer generated always as (
     adult_male_count + adult_female_count + children_count
   ) stored,
@@ -120,6 +124,14 @@ create table if not exists public.church_attendance (
 -- Upgrade church-attendance drafts created before the one-record-per-day rule.
 alter table public.church_attendance
   add column if not exists attendance_date date;
+alter table public.church_attendance
+  add column if not exists new_members_male_count integer not null default 0;
+alter table public.church_attendance
+  add column if not exists new_members_female_count integer not null default 0;
+alter table public.church_attendance
+  add column if not exists new_converts_male_count integer not null default 0;
+alter table public.church_attendance
+  add column if not exists new_converts_female_count integer not null default 0;
 
 update public.church_attendance as attendance
 set attendance_date = service.service_date
@@ -129,6 +141,35 @@ where attendance.service_id = service.id
 
 alter table public.church_attendance
   alter column attendance_date set not null;
+
+-- New members and new converts are mutually exclusive adult subsets. Their
+-- counts are already included in the adult totals and never increase total_count.
+alter table public.church_attendance
+  drop constraint if exists church_attendance_newcomer_counts_nonnegative;
+alter table public.church_attendance
+  add constraint church_attendance_newcomer_counts_nonnegative
+  check (
+    new_members_male_count >= 0
+    and new_members_female_count >= 0
+    and new_converts_male_count >= 0
+    and new_converts_female_count >= 0
+  );
+
+alter table public.church_attendance
+  drop constraint if exists church_attendance_male_newcomer_subset;
+alter table public.church_attendance
+  add constraint church_attendance_male_newcomer_subset
+  check (
+    new_members_male_count + new_converts_male_count <= adult_male_count
+  );
+
+alter table public.church_attendance
+  drop constraint if exists church_attendance_female_newcomer_subset;
+alter table public.church_attendance
+  add constraint church_attendance_female_newcomer_subset
+  check (
+    new_members_female_count + new_converts_female_count <= adult_female_count
+  );
 
 create table if not exists public.attendance_logs (
   id uuid primary key default gen_random_uuid(),
@@ -785,6 +826,11 @@ revoke all on function public.submit_department_attendance(text, uuid[])
 grant execute on function public.submit_department_attendance(text, uuid[])
   to authenticated;
 
+-- Remove the earlier five-argument draft before installing the expanded RPC.
+drop function if exists public.submit_church_attendance(
+  date, text, integer, integer, integer
+);
+
 -- Super admins record one aggregate congregation total per calendar date.
 -- Church leaders receive read-only access through RLS.
 create or replace function public.submit_church_attendance(
@@ -792,7 +838,11 @@ create or replace function public.submit_church_attendance(
   p_service_type text,
   p_adult_male_count integer,
   p_adult_female_count integer,
-  p_children_count integer
+  p_children_count integer,
+  p_new_members_male_count integer,
+  p_new_members_female_count integer,
+  p_new_converts_male_count integer,
+  p_new_converts_female_count integer
 )
 returns uuid
 language plpgsql
@@ -825,8 +875,18 @@ begin
   if coalesce(p_adult_male_count, -1) < 0
      or coalesce(p_adult_female_count, -1) < 0
      or coalesce(p_children_count, -1) < 0
+     or coalesce(p_new_members_male_count, -1) < 0
+     or coalesce(p_new_members_female_count, -1) < 0
+     or coalesce(p_new_converts_male_count, -1) < 0
+     or coalesce(p_new_converts_female_count, -1) < 0
   then
     raise exception 'Attendance counts cannot be negative';
+  end if;
+
+  if p_new_members_male_count + p_new_converts_male_count > p_adult_male_count
+     or p_new_members_female_count + p_new_converts_female_count > p_adult_female_count
+  then
+    raise exception 'New members and new converts must be distinct people included in the matching adult total';
   end if;
 
   if exists (
@@ -849,6 +909,10 @@ begin
     adult_male_count,
     adult_female_count,
     children_count,
+    new_members_male_count,
+    new_members_female_count,
+    new_converts_male_count,
+    new_converts_female_count,
     submitted_by,
     submitted_at,
     updated_by,
@@ -860,6 +924,10 @@ begin
     p_adult_male_count,
     p_adult_female_count,
     p_children_count,
+    p_new_members_male_count,
+    p_new_members_female_count,
+    p_new_converts_male_count,
+    p_new_converts_female_count,
     actor_id,
     now(),
     actor_id,
@@ -871,9 +939,13 @@ begin
 end;
 $$;
 
-revoke all on function public.submit_church_attendance(date, text, integer, integer, integer)
+revoke all on function public.submit_church_attendance(
+  date, text, integer, integer, integer, integer, integer, integer, integer
+)
   from public;
-grant execute on function public.submit_church_attendance(date, text, integer, integer, integer)
+grant execute on function public.submit_church_attendance(
+  date, text, integer, integer, integer, integer, integer, integer, integer
+)
   to authenticated;
 
 -- Trusted delivery workers atomically claim queued messages before contacting
