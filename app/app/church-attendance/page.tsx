@@ -97,9 +97,9 @@ export default async function ChurchAttendancePage({
         <a href={`/api/reports/church-attendance.csv?${exportParams}`} className="w-fit rounded-xl border border-[#dce3f1] bg-white px-5 py-3 text-sm font-semibold text-[#536078]">Export CSV</a>
       </div>
 
-      <section className="mt-7 rounded-3xl border border-[#dbe3f2] bg-white p-5 sm:p-6">
+      {profile.role === "super_admin" ? <section className="mt-7 rounded-3xl border border-[#dbe3f2] bg-white p-5 sm:p-6">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-          <div><h2 className="text-lg font-semibold">Record a service</h2><p className="mt-1 text-xs text-[#8993a7]">Submitting the same date and service type corrects the existing record.</p></div>
+          <div><h2 className="text-lg font-semibold">Record a service</h2><p className="mt-1 text-xs text-[#8993a7]">Only one church-attendance record is allowed for each calendar date.</p></div>
           <span className="w-fit rounded-full bg-[#edf8f1] px-3 py-1 text-xs font-semibold text-[#2f7b50]">Aggregate counts only</span>
         </div>
         <form action={submitChurchAttendance} className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
@@ -110,7 +110,7 @@ export default async function ChurchAttendancePage({
           <label className="text-xs font-semibold text-[#68738a]">Children<input type="number" name="children_count" min="0" step="1" defaultValue="0" required className="mt-2 h-11 w-full rounded-xl border border-[#dce3f1] px-3 text-sm font-normal" /></label>
           <button className="rounded-xl bg-[#4f7df3] px-5 py-3 text-sm font-semibold text-white sm:col-span-2 lg:col-span-5 lg:justify-self-end">Save church attendance</button>
         </form>
-      </section>
+      </section> : <div className="mt-7 rounded-2xl border border-[#dbe3f2] bg-[#f7f9fd] px-5 py-4 text-sm text-[#68738a]">Church attendance is read-only for church leaders. A super admin records each service total.</div>}
 
       <div className="mt-7 flex flex-wrap gap-2">{[7, 30, 90].map((days) => <a key={days} href={`/app/church-attendance?range=${days}`} className={`rounded-xl border px-4 py-2.5 text-sm font-semibold ${selectedRange === days || (!params.from && !selectedRange && days === 90) ? "border-[#4f7df3] bg-[#edf2ff] text-[#4168cd]" : "border-[#dce3f1] bg-white text-[#5e6a81]"}`}>Last {days} days</a>)}</div>
       <form className="mt-3 grid gap-3 rounded-2xl border border-[#e0e6f2] bg-white p-4 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_1.3fr_auto_auto]">

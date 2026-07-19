@@ -25,8 +25,8 @@ function count(formData: FormData, field: string) {
 
 export async function submitChurchAttendance(formData: FormData) {
   const { profile } = await requireProfile();
-  if (profile.role !== "super_admin" && profile.role !== "church_leader") {
-    redirect(destination("error", "Only church leaders and super admins can record church attendance."));
+  if (profile.role !== "super_admin") {
+    redirect(destination("error", "Only a super admin can record church attendance."));
   }
 
   const serviceDate = String(formData.get("service_date") ?? "");

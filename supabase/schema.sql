@@ -104,6 +104,7 @@ create table if not exists public.attendance_submissions (
 create table if not exists public.church_attendance (
   id uuid primary key default gen_random_uuid(),
   service_id uuid not null unique references public.services(id) on delete cascade,
+  attendance_date date not null,
   adult_male_count integer not null default 0 check (adult_male_count >= 0),
   adult_female_count integer not null default 0 check (adult_female_count >= 0),
   children_count integer not null default 0 check (children_count >= 0),
@@ -115,6 +116,19 @@ create table if not exists public.church_attendance (
   updated_by uuid references public.profiles(id) on delete set null,
   updated_at timestamptz not null default now()
 );
+
+-- Upgrade church-attendance drafts created before the one-record-per-day rule.
+alter table public.church_attendance
+  add column if not exists attendance_date date;
+
+update public.church_attendance as attendance
+set attendance_date = service.service_date
+from public.services as service
+where attendance.service_id = service.id
+  and attendance.attendance_date is null;
+
+alter table public.church_attendance
+  alter column attendance_date set not null;
 
 create table if not exists public.attendance_logs (
   id uuid primary key default gen_random_uuid(),
@@ -245,6 +259,8 @@ create index if not exists attendance_submissions_department_id_idx
   on public.attendance_submissions (department_id);
 create index if not exists church_attendance_service_id_idx
   on public.church_attendance (service_id);
+create unique index if not exists church_attendance_date_unique
+  on public.church_attendance (attendance_date);
 create index if not exists attendance_logs_worker_id_idx
   on public.attendance_logs (worker_id);
 create index if not exists attendance_logs_department_id_idx
@@ -769,8 +785,8 @@ revoke all on function public.submit_department_attendance(text, uuid[])
 grant execute on function public.submit_department_attendance(text, uuid[])
   to authenticated;
 
--- Church leaders and super admins record one aggregate congregation total per
--- service. Re-submitting corrects that record while preserving its creator.
+-- Super admins record one aggregate congregation total per calendar date.
+-- Church leaders receive read-only access through RLS.
 create or replace function public.submit_church_attendance(
   p_service_date date,
   p_service_type text,
@@ -788,8 +804,8 @@ declare
   service_uuid uuid;
   attendance_uuid uuid;
 begin
-  if actor_id is null or not public.is_church_leader() then
-    raise exception 'Only a church leader or super admin can record church attendance';
+  if actor_id is null or not public.is_super_admin() then
+    raise exception 'Only a super admin can record church attendance';
   end if;
 
   if p_service_date is null or p_service_date > (now() at time zone 'Africa/Lagos')::date then
@@ -813,6 +829,14 @@ begin
     raise exception 'Attendance counts cannot be negative';
   end if;
 
+  if exists (
+    select 1
+    from public.church_attendance as attendance
+    where attendance.attendance_date = p_service_date
+  ) then
+    raise exception 'Church attendance has already been recorded for this date';
+  end if;
+
   insert into public.services (service_date, service_type, created_by)
   values (p_service_date, p_service_type, actor_id)
   on conflict (service_date, service_type)
@@ -821,6 +845,7 @@ begin
 
   insert into public.church_attendance (
     service_id,
+    attendance_date,
     adult_male_count,
     adult_female_count,
     children_count,
@@ -831,6 +856,7 @@ begin
   )
   values (
     service_uuid,
+    p_service_date,
     p_adult_male_count,
     p_adult_female_count,
     p_children_count,
@@ -839,13 +865,6 @@ begin
     actor_id,
     now()
   )
-  on conflict (service_id)
-  do update set
-    adult_male_count = excluded.adult_male_count,
-    adult_female_count = excluded.adult_female_count,
-    children_count = excluded.children_count,
-    updated_by = actor_id,
-    updated_at = now()
   returning id into attendance_uuid;
 
   return attendance_uuid;
