@@ -28,12 +28,14 @@ export default async function WorkspaceLayout({ children }: { children: React.Re
       { label: "Users", href: "/app/users" },
       { label: "Attendance", href: "/app/attendance" },
       { label: "Church attendance", href: "/app/church-attendance" },
+      { label: "Service programme", href: "/app/programmes" },
       { label: "Care alerts", href: "/app/follow-ups" },
     ],
     church_leader: [
       { label: "Overview", href: "/app/reports" },
       { label: "Attendance", href: "/app/attendance" },
       { label: "Church attendance", href: "/app/church-attendance" },
+      { label: "Service programme", href: "/app/programmes" },
       { label: "Care alerts", href: "/app/follow-ups" },
     ],
     department_head: [
@@ -41,6 +43,7 @@ export default async function WorkspaceLayout({ children }: { children: React.Re
       { label: "Log attendance", href: "/app/attendance/new" },
       { label: "History", href: "/app/attendance" },
       { label: "Reports", href: "/app/reports" },
+      { label: "Service programme", href: "/app/programmes" },
       { label: "Follow-ups", href: "/app/follow-ups" },
     ],
   };

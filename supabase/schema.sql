@@ -201,6 +201,76 @@ alter table public.church_attendance
     new_members_female_count + new_converts_female_count <= adult_female_count
   );
 
+-- Reusable service-programme templates are copied into dated programme
+-- records, so later template changes never rewrite an already planned service.
+create table if not exists public.service_programme_templates (
+  id uuid primary key default gen_random_uuid(),
+  name text not null unique,
+  active boolean not null default true,
+  created_by uuid references public.profiles(id) on delete set null,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  check (char_length(trim(name)) between 3 and 120)
+);
+
+create table if not exists public.service_programme_template_items (
+  id uuid primary key default gen_random_uuid(),
+  template_id uuid not null references public.service_programme_templates(id)
+    on delete cascade,
+  position integer not null check (position > 0),
+  start_time time not null,
+  end_time time not null,
+  event_name text not null,
+  responsible_name text not null,
+  duration_minutes integer not null check (duration_minutes > 0),
+  notes text,
+  unique (template_id, position),
+  check (end_time > start_time),
+  check (char_length(trim(event_name)) between 2 and 160),
+  check (char_length(trim(responsible_name)) between 2 and 160)
+);
+
+create table if not exists public.service_programmes (
+  id uuid primary key default gen_random_uuid(),
+  template_id uuid references public.service_programme_templates(id)
+    on delete set null,
+  service_date date not null,
+  service_type text not null check (service_type in (
+    'Sunday Service', 'Tuesday Service', 'Special Service',
+    'Headquarters Service', 'Tarry Night'
+  )),
+  title text not null,
+  status text not null default 'draft' check (status in ('draft', 'published')),
+  created_by uuid references public.profiles(id) on delete set null,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  published_by uuid references public.profiles(id) on delete set null,
+  published_at timestamptz,
+  unique (service_date, service_type),
+  check (char_length(trim(title)) between 3 and 160),
+  check (
+    (status = 'draft' and published_at is null)
+    or (status = 'published' and published_at is not null)
+  )
+);
+
+create table if not exists public.service_programme_items (
+  id uuid primary key default gen_random_uuid(),
+  programme_id uuid not null references public.service_programmes(id)
+    on delete cascade,
+  position integer not null check (position > 0),
+  start_time time not null,
+  end_time time not null,
+  event_name text not null,
+  responsible_name text not null,
+  duration_minutes integer not null check (duration_minutes > 0),
+  notes text,
+  unique (programme_id, position),
+  check (end_time > start_time),
+  check (char_length(trim(event_name)) between 2 and 160),
+  check (char_length(trim(responsible_name)) between 2 and 160)
+);
+
 create table if not exists public.attendance_logs (
   id uuid primary key default gen_random_uuid(),
   submission_id uuid references public.attendance_submissions(id)
@@ -1046,6 +1116,78 @@ revoke all on function public.update_church_attendance_details(uuid, uuid, text)
 grant execute on function public.update_church_attendance_details(uuid, uuid, text)
   to authenticated;
 
+-- Create a dated draft by copying the current template rows as a snapshot.
+create or replace function public.create_service_programme_from_template(
+  p_template_id uuid,
+  p_service_date date,
+  p_service_type text,
+  p_title text
+)
+returns uuid
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  programme_uuid uuid;
+begin
+  if not public.is_super_admin() then
+    raise exception 'Only a super admin can create service programmes';
+  end if;
+
+  if p_service_date is null then
+    raise exception 'Select a service date';
+  end if;
+
+  if p_service_type not in (
+    'Sunday Service', 'Tuesday Service', 'Special Service',
+    'Headquarters Service', 'Tarry Night'
+  ) then
+    raise exception 'Invalid service type';
+  end if;
+
+  if char_length(trim(coalesce(p_title, ''))) not between 3 and 160 then
+    raise exception 'Enter a programme title';
+  end if;
+
+  if not exists (
+    select 1 from public.service_programme_templates as template
+    where template.id = p_template_id and template.active = true
+  ) then
+    raise exception 'Select an active programme template';
+  end if;
+
+  insert into public.service_programmes (
+    template_id, service_date, service_type, title, created_by
+  )
+  values (
+    p_template_id, p_service_date, p_service_type, trim(p_title),
+    (select auth.uid())
+  )
+  returning id into programme_uuid;
+
+  insert into public.service_programme_items (
+    programme_id, position, start_time, end_time, event_name,
+    responsible_name, duration_minutes, notes
+  )
+  select
+    programme_uuid, item.position, item.start_time, item.end_time,
+    item.event_name, item.responsible_name, item.duration_minutes, item.notes
+  from public.service_programme_template_items as item
+  where item.template_id = p_template_id
+  order by item.position;
+
+  return programme_uuid;
+end;
+$$;
+
+revoke all on function public.create_service_programme_from_template(
+  uuid, date, text, text
+) from public;
+grant execute on function public.create_service_programme_from_template(
+  uuid, date, text, text
+) to authenticated;
+
 -- Trusted delivery workers atomically claim queued messages before contacting
 -- Twilio. SKIP LOCKED prevents concurrent cron invocations from sending the
 -- same care message twice.
@@ -1087,6 +1229,10 @@ alter table public.services enable row level security;
 alter table public.attendance_submissions enable row level security;
 alter table public.ministers enable row level security;
 alter table public.church_attendance enable row level security;
+alter table public.service_programme_templates enable row level security;
+alter table public.service_programme_template_items enable row level security;
+alter table public.service_programmes enable row level security;
+alter table public.service_programme_items enable row level security;
 alter table public.attendance_logs enable row level security;
 alter table public.absence_followups enable row level security;
 alter table public.followup_events enable row level security;
@@ -1112,6 +1258,12 @@ drop policy if exists "View authorized attendance submissions" on public.attenda
 drop policy if exists "Church leaders view ministers" on public.ministers;
 drop policy if exists "Super admins manage ministers" on public.ministers;
 drop policy if exists "Church leaders view church attendance" on public.church_attendance;
+drop policy if exists "Super admins manage programme templates" on public.service_programme_templates;
+drop policy if exists "Super admins manage programme template items" on public.service_programme_template_items;
+drop policy if exists "Authorized users view programmes" on public.service_programmes;
+drop policy if exists "Super admins manage programmes" on public.service_programmes;
+drop policy if exists "Authorized users view programme items" on public.service_programme_items;
+drop policy if exists "Super admins manage programme items" on public.service_programme_items;
 drop policy if exists "Dept heads view own dept logs" on public.attendance_logs;
 drop policy if exists "Dept heads submit attendance" on public.attendance_logs;
 drop policy if exists "Authorized users can update attendance" on public.attendance_logs;
@@ -1208,6 +1360,52 @@ create policy "Super admins manage ministers"
 create policy "Church leaders view church attendance"
   on public.church_attendance for select to authenticated
   using (public.is_church_leader());
+
+create policy "Super admins manage programme templates"
+  on public.service_programme_templates for all to authenticated
+  using (public.is_super_admin())
+  with check (public.is_super_admin());
+
+create policy "Super admins manage programme template items"
+  on public.service_programme_template_items for all to authenticated
+  using (public.is_super_admin())
+  with check (public.is_super_admin());
+
+create policy "Authorized users view programmes"
+  on public.service_programmes for select to authenticated
+  using (
+    public.is_super_admin()
+    or (
+      status = 'published'
+      and public.current_profile_role() in ('church_leader', 'department_head')
+    )
+  );
+
+create policy "Super admins manage programmes"
+  on public.service_programmes for all to authenticated
+  using (public.is_super_admin())
+  with check (public.is_super_admin());
+
+create policy "Authorized users view programme items"
+  on public.service_programme_items for select to authenticated
+  using (
+    exists (
+      select 1 from public.service_programmes as programme
+      where programme.id = service_programme_items.programme_id
+        and (
+          public.is_super_admin()
+          or (
+            programme.status = 'published'
+            and public.current_profile_role() in ('church_leader', 'department_head')
+          )
+        )
+    )
+  );
+
+create policy "Super admins manage programme items"
+  on public.service_programme_items for all to authenticated
+  using (public.is_super_admin())
+  with check (public.is_super_admin());
 
 create policy "Dept heads view own dept logs"
   on public.attendance_logs for select to authenticated
@@ -1333,6 +1531,10 @@ revoke all on table public.services from anon;
 revoke all on table public.attendance_submissions from anon;
 revoke all on table public.ministers from anon;
 revoke all on table public.church_attendance from anon;
+revoke all on table public.service_programme_templates from anon;
+revoke all on table public.service_programme_template_items from anon;
+revoke all on table public.service_programmes from anon;
+revoke all on table public.service_programme_items from anon;
 revoke all on table public.attendance_logs from anon;
 revoke all on table public.absence_followups from anon;
 revoke all on table public.followup_events from anon;
@@ -1344,6 +1546,10 @@ grant select, insert, update, delete on table public.services to authenticated;
 grant select on table public.attendance_submissions to authenticated;
 grant select, insert, update on table public.ministers to authenticated;
 grant select on table public.church_attendance to authenticated;
+grant select, insert, update, delete on table public.service_programme_templates to authenticated;
+grant select, insert, update, delete on table public.service_programme_template_items to authenticated;
+grant select, insert, update, delete on table public.service_programmes to authenticated;
+grant select, insert, update, delete on table public.service_programme_items to authenticated;
 grant select on table public.attendance_logs to authenticated;
 grant select, update on table public.absence_followups to authenticated;
 grant select on table public.followup_events to authenticated;
@@ -1360,6 +1566,37 @@ insert into public.departments (name) values
   ('Technical'),
   ('Enumerator')
 on conflict (name) do nothing;
+
+-- Initial reusable template transcribed from the supplied Sunday programme.
+insert into public.service_programme_templates (id, name, active)
+values (
+  '00000000-0000-4000-8000-000000000101',
+  'Celebrate Jesus Service - Standard Sunday Schedule',
+  true
+)
+on conflict (id) do nothing;
+
+insert into public.service_programme_template_items (
+  template_id, position, start_time, end_time, event_name,
+  responsible_name, duration_minutes
+)
+values
+  ('00000000-0000-4000-8000-000000000101', 1, '07:50', '08:30', 'Leadership Half Hour', 'Pastor Tonia Ezenwa', 40),
+  ('00000000-0000-4000-8000-000000000101', 2, '08:30', '08:40', 'Intercessory Prayer', 'Brother Obinna Onuoha', 10),
+  ('00000000-0000-4000-8000-000000000101', 3, '08:40', '08:55', 'Praise Session', 'New Covenant Voices', 15),
+  ('00000000-0000-4000-8000-000000000101', 4, '08:55', '09:00', 'Hannah''s Time', 'Deaconess Nnenna Igwe', 5),
+  ('00000000-0000-4000-8000-000000000101', 5, '09:00', '09:10', 'Choir Ministration', 'New Covenant Voices', 10),
+  ('00000000-0000-4000-8000-000000000101', 6, '09:10', '09:15', 'Edify Yourself', 'Pastor Peace', 5),
+  ('00000000-0000-4000-8000-000000000101', 7, '09:15', '09:20', 'Worship', 'New Covenant Voices', 5),
+  ('00000000-0000-4000-8000-000000000101', 8, '09:20', '09:30', 'Preamble', 'Pastor Joshua King', 10),
+  ('00000000-0000-4000-8000-000000000101', 9, '09:30', '10:10', 'Word', 'Brother Seth Chidi', 40),
+  ('00000000-0000-4000-8000-000000000101', 10, '10:10', '10:20', 'Tithes and Offering', 'Brother Seth Chidi', 10),
+  ('00000000-0000-4000-8000-000000000101', 11, '10:20', '10:25', 'Transport Offering', 'Pastor Tonia Ezenwa', 5),
+  ('00000000-0000-4000-8000-000000000101', 12, '10:25', '10:30', 'Godson and Crew', 'Media', 5),
+  ('00000000-0000-4000-8000-000000000101', 13, '10:30', '10:35', 'Welcome of First Timers', 'VIP', 5),
+  ('00000000-0000-4000-8000-000000000101', 14, '10:35', '10:40', 'Announcements', 'Media', 5),
+  ('00000000-0000-4000-8000-000000000101', 15, '10:40', '10:45', 'Benediction', 'Reverend Kingsley Nkwuocha', 5)
+on conflict (template_id, position) do nothing;
 
 -- Bootstrap step:
 -- 1. Sign up the first administrator through Supabase Auth.
