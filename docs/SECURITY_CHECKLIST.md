@@ -32,6 +32,7 @@ Use separate test accounts and non-sensitive test records.
 | View all workers | Allow | Allow | Own department only | Deny |
 | Add or edit workers | Allow | Deny | Deny | Deny |
 | Manage user roles | Allow | Deny | Deny | Deny |
+| Edit profile identity/contact | Allow | Deny | Deny | Deny |
 | Submit department attendance | Deny | Deny | Own department only | Deny |
 | View attendance | All | All | Own department only | Deny |
 | Record congregation attendance | Allow | Deny | Deny | Deny |

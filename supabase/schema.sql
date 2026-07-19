@@ -516,7 +516,8 @@ create trigger on_auth_user_created
   after insert on auth.users
   for each row execute function public.handle_new_user();
 
--- Users may edit their contact details, but never their role or department.
+-- Defense in depth: authenticated users cannot change profile identity,
+-- contact or authorization fields unless they are a Super Admin.
 create or replace function public.protect_profile_privileges()
 returns trigger
 language plpgsql
@@ -525,14 +526,9 @@ set search_path = ''
 as $$
 begin
   if (select auth.uid()) is not null
-     and (
-       old.role is distinct from new.role
-       or old.email is distinct from new.email
-       or old.department_id is distinct from new.department_id
-     )
      and not public.is_super_admin()
   then
-    raise exception 'Only a super admin can change protected profile fields';
+    raise exception 'Only a super admin can change profile fields';
   end if;
 
   return new;
@@ -1462,11 +1458,6 @@ drop policy if exists "View authorized followup events" on public.followup_event
 create policy "Users can view own profile"
   on public.profiles for select to authenticated
   using ((select auth.uid()) = id);
-
-create policy "Users can update own profile"
-  on public.profiles for update to authenticated
-  using ((select auth.uid()) = id)
-  with check ((select auth.uid()) = id);
 
 create policy "Leaders can view profiles"
   on public.profiles for select to authenticated
