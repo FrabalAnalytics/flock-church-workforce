@@ -110,6 +110,39 @@ export async function removeProgrammeItem(formData: FormData) {
   redirect(destination("message", "Programme item removed.", programmeId));
 }
 
+export async function deleteProgramme(formData: FormData) {
+  await requireSuperAdmin();
+  const programmeId = value(formData, "programme_id");
+  const confirmation = value(formData, "confirmation");
+  if (!programmeId) redirect(destination("error", "Programme was not found."));
+
+  const supabase = await createClient();
+  const { data: programme, error: lookupError } = await supabase
+    .from("service_programmes")
+    .select("id, title")
+    .eq("id", programmeId)
+    .maybeSingle();
+  if (lookupError) redirect(destination("error", lookupError.message, programmeId));
+  if (!programme) redirect(destination("error", "Programme was not found."));
+  if (confirmation !== programme.title) {
+    redirect(destination("error", "Enter the exact programme title to confirm deletion.", programmeId));
+  }
+
+  const { data: deletedProgramme, error } = await supabase
+    .from("service_programmes")
+    .delete()
+    .eq("id", programme.id)
+    .select("id")
+    .maybeSingle();
+  if (error) redirect(destination("error", error.message, programmeId));
+  if (!deletedProgramme) {
+    redirect(destination("error", "The programme was not deleted. Refresh the page and try again.", programmeId));
+  }
+
+  revalidatePath("/app/programmes");
+  redirect(destination("message", "Programme permanently deleted."));
+}
+
 export async function updateTemplateItem(formData: FormData) {
   await requireSuperAdmin();
   const id = value(formData, "id");
