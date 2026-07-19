@@ -31,6 +31,8 @@ export async function submitChurchAttendance(formData: FormData) {
 
   const serviceDate = String(formData.get("service_date") ?? "");
   const serviceType = String(formData.get("service_type") ?? "");
+  const ministerId = String(formData.get("minister_id") ?? "").trim();
+  const serviceNotes = String(formData.get("service_notes") ?? "").trim();
   const adultMaleCount = count(formData, "adult_male_count");
   const adultFemaleCount = count(formData, "adult_female_count");
   const childrenCount = count(formData, "children_count");
@@ -41,6 +43,8 @@ export async function submitChurchAttendance(formData: FormData) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(serviceDate) || !serviceTypes.has(serviceType)) {
     redirect(destination("error", "Select a valid service date and service type."));
   }
+  if (!ministerId) redirect(destination("error", "Select the minister for this service."));
+  if (serviceNotes.length > 2000) redirect(destination("error", "Service notes cannot exceed 2,000 characters."));
   if (
     adultMaleCount === null || adultFemaleCount === null || childrenCount === null
     || newMembersMaleCount === null || newMembersFemaleCount === null
@@ -66,9 +70,32 @@ export async function submitChurchAttendance(formData: FormData) {
     p_new_members_female_count: newMembersFemaleCount,
     p_new_converts_male_count: newConvertsMaleCount,
     p_new_converts_female_count: newConvertsFemaleCount,
+    p_minister_id: ministerId,
+    p_service_notes: serviceNotes || null,
   });
   if (error) redirect(destination("error", error.message));
 
   revalidatePath("/app/church-attendance");
   redirect(destination("message", `${serviceType} congregation attendance was saved.`));
+}
+
+export async function updateChurchAttendanceDetails(formData: FormData) {
+  const { profile } = await requireProfile();
+  if (profile.role !== "super_admin") redirect(destination("error", "Only a super admin can update service details."));
+
+  const attendanceId = String(formData.get("attendance_id") ?? "").trim();
+  const ministerId = String(formData.get("minister_id") ?? "").trim();
+  const serviceNotes = String(formData.get("service_notes") ?? "").trim();
+  if (!attendanceId || !ministerId) redirect(destination("error", "Select a valid service record and minister."));
+  if (serviceNotes.length > 2000) redirect(destination("error", "Service notes cannot exceed 2,000 characters."));
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("update_church_attendance_details", {
+    p_attendance_id: attendanceId,
+    p_minister_id: ministerId,
+    p_service_notes: serviceNotes || null,
+  });
+  if (error) redirect(destination("error", error.message));
+  revalidatePath("/app/church-attendance");
+  redirect(destination("message", "Service minister and notes were updated."));
 }

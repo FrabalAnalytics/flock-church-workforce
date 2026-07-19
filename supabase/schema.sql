@@ -99,12 +99,31 @@ create table if not exists public.attendance_submissions (
   unique (service_id, department_id)
 );
 
+-- Super-admin managed directory used to keep minister names consistent.
+create table if not exists public.ministers (
+  id uuid primary key default gen_random_uuid(),
+  title text,
+  full_name text not null,
+  active boolean not null default true,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  check (char_length(trim(full_name)) between 2 and 120),
+  check (title is null or char_length(trim(title)) between 2 and 40)
+);
+
+create unique index if not exists ministers_display_name_unique
+  on public.ministers (
+    lower(coalesce(trim(title), '') || '|' || trim(full_name))
+  );
+
 -- Congregation attendance is intentionally aggregate-only. It shares the
 -- service calendar with worker attendance without storing attendee identities.
 create table if not exists public.church_attendance (
   id uuid primary key default gen_random_uuid(),
   service_id uuid not null unique references public.services(id) on delete cascade,
   attendance_date date not null,
+  minister_id uuid references public.ministers(id) on delete restrict,
+  service_notes text,
   adult_male_count integer not null default 0 check (adult_male_count >= 0),
   adult_female_count integer not null default 0 check (adult_female_count >= 0),
   children_count integer not null default 0 check (children_count >= 0),
@@ -125,6 +144,11 @@ create table if not exists public.church_attendance (
 alter table public.church_attendance
   add column if not exists attendance_date date;
 alter table public.church_attendance
+  add column if not exists minister_id uuid
+  references public.ministers(id) on delete restrict;
+alter table public.church_attendance
+  add column if not exists service_notes text;
+alter table public.church_attendance
   add column if not exists new_members_male_count integer not null default 0;
 alter table public.church_attendance
   add column if not exists new_members_female_count integer not null default 0;
@@ -141,6 +165,12 @@ where attendance.service_id = service.id
 
 alter table public.church_attendance
   alter column attendance_date set not null;
+
+alter table public.church_attendance
+  drop constraint if exists church_attendance_service_notes_length;
+alter table public.church_attendance
+  add constraint church_attendance_service_notes_length
+  check (service_notes is null or char_length(service_notes) <= 2000);
 
 -- New members and new converts are mutually exclusive adult subsets. Their
 -- counts are already included in the adult totals and never increase total_count.
@@ -830,6 +860,9 @@ grant execute on function public.submit_department_attendance(text, uuid[])
 drop function if exists public.submit_church_attendance(
   date, text, integer, integer, integer
 );
+drop function if exists public.submit_church_attendance(
+  date, text, integer, integer, integer, integer, integer, integer, integer
+);
 
 -- Super admins record one aggregate congregation total per calendar date.
 -- Church leaders receive read-only access through RLS.
@@ -842,7 +875,9 @@ create or replace function public.submit_church_attendance(
   p_new_members_male_count integer,
   p_new_members_female_count integer,
   p_new_converts_male_count integer,
-  p_new_converts_female_count integer
+  p_new_converts_female_count integer,
+  p_minister_id uuid,
+  p_service_notes text
 )
 returns uuid
 language plpgsql
@@ -856,6 +891,17 @@ declare
 begin
   if actor_id is null or not public.is_super_admin() then
     raise exception 'Only a super admin can record church attendance';
+  end if;
+
+  if p_minister_id is null or not exists (
+    select 1 from public.ministers as minister
+    where minister.id = p_minister_id and minister.active = true
+  ) then
+    raise exception 'Select an active minister from the Minister Directory';
+  end if;
+
+  if char_length(trim(coalesce(p_service_notes, ''))) > 2000 then
+    raise exception 'Service notes cannot exceed 2000 characters';
   end if;
 
   if p_service_date is null or p_service_date > (now() at time zone 'Africa/Lagos')::date then
@@ -906,6 +952,8 @@ begin
   insert into public.church_attendance (
     service_id,
     attendance_date,
+    minister_id,
+    service_notes,
     adult_male_count,
     adult_female_count,
     children_count,
@@ -921,6 +969,8 @@ begin
   values (
     service_uuid,
     p_service_date,
+    p_minister_id,
+    nullif(trim(coalesce(p_service_notes, '')), ''),
     p_adult_male_count,
     p_adult_female_count,
     p_children_count,
@@ -940,12 +990,60 @@ end;
 $$;
 
 revoke all on function public.submit_church_attendance(
-  date, text, integer, integer, integer, integer, integer, integer, integer
+  date, text, integer, integer, integer, integer, integer, integer, integer,
+  uuid, text
 )
   from public;
 grant execute on function public.submit_church_attendance(
-  date, text, integer, integer, integer, integer, integer, integer, integer
+  date, text, integer, integer, integer, integer, integer, integer, integer,
+  uuid, text
 )
+  to authenticated;
+
+-- Super admins may correct the minister or notes without creating a duplicate
+-- attendance record or changing its service date.
+create or replace function public.update_church_attendance_details(
+  p_attendance_id uuid,
+  p_minister_id uuid,
+  p_service_notes text
+)
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  if not public.is_super_admin() then
+    raise exception 'Only a super admin can update church attendance details';
+  end if;
+
+  if p_minister_id is null or not exists (
+    select 1 from public.ministers as minister
+    where minister.id = p_minister_id and minister.active = true
+  ) then
+    raise exception 'Select an active minister from the Minister Directory';
+  end if;
+
+  if char_length(trim(coalesce(p_service_notes, ''))) > 2000 then
+    raise exception 'Service notes cannot exceed 2000 characters';
+  end if;
+
+  update public.church_attendance
+  set minister_id = p_minister_id,
+      service_notes = nullif(trim(coalesce(p_service_notes, '')), ''),
+      updated_by = (select auth.uid()),
+      updated_at = now()
+  where id = p_attendance_id;
+
+  if not found then
+    raise exception 'Church attendance record was not found';
+  end if;
+end;
+$$;
+
+revoke all on function public.update_church_attendance_details(uuid, uuid, text)
+  from public;
+grant execute on function public.update_church_attendance_details(uuid, uuid, text)
   to authenticated;
 
 -- Trusted delivery workers atomically claim queued messages before contacting
@@ -987,6 +1085,7 @@ alter table public.profiles enable row level security;
 alter table public.workers enable row level security;
 alter table public.services enable row level security;
 alter table public.attendance_submissions enable row level security;
+alter table public.ministers enable row level security;
 alter table public.church_attendance enable row level security;
 alter table public.attendance_logs enable row level security;
 alter table public.absence_followups enable row level security;
@@ -1010,6 +1109,8 @@ drop policy if exists "Dept heads can create services" on public.services;
 drop policy if exists "Creators and leaders can update services" on public.services;
 drop policy if exists "Creators and leaders can delete services" on public.services;
 drop policy if exists "View authorized attendance submissions" on public.attendance_submissions;
+drop policy if exists "Church leaders view ministers" on public.ministers;
+drop policy if exists "Super admins manage ministers" on public.ministers;
 drop policy if exists "Church leaders view church attendance" on public.church_attendance;
 drop policy if exists "Dept heads view own dept logs" on public.attendance_logs;
 drop policy if exists "Dept heads submit attendance" on public.attendance_logs;
@@ -1094,6 +1195,15 @@ create policy "View authorized attendance submissions"
     public.is_church_leader()
     or department_id = public.current_department_id()
   );
+
+create policy "Church leaders view ministers"
+  on public.ministers for select to authenticated
+  using (public.is_church_leader());
+
+create policy "Super admins manage ministers"
+  on public.ministers for all to authenticated
+  using (public.is_super_admin())
+  with check (public.is_super_admin());
 
 create policy "Church leaders view church attendance"
   on public.church_attendance for select to authenticated
@@ -1221,6 +1331,7 @@ revoke all on table public.profiles from anon;
 revoke all on table public.workers from anon;
 revoke all on table public.services from anon;
 revoke all on table public.attendance_submissions from anon;
+revoke all on table public.ministers from anon;
 revoke all on table public.church_attendance from anon;
 revoke all on table public.attendance_logs from anon;
 revoke all on table public.absence_followups from anon;
@@ -1231,6 +1342,7 @@ grant select, insert, update, delete on table public.profiles to authenticated;
 grant select, insert, update, delete on table public.workers to authenticated;
 grant select, insert, update, delete on table public.services to authenticated;
 grant select on table public.attendance_submissions to authenticated;
+grant select, insert, update on table public.ministers to authenticated;
 grant select on table public.church_attendance to authenticated;
 grant select on table public.attendance_logs to authenticated;
 grant select, update on table public.absence_followups to authenticated;

@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { submitChurchAttendance } from "@/app/app/church-attendance/actions";
+import { submitChurchAttendance, updateChurchAttendanceDetails } from "@/app/app/church-attendance/actions";
 import { TrendLineChart, type TrendPoint } from "@/components/trend-line-chart";
 import { WorkspaceNotice } from "@/components/workspace-notice";
 import { requireProfile } from "@/lib/auth";
@@ -17,9 +17,12 @@ type ChurchAttendanceRow = {
   new_converts_male_count: number;
   new_converts_female_count: number;
   total_count: number;
+  minister_id: string | null;
+  service_notes: string | null;
   submitted_at: string;
   updated_at: string;
   services: { id: string; service_date: string; service_type: string } | null;
+  ministers: { id: string; title: string | null; full_name: string; active: boolean } | null;
 };
 
 function isoDate(date: Date) {
@@ -60,9 +63,15 @@ export default async function ChurchAttendancePage({
   const from = params.from || fallback.from;
   const to = params.to || fallback.to;
   const supabase = await createClient();
+  const { data: ministers } = await supabase
+    .from("ministers")
+    .select("id, title, full_name, active")
+    .order("active", { ascending: false })
+    .order("full_name");
+  const activeMinisters = (ministers ?? []).filter((minister) => minister.active);
   let query = supabase
     .from("church_attendance")
-    .select("id, adult_male_count, adult_female_count, children_count, new_members_male_count, new_members_female_count, new_converts_male_count, new_converts_female_count, total_count, submitted_at, updated_at, services!inner(id, service_date, service_type)")
+    .select("id, minister_id, service_notes, adult_male_count, adult_female_count, children_count, new_members_male_count, new_members_female_count, new_converts_male_count, new_converts_female_count, total_count, submitted_at, updated_at, ministers(id, title, full_name, active), services!inner(id, service_date, service_type)")
     .gte("services.service_date", from)
     .lte("services.service_date", to)
     .order("service_date", { referencedTable: "services", ascending: false })
@@ -123,12 +132,17 @@ export default async function ChurchAttendancePage({
           <span className="w-fit rounded-full bg-[#edf8f1] px-3 py-1 text-xs font-semibold text-[#2f7b50]">Aggregate counts only</span>
         </div>
         <form action={submitChurchAttendance} className="mt-5">
+          {!activeMinisters.length && <div className="mb-5 rounded-2xl border border-[#f0d9a8] bg-[#fff9ec] px-4 py-3 text-sm text-[#7b5b19]">Add an active minister in the <a href="/app/ministers" className="font-semibold underline">Minister Directory</a> before recording attendance.</div>}
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
             <label className="text-xs font-semibold text-[#68738a]">Service date<input type="date" name="service_date" max={isoDate(new Date())} defaultValue={isoDate(new Date())} required className="mt-2 h-11 w-full rounded-xl border border-[#dce3f1] px-3 text-sm font-normal" /></label>
             <label className="text-xs font-semibold text-[#68738a]">Service type<select name="service_type" required className="mt-2 h-11 w-full rounded-xl border border-[#dce3f1] bg-white px-3 text-sm font-normal">{serviceTypes.map((service) => <option key={service}>{service}</option>)}</select></label>
             <label className="text-xs font-semibold text-[#68738a]">Adult male<input type="number" name="adult_male_count" min="0" step="1" defaultValue="0" required className="mt-2 h-11 w-full rounded-xl border border-[#dce3f1] px-3 text-sm font-normal" /></label>
             <label className="text-xs font-semibold text-[#68738a]">Adult female<input type="number" name="adult_female_count" min="0" step="1" defaultValue="0" required className="mt-2 h-11 w-full rounded-xl border border-[#dce3f1] px-3 text-sm font-normal" /></label>
             <label className="text-xs font-semibold text-[#68738a]">Children<input type="number" name="children_count" min="0" step="1" defaultValue="0" required className="mt-2 h-11 w-full rounded-xl border border-[#dce3f1] px-3 text-sm font-normal" /></label>
+          </div>
+          <div className="mt-5 grid gap-4 sm:grid-cols-[0.8fr_1.2fr]">
+            <label className="text-xs font-semibold text-[#68738a]">Minister for the service<select name="minister_id" required defaultValue="" className="mt-2 h-11 w-full rounded-xl border border-[#dce3f1] bg-white px-3 text-sm font-normal"><option value="" disabled>Select an active minister</option>{activeMinisters.map((minister) => <option key={minister.id} value={minister.id}>{minister.title ? `${minister.title} ` : ""}{minister.full_name}</option>)}</select></label>
+            <label className="text-xs font-semibold text-[#68738a]">Service notes <span className="font-normal text-[#9aa3b5]">(optional)</span><textarea name="service_notes" maxLength={2000} rows={3} placeholder="Key observations, message theme or service context" className="mt-2 w-full resize-y rounded-xl border border-[#dce3f1] px-3 py-3 text-sm font-normal" /></label>
           </div>
           <div className="mt-5 rounded-2xl border border-[#e3e8f2] bg-[#f8faff] p-4">
             <h3 className="text-sm font-semibold text-[#34415f]">First-time response groups</h3>
@@ -140,7 +154,7 @@ export default async function ChurchAttendancePage({
               <label className="text-xs font-semibold text-[#68738a]">New converts — female<input type="number" name="new_converts_female_count" min="0" step="1" defaultValue="0" required className="mt-2 h-11 w-full rounded-xl border border-[#dce3f1] bg-white px-3 text-sm font-normal" /></label>
             </div>
           </div>
-          <div className="mt-5 flex justify-end"><button className="rounded-xl bg-[#4f7df3] px-5 py-3 text-sm font-semibold text-white">Save church attendance</button></div>
+          <div className="mt-5 flex justify-end"><button disabled={!activeMinisters.length} className="rounded-xl bg-[#4f7df3] px-5 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-[#aebbdc]">Save church attendance</button></div>
         </form>
       </section> : <div className="mt-7 rounded-2xl border border-[#dbe3f2] bg-[#f7f9fd] px-5 py-4 text-sm text-[#68738a]">Church attendance is read-only for church leaders. A super admin records each service total.</div>}
 
@@ -179,7 +193,7 @@ export default async function ChurchAttendancePage({
 
       <section className="mt-6 overflow-hidden rounded-3xl border border-[#e0e1e5] bg-white">
         <div className="border-b border-[#e8ecf4] px-5 py-4 sm:px-6"><h2 className="font-semibold">Service log</h2></div>
-        {rows.length ? <div className="divide-y divide-[#edf0f6]">{rows.map((row) => <div key={row.id} className="grid gap-3 px-5 py-4 sm:grid-cols-[1fr_auto] sm:items-center sm:px-6"><div><p className="text-sm font-semibold text-[#34415f]">{row.services?.service_type ?? "Service"}</p><p className="mt-1 text-xs text-[#8993a7]">{row.services ? displayDate(row.services.service_date) : "Unknown date"} · Updated {new Intl.DateTimeFormat("en-NG", { dateStyle: "medium", timeStyle: "short" }).format(new Date(row.updated_at))}</p><div className="mt-2 flex flex-wrap gap-2 text-xs"><span className="rounded-full bg-[#edf2ff] px-2.5 py-1 text-[#4168cd]">{row.adult_male_count} male</span><span className="rounded-full bg-[#f3eef9] px-2.5 py-1 text-[#7951ae]">{row.adult_female_count} female</span><span className="rounded-full bg-[#fff6dd] px-2.5 py-1 text-[#936b10]">{row.children_count} children</span><span className="rounded-full bg-[#edf8f1] px-2.5 py-1 text-[#2f7b50]">{row.new_members_male_count + row.new_members_female_count} new members ({row.new_members_male_count}M/{row.new_members_female_count}F)</span><span className="rounded-full bg-[#fff4e3] px-2.5 py-1 text-[#8d641d]">{row.new_converts_male_count + row.new_converts_female_count} new converts ({row.new_converts_male_count}M/{row.new_converts_female_count}F)</span></div></div><p className="text-2xl font-semibold sm:text-right">{row.total_count}<span className="ml-1 text-xs font-normal text-[#8993a7]">total</span></p></div>)}</div> : <p className="px-6 py-14 text-center text-sm text-[#8993a7]">No church attendance matches these filters.</p>}
+        {rows.length ? <div className="divide-y divide-[#edf0f6]">{rows.map((row) => <article key={row.id} className="px-5 py-5 sm:px-6"><div className="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-start"><div><p className="text-sm font-semibold text-[#34415f]">{row.services?.service_type ?? "Service"}</p><p className="mt-1 text-xs text-[#8993a7]">{row.services ? displayDate(row.services.service_date) : "Unknown date"} · Updated {new Intl.DateTimeFormat("en-NG", { dateStyle: "medium", timeStyle: "short" }).format(new Date(row.updated_at))}</p><p className="mt-2 text-sm font-medium text-[#536078]">Minister: {row.ministers ? `${row.ministers.title ? `${row.ministers.title} ` : ""}${row.ministers.full_name}` : "Not recorded"}</p>{row.service_notes && <p className="mt-2 max-w-3xl whitespace-pre-wrap rounded-xl bg-[#f7f9fd] px-3 py-2 text-xs leading-5 text-[#68738a]">{row.service_notes}</p>}<div className="mt-3 flex flex-wrap gap-2 text-xs"><span className="rounded-full bg-[#edf2ff] px-2.5 py-1 text-[#4168cd]">{row.adult_male_count} male</span><span className="rounded-full bg-[#f3eef9] px-2.5 py-1 text-[#7951ae]">{row.adult_female_count} female</span><span className="rounded-full bg-[#fff6dd] px-2.5 py-1 text-[#936b10]">{row.children_count} children</span><span className="rounded-full bg-[#edf8f1] px-2.5 py-1 text-[#2f7b50]">{row.new_members_male_count + row.new_members_female_count} new members ({row.new_members_male_count}M/{row.new_members_female_count}F)</span><span className="rounded-full bg-[#fff4e3] px-2.5 py-1 text-[#8d641d]">{row.new_converts_male_count + row.new_converts_female_count} new converts ({row.new_converts_male_count}M/{row.new_converts_female_count}F)</span></div></div><p className="text-2xl font-semibold sm:text-right">{row.total_count}<span className="ml-1 text-xs font-normal text-[#8993a7]">total</span></p></div>{profile.role === "super_admin" && <details className="mt-4 rounded-xl border border-[#e4e9f2] bg-[#fbfcff] p-3"><summary className="cursor-pointer text-xs font-semibold text-[#536078]">Correct minister or notes</summary><form action={updateChurchAttendanceDetails} className="mt-3 grid gap-3 sm:grid-cols-[0.8fr_1.2fr_auto] sm:items-end"><input type="hidden" name="attendance_id" value={row.id} /><label className="text-xs font-semibold text-[#68738a]">Minister<select name="minister_id" required defaultValue={row.minister_id ?? ""} className="mt-2 h-11 w-full rounded-xl border border-[#dce3f1] bg-white px-3 text-sm font-normal"><option value="" disabled>Select minister</option>{activeMinisters.map((minister) => <option key={minister.id} value={minister.id}>{minister.title ? `${minister.title} ` : ""}{minister.full_name}</option>)}</select></label><label className="text-xs font-semibold text-[#68738a]">Notes<textarea name="service_notes" maxLength={2000} rows={2} defaultValue={row.service_notes ?? ""} className="mt-2 w-full rounded-xl border border-[#dce3f1] px-3 py-2 text-sm font-normal" /></label><button className="h-11 rounded-xl bg-[#edf2ff] px-4 text-xs font-semibold text-[#4168cd]">Update details</button></form></details>}</article>)}</div> : <p className="px-6 py-14 text-center text-sm text-[#8993a7]">No church attendance matches these filters.</p>}
       </section>
     </div>
   );

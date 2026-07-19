@@ -38,6 +38,40 @@ export async function renameDepartment(formData: FormData) {
   redirect(withMessage("/app/departments", "message", "Department updated."));
 }
 
+export async function createMinister(formData: FormData) {
+  await requireSuperAdmin();
+  const title = value(formData, "title") || null;
+  const full_name = value(formData, "full_name");
+  if (full_name.length < 2 || full_name.length > 120 || (title && title.length > 40)) {
+    redirect(withMessage("/app/ministers", "error", "Enter a valid minister name and title."));
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase.from("ministers").insert({ title, full_name });
+  if (error) redirect(withMessage("/app/ministers", "error", error.message));
+  revalidatePath("/app/ministers");
+  revalidatePath("/app/church-attendance");
+  redirect(withMessage("/app/ministers", "message", `${title ? `${title} ` : ""}${full_name} was added.`));
+}
+
+export async function updateMinister(formData: FormData) {
+  await requireSuperAdmin();
+  const id = value(formData, "id");
+  const title = value(formData, "title") || null;
+  const full_name = value(formData, "full_name");
+  const active = formData.get("active") === "on";
+  if (!id || full_name.length < 2 || full_name.length > 120 || (title && title.length > 40)) {
+    redirect(withMessage("/app/ministers", "error", "Enter valid minister details."));
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase.from("ministers").update({ title, full_name, active, updated_at: new Date().toISOString() }).eq("id", id);
+  if (error) redirect(withMessage("/app/ministers", "error", error.message));
+  revalidatePath("/app/ministers");
+  revalidatePath("/app/church-attendance");
+  redirect(withMessage("/app/ministers", "message", "Minister updated."));
+}
+
 export async function createWorker(formData: FormData) {
   await requireSuperAdmin();
   const full_name = value(formData, "full_name");
