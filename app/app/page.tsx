@@ -117,14 +117,14 @@ export default async function WorkspaceOverview({
 
   const metrics = [
     metric("Active workers", activeWorkersResult.count ?? 0, profile.role === "department_head" ? "Your department roster" : "Visible workforce"),
-    metric("Attendance rate", `${attendanceRate}%`, submissions.length ? `Across ${submissions.length} recent submissions` : "No submissions yet"),
+    metric("Worker attendance rate", `${attendanceRate}%`, submissions.length ? `Across ${submissions.length} recent submissions` : "No submissions yet"),
     metric("Open care alerts", openFollowupsResult.count ?? 0, "Awaiting follow-up"),
     metric("Submissions", submissions.length, "Up to 250 recent records"),
   ];
 
   const quickActions = profile.role === "department_head"
     ? [
-        { href: "/app/attendance/new", label: "Log attendance", primary: true },
+        { href: "/app/attendance/new", label: "Log worker attendance", primary: true },
         { href: "/app/programmes", label: "View service programme", primary: false },
         { href: "/app/follow-ups", label: "Review follow-ups", primary: false },
       ]
@@ -134,7 +134,7 @@ export default async function WorkspaceOverview({
           { href: "/app/workers/new", label: "Add worker", primary: false },
         ]
       : [
-          { href: "/app/attendance", label: "Review attendance", primary: true },
+          { href: "/app/attendance", label: "Review worker attendance", primary: true },
           { href: "/app/follow-ups", label: "Review care alerts", primary: false },
         ];
 
@@ -204,7 +204,7 @@ export default async function WorkspaceOverview({
         <section className="rounded-3xl border border-[#e0e6f2] bg-white p-5 sm:p-6">
           <div className="flex items-center justify-between gap-4">
             <div>
-              <h2 className="text-lg font-semibold">Recent attendance</h2>
+              <h2 className="text-lg font-semibold">Recent worker attendance</h2>
               <p className="mt-1 text-xs text-[#8993a7]">Latest department submissions</p>
             </div>
             <Link href="/app/attendance" className="text-sm font-semibold text-[#4f7df3]">View all</Link>
@@ -223,7 +223,7 @@ export default async function WorkspaceOverview({
                   <span className="rounded-full bg-[#fff1f0] px-3 py-1 text-[#b5524b]">{submission.absent_count} absent</span>
                 </div>
               </div>
-            )) : <p className="py-10 text-center text-sm text-[#8993a7]">No attendance submissions yet.</p>}
+            )) : <p className="py-10 text-center text-sm text-[#8993a7]">No worker attendance submissions yet.</p>}
           </div>
         </section>
 

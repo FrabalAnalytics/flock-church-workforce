@@ -47,12 +47,12 @@ export default async function AttendanceHistoryPage({
       <WorkspaceNotice message={params.message} error={params.error ?? error?.message} />
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <p className="text-sm font-semibold uppercase tracking-[0.15em] text-[#4f7df3]">Service records</p>
-          <h1 className="mt-2 text-3xl font-semibold tracking-[-0.035em]">Attendance history</h1>
-          <p className="mt-2 text-sm text-[#758097]">Review completed department submissions and individual attendance.</p>
+          <p className="text-sm font-semibold uppercase tracking-[0.15em] text-[#4f7df3]">Worker service records</p>
+          <h1 className="mt-2 text-3xl font-semibold tracking-[-0.035em]">Worker attendance history</h1>
+          <p className="mt-2 text-sm text-[#758097]">Review department submissions and each worker’s attendance status.</p>
         </div>
         {profile.role === "department_head" && (
-          <Link href="/app/attendance/new" className="w-fit rounded-xl bg-[#4f7df3] px-5 py-3 text-sm font-semibold text-white">Log attendance</Link>
+          <Link href="/app/attendance/new" className="w-fit rounded-xl bg-[#4f7df3] px-5 py-3 text-sm font-semibold text-white">Log worker attendance</Link>
         )}
       </div>
 
@@ -110,8 +110,8 @@ export default async function AttendanceHistoryPage({
           );
         }) : (
           <div className="rounded-3xl border border-dashed border-[#d8dfed] bg-white px-6 py-16 text-center">
-            <p className="font-semibold text-[#526078]">No attendance has been submitted yet</p>
-            <p className="mt-2 text-sm text-[#929bad]">Completed service attendance will appear here.</p>
+            <p className="font-semibold text-[#526078]">No worker attendance has been submitted yet</p>
+            <p className="mt-2 text-sm text-[#929bad]">Completed department attendance will appear here.</p>
           </div>
         )}
       </div>

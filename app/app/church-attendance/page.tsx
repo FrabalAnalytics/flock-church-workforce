@@ -120,8 +120,8 @@ export default async function ChurchAttendancePage({
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="text-sm font-semibold uppercase tracking-[0.15em] text-[#4f7df3]">Congregation</p>
-          <h1 className="mt-2 text-3xl font-semibold tracking-[-0.035em]">Church attendance</h1>
-          <p className="mt-2 text-sm text-[#758097]">Monitor aggregate attendance without collecting attendee identities.</p>
+          <h1 className="mt-2 text-3xl font-semibold tracking-[-0.035em]">Congregation attendance</h1>
+          <p className="mt-2 text-sm text-[#758097]">Monitor aggregate congregation totals without collecting attendee identities.</p>
         </div>
         <a href={`/api/reports/church-attendance.csv?${exportParams}`} className="w-fit rounded-xl border border-[#dce3f1] bg-white px-5 py-3 text-sm font-semibold text-[#536078]">Export CSV</a>
       </div>
@@ -156,7 +156,7 @@ export default async function ChurchAttendancePage({
           </div>
           <div className="mt-5 flex justify-end"><button disabled={!activeMinisters.length} className="rounded-xl bg-[#4f7df3] px-5 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-[#aebbdc]">Save church attendance</button></div>
         </form>
-      </section> : <div className="mt-7 rounded-2xl border border-[#dbe3f2] bg-[#f7f9fd] px-5 py-4 text-sm text-[#68738a]">Church attendance is read-only for church leaders. A super admin records each service total.</div>}
+      </section> : <div className="mt-7 rounded-2xl border border-[#dbe3f2] bg-[#f7f9fd] px-5 py-4 text-sm text-[#68738a]">Congregation attendance is read-only for church leaders. A super admin records each service total.</div>}
 
       <div className="mt-7 flex flex-wrap gap-2">{[7, 30, 90].map((days) => <a key={days} href={`/app/church-attendance?range=${days}`} className={`rounded-xl border px-4 py-2.5 text-sm font-semibold ${selectedRange === days || (!params.from && !selectedRange && days === 90) ? "border-[#4f7df3] bg-[#edf2ff] text-[#4168cd]" : "border-[#dce3f1] bg-white text-[#5e6a81]"}`}>Last {days} days</a>)}</div>
       <form className="mt-3 grid gap-3 rounded-2xl border border-[#e0e6f2] bg-white p-4 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_1.3fr_auto_auto]">
@@ -178,7 +178,7 @@ export default async function ChurchAttendancePage({
 
       <section className="mt-6 rounded-3xl border border-[#e0e6f2] bg-white p-5 sm:p-6">
         <div><h2 className="text-lg font-semibold">Total attendance trend</h2><p className="mt-1 text-xs text-[#8993a7]">Overall congregation attendance for each recorded service.</p></div>
-        <div className="mt-5"><TrendLineChart points={trendPoints} title="Church attendance trend" /></div>
+        <div className="mt-5"><TrendLineChart points={trendPoints} title="Congregation attendance trend" /></div>
       </section>
 
       <div className="mt-6 grid gap-5 lg:grid-cols-2">

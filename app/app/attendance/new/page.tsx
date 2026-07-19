@@ -27,8 +27,8 @@ export default async function NewAttendancePage({
   return (
     <div className="mx-auto max-w-4xl">
       <WorkspaceNotice error={params.error ?? error?.message} />
-      <p className="text-sm font-semibold uppercase tracking-[0.15em] text-[#4f7df3]">Department attendance</p>
-      <h1 className="mt-2 text-3xl font-semibold tracking-[-0.035em]">Log attendance</h1>
+      <p className="text-sm font-semibold uppercase tracking-[0.15em] text-[#4f7df3]">Department workers</p>
+      <h1 className="mt-2 text-3xl font-semibold tracking-[-0.035em]">Log worker attendance</h1>
       <p className="mt-2 text-sm text-[#758097]">
         {department?.name ?? "Your department"} · Today’s active workforce roster
       </p>

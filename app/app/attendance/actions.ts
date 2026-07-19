@@ -46,7 +46,7 @@ export async function submitAttendance(formData: FormData) {
 
   revalidatePath("/app/attendance");
   revalidatePath("/app");
-  redirect(destination("message", `${serviceType} attendance was submitted.`));
+  redirect(destination("message", `${serviceType} worker attendance was submitted.`));
 }
 
 export async function correctSubmittedAttendance(formData: FormData) {

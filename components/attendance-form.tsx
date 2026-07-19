@@ -19,7 +19,7 @@ function SubmitButton({ disabled }: { disabled: boolean }) {
       disabled={disabled || pending}
       className="rounded-xl bg-[#4f7df3] px-6 py-3 text-sm font-semibold text-white shadow-[0_10px_24px_rgba(79,125,243,0.2)] disabled:cursor-not-allowed disabled:opacity-60"
     >
-      {pending ? "Submitting attendance…" : "Submit attendance"}
+      {pending ? "Submitting worker attendance…" : "Submit worker attendance"}
     </button>
   );
 }

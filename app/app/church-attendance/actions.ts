@@ -126,5 +126,5 @@ export async function correctChurchAttendance(formData: FormData) {
   revalidatePath("/app/church-attendance");
   revalidatePath("/app");
   revalidatePath("/app/reports");
-  redirect(destination("message", "Church attendance correction was saved."));
+  redirect(destination("message", "Congregation attendance correction was saved."));
 }

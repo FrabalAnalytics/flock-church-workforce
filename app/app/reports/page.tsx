@@ -116,7 +116,7 @@ export default async function ReportsPage({
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="text-sm font-semibold uppercase tracking-[0.15em] text-[#4f7df3]">Church leadership</p>
-          <h1 className="mt-2 text-3xl font-semibold tracking-[-0.035em]">{profile.role === "department_head" ? "Attendance reports" : "Overview"}</h1>
+          <h1 className="mt-2 text-3xl font-semibold tracking-[-0.035em]">{profile.role === "department_head" ? "Worker attendance reports" : "Worker attendance overview"}</h1>
           <p className="mt-2 text-sm text-[#758097]">Track church workforce participation across services and departments.</p>
         </div>
         <a href={`/api/reports/attendance.csv?${exportParams}`} className="w-fit rounded-xl bg-[#4f7df3] px-5 py-3 text-sm font-semibold text-white">Export CSV</a>
