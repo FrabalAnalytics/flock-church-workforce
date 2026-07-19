@@ -1,0 +1,174 @@
+import { requireProfile } from "@/lib/auth";
+import { createClient } from "@/lib/supabase/server";
+
+const serviceTypes = ["Sunday Service", "Tuesday Service", "Special Service", "Headquarters Service", "Tarry Night"];
+
+type ReportRow = {
+  id: string;
+  roster_count: number;
+  present_count: number;
+  absent_count: number;
+  submitted_at: string;
+  departments: { id: string; name: string } | null;
+  services: { id: string; service_date: string; service_type: string } | null;
+};
+
+function isoDate(date: Date) {
+  return date.toISOString().slice(0, 10);
+}
+
+function dateRange(days: number) {
+  const to = new Date();
+  const from = new Date(to);
+  from.setUTCDate(from.getUTCDate() - days + 1);
+  return { from: isoDate(from), to: isoDate(to) };
+}
+
+function percentage(present: number, roster: number) {
+  return roster ? Math.min(100, Math.round((present / roster) * 100)) : 0;
+}
+
+function displayDate(value: string) {
+  return new Intl.DateTimeFormat("en-NG", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" }).format(new Date(`${value}T00:00:00Z`));
+}
+
+export default async function ReportsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ from?: string; to?: string; department?: string; service?: string; range?: string }>;
+}) {
+  const { profile } = await requireProfile();
+  const params = await searchParams;
+  const selectedRange = ["7", "30", "90"].includes(params.range ?? "") ? Number(params.range) : null;
+  const fallback = dateRange(selectedRange ?? 90);
+  const from = params.from || fallback.from;
+  const to = params.to || fallback.to;
+  const supabase = await createClient();
+  let query = supabase
+    .from("attendance_submissions")
+    .select("id, roster_count, present_count, absent_count, submitted_at, departments(id, name), services!inner(id, service_date, service_type)")
+    .gte("services.service_date", from)
+    .lte("services.service_date", to)
+    .order("service_date", { referencedTable: "services", ascending: false })
+    .limit(1000);
+
+  if (params.department) query = query.eq("department_id", params.department);
+  if (params.service && serviceTypes.includes(params.service)) query = query.eq("services.service_type", params.service);
+
+  const [{ data, error }, { data: departments }] = await Promise.all([
+    query,
+    supabase.from("departments").select("id, name").order("name"),
+  ]);
+  const rows = (data ?? []) as unknown as ReportRow[];
+  const present = rows.reduce((total, row) => total + row.present_count, 0);
+  const absent = rows.reduce((total, row) => total + row.absent_count, 0);
+  const roster = present + absent;
+  const servicesLogged = new Set(rows.map((row) => row.services?.id).filter(Boolean)).size;
+  const exportParams = new URLSearchParams({ from, to });
+  if (params.department) exportParams.set("department", params.department);
+  if (params.service) exportParams.set("service", params.service);
+
+  const attendanceByDepartment = [...rows.reduce((groups, row) => {
+    const name = row.departments?.name ?? "Unknown department";
+    const current = groups.get(name) ?? { present: 0, absent: 0, submissions: 0 };
+    current.present += row.present_count;
+    current.absent += row.absent_count;
+    current.submissions += 1;
+    groups.set(name, current);
+    return groups;
+  }, new Map<string, { present: number; absent: number; submissions: number }>())]
+    .map(([name, totals]) => ({ name, ...totals, rate: percentage(totals.present, totals.present + totals.absent) }))
+    .sort((a, b) => b.rate - a.rate);
+
+  const headcountByDepartment = attendanceByDepartment
+    .map((department) => ({
+      name: department.name,
+      count: department.present + department.absent,
+    }))
+    .sort((a, b) => b.count - a.count);
+  const maxHeadcount = Math.max(1, ...headcountByDepartment.map((item) => item.count));
+
+  return (
+    <div className="mx-auto max-w-6xl">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <p className="text-sm font-semibold uppercase tracking-[0.15em] text-[#4f7df3]">Church leadership</p>
+          <h1 className="mt-2 text-3xl font-semibold tracking-[-0.035em]">Attendance overview</h1>
+          <p className="mt-2 text-sm text-[#758097]">Track church workforce participation across services and departments.</p>
+        </div>
+        <a href={`/api/reports/attendance.csv?${exportParams}`} className="w-fit rounded-xl bg-[#4f7df3] px-5 py-3 text-sm font-semibold text-white">Export CSV</a>
+      </div>
+
+      <div className="mt-7 flex flex-wrap gap-2">
+        {[7, 30, 90].map((days) => (
+          <a key={days} href={`/app/reports?range=${days}`} className={`rounded-xl border px-4 py-2.5 text-sm font-semibold ${selectedRange === days || (!params.from && !selectedRange && days === 90) ? "border-[#4f7df3] bg-[#edf2ff] text-[#4168cd]" : "border-[#dce3f1] bg-white text-[#5e6a81]"}`}>Last {days} days</a>
+        ))}
+      </div>
+
+      <form className="mt-3 grid gap-3 rounded-2xl border border-[#e0e6f2] bg-white p-4 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_1.2fr_1.2fr_auto_auto]">
+        <label className="text-xs font-semibold text-[#68738a]">From<input type="date" name="from" defaultValue={from} className="mt-2 h-11 w-full rounded-xl border border-[#dce3f1] px-3 text-sm font-normal" /></label>
+        <label className="text-xs font-semibold text-[#68738a]">To<input type="date" name="to" defaultValue={to} className="mt-2 h-11 w-full rounded-xl border border-[#dce3f1] px-3 text-sm font-normal" /></label>
+        <label className="text-xs font-semibold text-[#68738a]">Department<select name="department" defaultValue={params.department ?? ""} disabled={profile.role === "department_head"} className="mt-2 h-11 w-full rounded-xl border border-[#dce3f1] bg-white px-3 text-sm font-normal disabled:bg-[#f4f6fa]"><option value="">All visible</option>{departments?.map((department) => <option key={department.id} value={department.id}>{department.name}</option>)}</select></label>
+        <label className="text-xs font-semibold text-[#68738a]">Service<select name="service" defaultValue={params.service ?? ""} className="mt-2 h-11 w-full rounded-xl border border-[#dce3f1] bg-white px-3 text-sm font-normal"><option value="">All services</option>{serviceTypes.map((service) => <option key={service}>{service}</option>)}</select></label>
+        <button className="self-end rounded-xl bg-[#edf2ff] px-5 py-3 text-sm font-semibold text-[#4168cd]">Apply</button>
+        <a href="/app/reports" className="self-end rounded-xl border border-[#dce3f1] bg-white px-5 py-3 text-center text-sm font-semibold text-[#68738a]">Clear</a>
+      </form>
+      <p className="mt-3 text-xs font-medium text-[#8993a7]">Showing {displayDate(from)} – {displayDate(to)}</p>
+
+      {error && <div className="mt-6 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error.message}</div>}
+
+      <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {[
+          ["Total headcount", roster, "Expected worker records in this period"],
+          ["Average per service", servicesLogged ? Math.round(present / servicesLogged) : 0, "Present workers"],
+          ["Services logged", servicesLogged, `${rows.length} department submissions`],
+          ["Attendance rate", `${percentage(present, roster)}%`, `${present} of ${roster} records`],
+        ].map(([label, value, detail]) => <section key={label} className="rounded-2xl border border-[#e8e5da] bg-[#fbfaf5] p-5"><p className="text-sm font-medium text-[#6d6a60]">{label}</p><p className="mt-2 text-3xl font-semibold text-[#24231f]">{value}</p><p className="mt-2 text-xs text-[#8e8a7e]">{detail}</p></section>)}
+      </div>
+
+      <div className="mt-6 grid gap-5 lg:grid-cols-[1.2fr_0.8fr]">
+        <section className="rounded-3xl border border-[#e0e1e5] bg-white p-5 sm:p-6">
+          <h2 className="font-semibold">Headcount by department</h2>
+          <div className="mt-5 space-y-4">
+            {headcountByDepartment.length ? headcountByDepartment.map((department) => <div key={department.name} className="grid grid-cols-[100px_1fr_auto] items-center gap-3"><p className="truncate text-xs font-medium text-[#555b68]">{department.name}</p><div className="h-2.5 overflow-hidden rounded-full bg-[#f0eee5]"><div className="h-full rounded-full bg-[#d0a820]" style={{ width: `${Math.max(5, (department.count / maxHeadcount) * 100)}%` }} /></div><p className="text-xs font-semibold text-[#555b68]">{department.count}</p></div>) : <p className="py-8 text-sm text-[#8993a7]">No attendance in this period.</p>}
+          </div>
+        </section>
+
+        <section className="rounded-3xl border border-[#e0e1e5] bg-white p-5 sm:p-6">
+          <h2 className="font-semibold">Attendance rate by department</h2>
+          <div className="mt-4 space-y-2">
+            {attendanceByDepartment.length ? attendanceByDepartment.map((department) => <div key={department.name} className="flex items-center justify-between rounded-xl bg-[#f5f4ee] px-3 py-2"><p className="truncate text-xs font-semibold text-[#4e535d]">{department.name}</p><span className={`text-xs font-semibold ${department.rate >= 75 ? "text-[#32845d]" : department.rate >= 50 ? "text-[#a87516]" : "text-[#b5524b]"}`}>{department.rate}%</span></div>) : <p className="py-8 text-sm text-[#8993a7]">No attendance in this period.</p>}
+          </div>
+        </section>
+      </div>
+
+      <section className="mt-6 overflow-hidden rounded-3xl border border-[#e0e1e5] bg-white">
+        <div className="border-b border-[#e8ecf4] px-5 py-4 sm:px-6"><h2 className="font-semibold">Service log</h2></div>
+        {rows.length ? <div className="divide-y divide-[#edf0f6]">{rows.slice(0, 100).map((row) => {
+          const rate = percentage(row.present_count, row.roster_count);
+          const rateStyle = rate >= 80
+            ? "border-[#b9dfc8] bg-[#edf8f1] text-[#2f7b50]"
+            : rate >= 60
+              ? "border-[#ead18b] bg-[#fff8df] text-[#9a6a0a]"
+              : "border-[#efc1bd] bg-[#fff1f0] text-[#b5524b]";
+          return (
+            <div key={row.id} className="grid gap-3 px-5 py-4 sm:grid-cols-[1fr_auto] sm:items-center sm:px-6">
+              <div>
+                <p className="text-sm font-semibold text-[#34415f]">{row.departments?.name ?? "Department"} · {row.services ? displayDate(row.services.service_date) : "Unknown date"}</p>
+                <p className="mt-1 text-xs text-[#8993a7]">Submitted {new Intl.DateTimeFormat("en-NG", { dateStyle: "medium", timeStyle: "short" }).format(new Date(row.submitted_at))}</p>
+                <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-[#596274]">
+                  <span>{row.present_count} of {row.roster_count} workers</span>
+                  <span className={`rounded-full border px-2.5 py-1 font-semibold ${rateStyle}`}>{rate}% attendance rate</span>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <span className="rounded-full bg-[#f6f0db] px-3 py-1 text-xs font-medium text-[#7e681c]">{row.services?.service_type ?? "Service"}</span>
+                <span className="min-w-8 text-right text-sm font-semibold">{row.present_count}</span>
+              </div>
+            </div>
+          );
+        })}</div> : <p className="px-6 py-14 text-center text-sm text-[#8993a7]">No service activity matches these filters.</p>}
+      </section>
+    </div>
+  );
+}

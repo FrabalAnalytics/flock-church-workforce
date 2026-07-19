@@ -1,0 +1,1062 @@
+-- Flock database schema (single-church version)
+-- Run in the Supabase SQL Editor as the project owner.
+
+create extension if not exists "pgcrypto";
+
+-- Tables --------------------------------------------------------------------
+
+create table if not exists public.departments (
+  id uuid primary key default gen_random_uuid(),
+  name text not null unique,
+  created_at timestamptz not null default now()
+);
+
+create table if not exists public.profiles (
+  id uuid primary key references auth.users(id) on delete cascade,
+  full_name text not null,
+  email text,
+  phone_number text,
+  role text not null default 'pending',
+  department_id uuid references public.departments(id) on delete set null,
+  created_at timestamptz not null default now()
+);
+
+alter table public.profiles
+  add column if not exists email text;
+
+update public.profiles as p
+set email = u.email
+from auth.users as u
+where p.id = u.id
+  and p.email is distinct from u.email;
+
+-- Replace the original role constraint when upgrading an existing draft schema.
+alter table public.profiles
+  drop constraint if exists profiles_role_check;
+
+alter table public.profiles
+  add constraint profiles_role_check
+  check (role in ('pending', 'super_admin', 'church_leader', 'department_head'));
+
+create table if not exists public.workers (
+  id uuid primary key default gen_random_uuid(),
+  full_name text not null,
+  phone_number text,
+  whatsapp_opt_in boolean not null default false,
+  whatsapp_opted_in_at timestamptz,
+  whatsapp_opted_out_at timestamptz,
+  department_id uuid not null references public.departments(id),
+  status text not null default 'Active'
+    check (status in ('Active', 'Inactive', 'On Leave')),
+  joined_at date not null default current_date,
+  created_at timestamptz not null default now()
+);
+
+alter table public.workers
+  add column if not exists whatsapp_opt_in boolean not null default false;
+alter table public.workers
+  add column if not exists whatsapp_opted_in_at timestamptz;
+alter table public.workers
+  add column if not exists whatsapp_opted_out_at timestamptz;
+
+alter table public.workers
+  drop constraint if exists workers_whatsapp_preference_state;
+alter table public.workers
+  add constraint workers_whatsapp_preference_state
+  check (
+    (whatsapp_opt_in = true and whatsapp_opted_in_at is not null
+      and whatsapp_opted_out_at is null)
+    or whatsapp_opt_in = false
+  );
+
+create table if not exists public.services (
+  id uuid primary key default gen_random_uuid(),
+  service_date date not null,
+  service_type text not null check (service_type in (
+    'Sunday Service',
+    'Tuesday Service',
+    'Special Service',
+    'Headquarters Service',
+    'Tarry Night'
+  )),
+  created_by uuid references public.profiles(id) on delete set null
+    default auth.uid(),
+  created_at timestamptz not null default now()
+);
+
+-- One submission represents one department completing the checklist for one
+-- service. This is the source for the service log and dashboard KPIs.
+create table if not exists public.attendance_submissions (
+  id uuid primary key default gen_random_uuid(),
+  service_id uuid not null references public.services(id) on delete cascade,
+  department_id uuid not null references public.departments(id),
+  submitted_by uuid not null references public.profiles(id),
+  roster_count integer not null check (roster_count >= 0),
+  present_count integer not null check (present_count >= 0),
+  absent_count integer not null check (absent_count >= 0),
+  submitted_at timestamptz not null default now(),
+  check (roster_count = present_count + absent_count),
+  unique (service_id, department_id)
+);
+
+create table if not exists public.attendance_logs (
+  id uuid primary key default gen_random_uuid(),
+  submission_id uuid references public.attendance_submissions(id)
+    on delete cascade,
+  service_id uuid not null references public.services(id) on delete cascade,
+  worker_id uuid not null references public.workers(id) on delete cascade,
+  department_id uuid not null references public.departments(id),
+  status text not null check (status in ('Present', 'Absent')),
+  submitted_by uuid references public.profiles(id) on delete set null
+    default auth.uid(),
+  created_at timestamptz not null default now(),
+  unique (service_id, worker_id)
+);
+
+alter table public.attendance_logs
+  add column if not exists submission_id uuid
+  references public.attendance_submissions(id) on delete cascade;
+
+create table if not exists public.absence_followups (
+  id uuid primary key default gen_random_uuid(),
+  worker_id uuid not null references public.workers(id) on delete cascade,
+  service_id uuid not null references public.services(id) on delete cascade,
+  consecutive_misses integer not null default 1,
+  whatsapp_sent boolean not null default false,
+  whatsapp_sent_at timestamptz,
+  notes text,
+  resolved boolean not null default false,
+  resolved_at timestamptz,
+  created_at timestamptz not null default now()
+);
+
+-- Every escalation is recorded separately. Message events are picked up by a
+-- trusted server/Edge Function, sent through Twilio, and updated with delivery
+-- status. Dashboard-only alerts use the not_applicable status.
+create table if not exists public.followup_events (
+  id uuid primary key default gen_random_uuid(),
+  followup_id uuid not null references public.absence_followups(id)
+    on delete cascade,
+  worker_id uuid not null references public.workers(id) on delete cascade,
+  service_id uuid not null references public.services(id) on delete cascade,
+  miss_count integer not null check (miss_count > 0),
+  event_type text not null check (event_type in (
+    'soft_message',
+    'department_alert',
+    'urgent_message',
+    'pastoral_alert'
+  )),
+  message_body text,
+  delivery_status text not null default 'not_applicable' check (
+    delivery_status in (
+      'not_applicable', 'queued', 'processing', 'sent', 'delivered', 'failed', 'cancelled'
+    )
+  ),
+  provider_message_id text,
+  error_message text,
+  created_at timestamptz not null default now(),
+  sent_at timestamptz,
+  delivered_at timestamptz,
+  unique (worker_id, service_id, event_type)
+);
+
+alter table public.followup_events
+  drop constraint if exists followup_events_delivery_status_check;
+alter table public.followup_events
+  add constraint followup_events_delivery_status_check
+  check (
+    delivery_status in (
+      'not_applicable', 'queued', 'processing', 'sent', 'delivered', 'failed', 'cancelled'
+    )
+  );
+
+-- Upgrade the original service-type constraint when this schema is re-run.
+alter table public.services
+  drop constraint if exists services_service_type_check;
+alter table public.services
+  add constraint services_service_type_check
+  check (service_type in (
+    'Sunday Service',
+    'Tuesday Service',
+    'Special Service',
+    'Headquarters Service',
+    'Tarry Night'
+  ));
+
+-- Named constraints make this section safe to re-run and also upgrade the
+-- original draft when those tables already exist.
+alter table public.absence_followups
+  drop constraint if exists absence_followups_positive_misses;
+alter table public.absence_followups
+  add constraint absence_followups_positive_misses
+  check (consecutive_misses > 0);
+
+alter table public.absence_followups
+  drop constraint if exists absence_followups_whatsapp_state;
+alter table public.absence_followups
+  add constraint absence_followups_whatsapp_state
+  check (
+    (whatsapp_sent = false and whatsapp_sent_at is null)
+    or (whatsapp_sent = true and whatsapp_sent_at is not null)
+  );
+
+alter table public.absence_followups
+  drop constraint if exists absence_followups_resolution_state;
+alter table public.absence_followups
+  add constraint absence_followups_resolution_state
+  check (
+    (resolved = false and resolved_at is null)
+    or (resolved = true and resolved_at is not null)
+  );
+
+create unique index if not exists one_open_followup_per_worker
+  on public.absence_followups (worker_id)
+  where resolved = false;
+
+create unique index if not exists services_date_type_unique
+  on public.services (service_date, service_type);
+
+create index if not exists profiles_department_id_idx
+  on public.profiles (department_id);
+create index if not exists workers_department_id_idx
+  on public.workers (department_id);
+create index if not exists attendance_logs_service_id_idx
+  on public.attendance_logs (service_id);
+create index if not exists attendance_submissions_service_id_idx
+  on public.attendance_submissions (service_id);
+create index if not exists attendance_submissions_department_id_idx
+  on public.attendance_submissions (department_id);
+create index if not exists attendance_logs_worker_id_idx
+  on public.attendance_logs (worker_id);
+create index if not exists attendance_logs_department_id_idx
+  on public.attendance_logs (department_id);
+create index if not exists absence_followups_worker_id_idx
+  on public.absence_followups (worker_id);
+create index if not exists absence_followups_service_id_idx
+  on public.absence_followups (service_id);
+create index if not exists followup_events_worker_id_idx
+  on public.followup_events (worker_id);
+create index if not exists followup_events_delivery_status_idx
+  on public.followup_events (delivery_status)
+  where delivery_status in ('queued', 'processing', 'sent');
+
+-- Authentication and authorization helpers ---------------------------------
+
+create or replace function public.current_profile_role()
+returns text
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select p.role
+  from public.profiles as p
+  where p.id = (select auth.uid());
+$$;
+
+create or replace function public.current_department_id()
+returns uuid
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select p.department_id
+  from public.profiles as p
+  where p.id = (select auth.uid());
+$$;
+
+create or replace function public.is_super_admin()
+returns boolean
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select coalesce(public.current_profile_role() = 'super_admin', false);
+$$;
+
+create or replace function public.is_church_leader()
+returns boolean
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select coalesce(
+    public.current_profile_role() in ('super_admin', 'church_leader'),
+    false
+  );
+$$;
+
+revoke all on function public.current_profile_role() from public;
+revoke all on function public.current_department_id() from public;
+revoke all on function public.is_super_admin() from public;
+revoke all on function public.is_church_leader() from public;
+
+grant execute on function public.current_profile_role() to authenticated;
+grant execute on function public.current_department_id() to authenticated;
+grant execute on function public.is_super_admin() to authenticated;
+grant execute on function public.is_church_leader() to authenticated;
+
+-- Automatically create a non-privileged profile for every new Auth user.
+create or replace function public.handle_new_user()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  insert into public.profiles (id, full_name, email, phone_number, role)
+  values (
+    new.id,
+    coalesce(
+      nullif(trim(new.raw_user_meta_data ->> 'full_name'), ''),
+      nullif(split_part(coalesce(new.email, ''), '@', 1), ''),
+      'New user'
+    ),
+    new.email,
+    nullif(trim(new.raw_user_meta_data ->> 'phone_number'), ''),
+    'pending'
+  )
+  on conflict (id) do nothing;
+
+  return new;
+end;
+$$;
+
+drop trigger if exists on_auth_user_created on auth.users;
+create trigger on_auth_user_created
+  after insert on auth.users
+  for each row execute function public.handle_new_user();
+
+-- Users may edit their contact details, but never their role or department.
+create or replace function public.protect_profile_privileges()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  if (select auth.uid()) is not null
+     and (
+       old.role is distinct from new.role
+       or old.email is distinct from new.email
+       or old.department_id is distinct from new.department_id
+     )
+     and not public.is_super_admin()
+  then
+    raise exception 'Only a super admin can change protected profile fields';
+  end if;
+
+  return new;
+end;
+$$;
+
+drop trigger if exists protect_profile_privileges on public.profiles;
+create trigger protect_profile_privileges
+  before update on public.profiles
+  for each row execute function public.protect_profile_privileges();
+
+-- Keep an auditable timestamp whenever a worker opts into or out of automated
+-- WhatsApp care messages.
+create or replace function public.prepare_worker_messaging_preference()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  if tg_op = 'INSERT' and new.whatsapp_opt_in = true then
+    new.whatsapp_opted_in_at := coalesce(new.whatsapp_opted_in_at, now());
+    new.whatsapp_opted_out_at := null;
+  elsif tg_op = 'UPDATE'
+    and old.whatsapp_opt_in is distinct from new.whatsapp_opt_in
+  then
+    if new.whatsapp_opt_in = true then
+      new.whatsapp_opted_in_at := now();
+      new.whatsapp_opted_out_at := null;
+    else
+      new.whatsapp_opted_out_at := now();
+
+      update public.followup_events
+      set delivery_status = 'cancelled',
+          error_message = 'Cancelled because the worker opted out before sending'
+      where worker_id = new.id
+        and delivery_status = 'queued';
+    end if;
+  end if;
+
+  return new;
+end;
+$$;
+
+drop trigger if exists prepare_worker_messaging_preference on public.workers;
+create trigger prepare_worker_messaging_preference
+  before insert or update of whatsapp_opt_in on public.workers
+  for each row execute function public.prepare_worker_messaging_preference();
+
+-- Record the real service creator and keep that audit field immutable.
+create or replace function public.prepare_service()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  if tg_op = 'INSERT' and (select auth.uid()) is not null then
+    new.created_by := (select auth.uid());
+  elsif tg_op = 'UPDATE' then
+    new.created_by := old.created_by;
+  end if;
+
+  return new;
+end;
+$$;
+
+drop trigger if exists prepare_service on public.services;
+create trigger prepare_service
+  before insert or update on public.services
+  for each row execute function public.prepare_service();
+
+-- Always derive attendance ownership from the selected worker, and prevent
+-- browser clients from impersonating another submitter.
+create or replace function public.prepare_attendance_log()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  select w.department_id
+    into new.department_id
+  from public.workers as w
+  where w.id = new.worker_id;
+
+  if new.department_id is null then
+    raise exception 'The selected worker does not exist';
+  end if;
+
+  if (select auth.uid()) is not null then
+    new.submitted_by := (select auth.uid());
+  end if;
+
+  return new;
+end;
+$$;
+
+drop trigger if exists prepare_attendance_log on public.attendance_logs;
+create trigger prepare_attendance_log
+  before insert or update
+  on public.attendance_logs
+  for each row execute function public.prepare_attendance_log();
+
+-- Recalculate one worker's consecutive misses whenever their attendance
+-- changes. Active church workers are expected at each logged service unless
+-- they have been placed On Leave or made Inactive before submission.
+create or replace function public.process_worker_absence()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  attendance_row record;
+  miss_total integer := 0;
+  followup_uuid uuid;
+  worker_name text;
+  department_name text;
+  current_service_type text;
+  next_event_type text;
+  next_message text;
+  next_delivery_status text := 'not_applicable';
+  latest_absent_service_id uuid;
+  worker_whatsapp_opt_in boolean;
+begin
+  for attendance_row in
+    select al.status, al.service_id
+    from public.attendance_logs as al
+    join public.services as s on s.id = al.service_id
+    where al.worker_id = new.worker_id
+    order by s.service_date desc, al.created_at desc
+  loop
+    exit when attendance_row.status = 'Present';
+    latest_absent_service_id := coalesce(
+      latest_absent_service_id,
+      attendance_row.service_id
+    );
+    miss_total := miss_total + 1;
+  end loop;
+
+  if miss_total = 0 then
+    update public.absence_followups
+    set resolved = true,
+        resolved_at = now()
+    where worker_id = new.worker_id
+      and resolved = false;
+
+    return new;
+  end if;
+
+  insert into public.absence_followups (
+    worker_id,
+    service_id,
+    consecutive_misses,
+    resolved,
+    resolved_at
+  )
+  values (new.worker_id, latest_absent_service_id, miss_total, false, null)
+  on conflict (worker_id) where resolved = false
+  do update set
+    service_id = excluded.service_id,
+    consecutive_misses = excluded.consecutive_misses
+  returning id into followup_uuid;
+
+  select w.full_name, d.name, s.service_type, w.whatsapp_opt_in
+    into worker_name, department_name, current_service_type,
+      worker_whatsapp_opt_in
+  from public.workers as w
+  join public.departments as d on d.id = w.department_id
+  join public.services as s on s.id = latest_absent_service_id
+  where w.id = new.worker_id;
+
+  case miss_total
+    when 1 then
+      if worker_whatsapp_opt_in then
+        next_event_type := 'soft_message';
+        next_delivery_status := 'queued';
+        next_message := format(
+          'Hi %s, we missed you at %s today and wanted to check that you''re doing well. We hope to see you soon. — TREM %s',
+          worker_name,
+          current_service_type,
+          department_name
+        );
+      end if;
+    when 2 then
+      next_event_type := 'department_alert';
+    when 4 then
+      if worker_whatsapp_opt_in then
+        next_event_type := 'urgent_message';
+        next_delivery_status := 'queued';
+        next_message := format(
+          'Hi %s, we have missed you at several services and wanted to reach out personally. Please let your %s leader know how you are doing. You are important to us. — TREM',
+          worker_name,
+          department_name
+        );
+      end if;
+    when 6 then
+      next_event_type := 'pastoral_alert';
+    else
+      next_event_type := null;
+  end case;
+
+  if next_event_type is not null then
+    insert into public.followup_events (
+      followup_id,
+      worker_id,
+      service_id,
+      miss_count,
+      event_type,
+      message_body,
+      delivery_status
+    )
+    values (
+      followup_uuid,
+      new.worker_id,
+      latest_absent_service_id,
+      miss_total,
+      next_event_type,
+      next_message,
+      next_delivery_status
+    )
+    on conflict (worker_id, service_id, event_type) do nothing;
+  end if;
+
+  return new;
+end;
+$$;
+
+drop trigger if exists process_worker_absence on public.attendance_logs;
+create trigger process_worker_absence
+  after insert or update of status
+  on public.attendance_logs
+  for each row execute function public.process_worker_absence();
+
+-- Approved leave and inactive status immediately remove a worker from the
+-- active care queue without deleting their attendance history.
+create or replace function public.resolve_followup_for_unavailable_worker()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  if new.status in ('On Leave', 'Inactive') then
+    update public.absence_followups
+    set resolved = true,
+        resolved_at = now(),
+        notes = coalesce(notes || E'\n', '')
+          || 'Resolved automatically because worker status changed to '
+          || new.status
+    where worker_id = new.id
+      and resolved = false;
+  end if;
+
+  return new;
+end;
+$$;
+
+drop trigger if exists resolve_followup_for_unavailable_worker
+  on public.workers;
+create trigger resolve_followup_for_unavailable_worker
+  after update of status on public.workers
+  for each row
+  when (old.status is distinct from new.status)
+  execute function public.resolve_followup_for_unavailable_worker();
+
+-- The app calls this function once when a department head taps Submit. It
+-- creates/reuses the service, records a single submission, and writes Present
+-- or Absent for every Active worker in that department as one transaction.
+create or replace function public.submit_department_attendance(
+  p_service_type text,
+  p_present_worker_ids uuid[] default array[]::uuid[]
+)
+returns uuid
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  actor_id uuid := (select auth.uid());
+  actor_department_id uuid := public.current_department_id();
+  service_uuid uuid;
+  submission_uuid uuid;
+  service_day date := (now() at time zone 'Africa/Lagos')::date;
+  active_count integer;
+  present_total integer;
+  invalid_present_count integer;
+begin
+  if actor_id is null
+     or public.current_profile_role() <> 'department_head'
+     or actor_department_id is null
+  then
+    raise exception 'Only an assigned department head can submit attendance';
+  end if;
+
+  if p_service_type not in (
+    'Sunday Service',
+    'Tuesday Service',
+    'Special Service',
+    'Headquarters Service',
+    'Tarry Night'
+  ) then
+    raise exception 'Invalid service type';
+  end if;
+
+  select count(*)
+    into invalid_present_count
+  from unnest(coalesce(p_present_worker_ids, array[]::uuid[])) as selected(id)
+  left join public.workers as w on w.id = selected.id
+  where w.id is null
+     or w.department_id <> actor_department_id
+     or w.status <> 'Active';
+
+  if invalid_present_count > 0 then
+    raise exception 'The present list contains a worker outside your active department roster';
+  end if;
+
+  insert into public.services (service_date, service_type, created_by)
+  values (service_day, p_service_type, actor_id)
+  on conflict (service_date, service_type)
+  do update set service_date = excluded.service_date
+  returning id into service_uuid;
+
+  if exists (
+    select 1
+    from public.attendance_submissions as existing
+    where existing.service_id = service_uuid
+      and existing.department_id = actor_department_id
+  ) then
+    raise exception 'Attendance has already been submitted for this department and service';
+  end if;
+
+  select count(*)
+    into active_count
+  from public.workers
+  where department_id = actor_department_id
+    and status = 'Active';
+
+  select count(distinct selected.id)
+    into present_total
+  from unnest(coalesce(p_present_worker_ids, array[]::uuid[])) as selected(id);
+
+  insert into public.attendance_submissions (
+    service_id,
+    department_id,
+    submitted_by,
+    roster_count,
+    present_count,
+    absent_count,
+    submitted_at
+  )
+  values (
+    service_uuid,
+    actor_department_id,
+    actor_id,
+    active_count,
+    present_total,
+    active_count - present_total,
+    now()
+  )
+  returning id into submission_uuid;
+
+  insert into public.attendance_logs (
+    submission_id,
+    service_id,
+    worker_id,
+    department_id,
+    status,
+    submitted_by,
+    created_at
+  )
+  select
+    submission_uuid,
+    service_uuid,
+    w.id,
+    actor_department_id,
+    case
+      when w.id = any(coalesce(p_present_worker_ids, array[]::uuid[]))
+        then 'Present'
+      else 'Absent'
+    end,
+    actor_id,
+    now()
+  from public.workers as w
+  where w.department_id = actor_department_id
+    and w.status = 'Active'
+  on conflict (service_id, worker_id)
+  do update set
+    submission_id = excluded.submission_id,
+    status = excluded.status,
+    submitted_by = excluded.submitted_by,
+    created_at = excluded.created_at;
+
+  return submission_uuid;
+end;
+$$;
+
+revoke all on function public.submit_department_attendance(text, uuid[])
+  from public;
+grant execute on function public.submit_department_attendance(text, uuid[])
+  to authenticated;
+
+-- Trusted delivery workers atomically claim queued messages before contacting
+-- Twilio. SKIP LOCKED prevents concurrent cron invocations from sending the
+-- same care message twice.
+create or replace function public.claim_queued_followup_events(
+  p_limit integer default 25
+)
+returns setof public.followup_events
+language sql
+security definer
+set search_path = ''
+as $$
+  with claimed as (
+    select event.id
+    from public.followup_events as event
+    where event.delivery_status = 'queued'
+    order by event.created_at
+    for update skip locked
+    limit greatest(1, least(coalesce(p_limit, 25), 100))
+  )
+  update public.followup_events as event
+  set delivery_status = 'processing',
+      error_message = null
+  from claimed
+  where event.id = claimed.id
+  returning event.*;
+$$;
+
+revoke all on function public.claim_queued_followup_events(integer)
+  from public, anon, authenticated;
+grant execute on function public.claim_queued_followup_events(integer)
+  to service_role;
+
+-- Row-level security ---------------------------------------------------------
+
+alter table public.departments enable row level security;
+alter table public.profiles enable row level security;
+alter table public.workers enable row level security;
+alter table public.services enable row level security;
+alter table public.attendance_submissions enable row level security;
+alter table public.attendance_logs enable row level security;
+alter table public.absence_followups enable row level security;
+alter table public.followup_events enable row level security;
+
+-- Remove policies from the original draft and from earlier runs of this file.
+drop policy if exists "Users can view own profile" on public.profiles;
+drop policy if exists "Users can update own profile" on public.profiles;
+drop policy if exists "Leaders can view profiles" on public.profiles;
+drop policy if exists "Super admins can manage profiles" on public.profiles;
+drop policy if exists "Authenticated users can view departments" on public.departments;
+drop policy if exists "Super admin can manage departments" on public.departments;
+drop policy if exists "Dept heads view own dept workers" on public.workers;
+drop policy if exists "Dept heads manage own dept workers" on public.workers;
+drop policy if exists "Super admin manages all workers" on public.workers;
+drop policy if exists "Authorized users can insert workers" on public.workers;
+drop policy if exists "Authorized users can update workers" on public.workers;
+drop policy if exists "Authorized users can delete workers" on public.workers;
+drop policy if exists "Authenticated can view services" on public.services;
+drop policy if exists "Dept heads can create services" on public.services;
+drop policy if exists "Creators and leaders can update services" on public.services;
+drop policy if exists "Creators and leaders can delete services" on public.services;
+drop policy if exists "View authorized attendance submissions" on public.attendance_submissions;
+drop policy if exists "Dept heads view own dept logs" on public.attendance_logs;
+drop policy if exists "Dept heads submit attendance" on public.attendance_logs;
+drop policy if exists "Authorized users can update attendance" on public.attendance_logs;
+drop policy if exists "Authorized users can delete attendance" on public.attendance_logs;
+drop policy if exists "View own dept followups" on public.absence_followups;
+drop policy if exists "Dept heads update followups" on public.absence_followups;
+drop policy if exists "Authorized users can create followups" on public.absence_followups;
+drop policy if exists "Authorized users can update followups" on public.absence_followups;
+drop policy if exists "View authorized followup events" on public.followup_events;
+
+create policy "Users can view own profile"
+  on public.profiles for select to authenticated
+  using ((select auth.uid()) = id);
+
+create policy "Users can update own profile"
+  on public.profiles for update to authenticated
+  using ((select auth.uid()) = id)
+  with check ((select auth.uid()) = id);
+
+create policy "Leaders can view profiles"
+  on public.profiles for select to authenticated
+  using (public.is_church_leader());
+
+create policy "Super admins can manage profiles"
+  on public.profiles for all to authenticated
+  using (public.is_super_admin())
+  with check (public.is_super_admin());
+
+create policy "Authenticated users can view departments"
+  on public.departments for select to authenticated
+  using (true);
+
+create policy "Super admin can manage departments"
+  on public.departments for all to authenticated
+  using (public.is_super_admin())
+  with check (public.is_super_admin());
+
+create policy "Dept heads view own dept workers"
+  on public.workers for select to authenticated
+  using (
+    public.is_church_leader()
+    or department_id = public.current_department_id()
+  );
+
+create policy "Authorized users can insert workers"
+  on public.workers for insert to authenticated
+  with check (public.is_super_admin());
+
+create policy "Authorized users can update workers"
+  on public.workers for update to authenticated
+  using (public.is_super_admin())
+  with check (public.is_super_admin());
+
+create policy "Authorized users can delete workers"
+  on public.workers for delete to authenticated
+  using (public.is_super_admin());
+
+create policy "Authenticated can view services"
+  on public.services for select to authenticated
+  using (true);
+
+create policy "Dept heads can create services"
+  on public.services for insert to authenticated
+  with check (
+    public.is_super_admin()
+    and created_by = (select auth.uid())
+  );
+
+create policy "Creators and leaders can update services"
+  on public.services for update to authenticated
+  using (public.is_super_admin())
+  with check (public.is_super_admin());
+
+create policy "Creators and leaders can delete services"
+  on public.services for delete to authenticated
+  using (public.is_super_admin());
+
+create policy "View authorized attendance submissions"
+  on public.attendance_submissions for select to authenticated
+  using (
+    public.is_church_leader()
+    or department_id = public.current_department_id()
+  );
+
+create policy "Dept heads view own dept logs"
+  on public.attendance_logs for select to authenticated
+  using (
+    public.is_church_leader()
+    or department_id = public.current_department_id()
+  );
+
+create policy "Dept heads submit attendance"
+  on public.attendance_logs for insert to authenticated
+  with check (
+    submitted_by = (select auth.uid())
+    and (
+      public.is_super_admin()
+      or (
+        public.current_profile_role() = 'department_head'
+        and department_id = public.current_department_id()
+      )
+    )
+  );
+
+create policy "Authorized users can update attendance"
+  on public.attendance_logs for update to authenticated
+  using (
+    public.is_super_admin()
+    or (
+      public.current_profile_role() = 'department_head'
+      and department_id = public.current_department_id()
+    )
+  )
+  with check (
+    submitted_by = (select auth.uid())
+    and (
+      public.is_super_admin()
+      or (
+        public.current_profile_role() = 'department_head'
+        and department_id = public.current_department_id()
+      )
+    )
+  );
+
+create policy "Authorized users can delete attendance"
+  on public.attendance_logs for delete to authenticated
+  using (
+    public.is_super_admin()
+    or (
+      public.current_profile_role() = 'department_head'
+      and department_id = public.current_department_id()
+    )
+  );
+
+create policy "View own dept followups"
+  on public.absence_followups for select to authenticated
+  using (
+    public.is_church_leader()
+    or exists (
+      select 1
+      from public.workers as w
+      where w.id = worker_id
+        and w.department_id = public.current_department_id()
+    )
+  );
+
+create policy "Authorized users can create followups"
+  on public.absence_followups for insert to authenticated
+  with check (
+    public.is_super_admin()
+    or (
+      public.current_profile_role() = 'department_head'
+      and exists (
+        select 1
+        from public.workers as w
+        where w.id = worker_id
+          and w.department_id = public.current_department_id()
+      )
+    )
+  );
+
+create policy "Authorized users can update followups"
+  on public.absence_followups for update to authenticated
+  using (
+    public.is_super_admin()
+    or (
+      public.current_profile_role() = 'department_head'
+      and exists (
+        select 1
+        from public.workers as w
+        where w.id = worker_id
+          and w.department_id = public.current_department_id()
+      )
+    )
+  )
+  with check (
+    public.is_super_admin()
+    or (
+      public.current_profile_role() = 'department_head'
+      and exists (
+        select 1
+        from public.workers as w
+        where w.id = worker_id
+          and w.department_id = public.current_department_id()
+      )
+    )
+  );
+
+create policy "View authorized followup events"
+  on public.followup_events for select to authenticated
+  using (
+    public.is_church_leader()
+    or exists (
+      select 1
+      from public.workers as w
+      where w.id = worker_id
+        and w.department_id = public.current_department_id()
+    )
+  );
+
+-- Explicit API privileges. RLS still decides which rows are accessible.
+revoke all on table public.departments from anon;
+revoke all on table public.profiles from anon;
+revoke all on table public.workers from anon;
+revoke all on table public.services from anon;
+revoke all on table public.attendance_submissions from anon;
+revoke all on table public.attendance_logs from anon;
+revoke all on table public.absence_followups from anon;
+revoke all on table public.followup_events from anon;
+
+grant select, insert, update, delete on table public.departments to authenticated;
+grant select, insert, update, delete on table public.profiles to authenticated;
+grant select, insert, update, delete on table public.workers to authenticated;
+grant select, insert, update, delete on table public.services to authenticated;
+grant select on table public.attendance_submissions to authenticated;
+grant select on table public.attendance_logs to authenticated;
+grant select, update on table public.absence_followups to authenticated;
+grant select on table public.followup_events to authenticated;
+
+-- Idempotent seed data -------------------------------------------------------
+
+insert into public.departments (name) values
+  ('Ushering'),
+  ('Sanctuary'),
+  ('Media'),
+  ('Children'),
+  ('Protocol'),
+  ('Music'),
+  ('Technical'),
+  ('Enumerator')
+on conflict (name) do nothing;
+
+-- Bootstrap step:
+-- 1. Sign up the first administrator through Supabase Auth.
+-- 2. Find that user in Authentication > Users.
+-- 3. Run the following once, replacing the UUID:
+--
+-- update public.profiles
+-- set role = 'super_admin'
+-- where id = 'YOUR-AUTH-USER-UUID';
+--
+-- Or promote the first administrator directly by email:
+--
+-- update public.profiles as p
+-- set role = 'super_admin',
+--     department_id = null
+-- from auth.users as u
+-- where p.id = u.id
+--   and lower(u.email) = lower('YOUR-ADMIN-EMAIL');
