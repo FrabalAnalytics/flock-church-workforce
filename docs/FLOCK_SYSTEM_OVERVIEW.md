@@ -125,12 +125,15 @@ The worker directory stores:
 
 - Full name.
 - Phone number.
+- Sex, recorded as Male or Female when provided.
 - Department.
 - Worker status.
 - Date joined.
 - WhatsApp communication preference.
 
 Worker statuses include Active, Inactive, and On Leave. Only active workers are included in a department's expected attendance roster.
+
+The sex field is optional so existing records remain valid. It is centrally managed by a Super Admin and can be used to filter the worker directory without affecting attendance calculations.
 
 ### 5.4 Departmental worker attendance
 

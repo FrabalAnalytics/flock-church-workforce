@@ -11,6 +11,7 @@ type WorkerSearchParams = {
   q?: string;
   status?: string;
   department?: string;
+  sex?: string;
 };
 
 function statusStyle(status: string) {
@@ -27,13 +28,14 @@ export default async function WorkersPage({ searchParams }: { searchParams: Prom
 
   let query = supabase
     .from("workers")
-    .select("id, full_name, phone_number, status, whatsapp_opt_in, joined_at, department_id, departments(name)")
+    .select("id, full_name, phone_number, sex, status, whatsapp_opt_in, joined_at, department_id, departments(name)")
     .order("full_name");
   if (params.q) query = query.ilike("full_name", `%${params.q}%`);
   if (params.status) query = query.eq("status", params.status);
   if (params.department) query = query.eq("department_id", params.department);
+  if (params.sex) query = query.eq("sex", params.sex);
   const { data: workers, error } = await query;
-  const hasFilters = Boolean(params.q || params.status || params.department);
+  const hasFilters = Boolean(params.q || params.status || params.department || params.sex);
 
   return (
     <div className="mx-auto max-w-7xl">
@@ -49,7 +51,7 @@ export default async function WorkersPage({ searchParams }: { searchParams: Prom
       </div>
 
       <form className="mt-7 rounded-2xl border border-[var(--color-border)] bg-white p-4 shadow-[var(--shadow-sm)]">
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-[minmax(240px,1fr)_180px_220px_auto_auto] xl:items-end">
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-[minmax(220px,1fr)_150px_150px_200px_auto_auto] xl:items-end">
           <label className="text-sm font-semibold text-[var(--color-text-secondary)]">
             Search workers
             <input name="q" defaultValue={params.q} placeholder="Enter a worker's name" className="mt-2 h-12 w-full rounded-xl border border-[var(--color-border)] px-4 text-sm font-normal outline-none transition focus:border-[var(--color-primary)]" />
@@ -58,6 +60,12 @@ export default async function WorkersPage({ searchParams }: { searchParams: Prom
             Status
             <select name="status" defaultValue={params.status ?? ""} className="mt-2 h-12 w-full rounded-xl border border-[var(--color-border)] bg-white px-3 text-sm font-normal">
               <option value="">All statuses</option><option>Active</option><option>On Leave</option><option>Inactive</option>
+            </select>
+          </label>
+          <label className="text-sm font-semibold text-[var(--color-text-secondary)]">
+            Sex
+            <select name="sex" defaultValue={params.sex ?? ""} className="mt-2 h-12 w-full rounded-xl border border-[var(--color-border)] bg-white px-3 text-sm font-normal">
+              <option value="">All</option><option>Male</option><option>Female</option>
             </select>
           </label>
           <label className="text-sm font-semibold text-[var(--color-text-secondary)]">
@@ -82,7 +90,7 @@ export default async function WorkersPage({ searchParams }: { searchParams: Prom
           <div className="mt-3 hidden overflow-hidden rounded-3xl border border-[var(--color-border)] bg-white shadow-[var(--shadow-sm)] md:block">
             <table className="w-full border-collapse text-left">
               <thead className="border-b border-[var(--color-border)] bg-[var(--color-surface-subtle)] text-xs font-semibold uppercase tracking-[0.08em] text-[var(--color-text-muted)]">
-                <tr><th className="px-6 py-4">Worker</th><th className="px-4 py-4">Department</th><th className="px-4 py-4">Status</th><th className="px-4 py-4">WhatsApp care</th><th className="px-6 py-4 text-right"><span className="sr-only">Actions</span></th></tr>
+                <tr><th className="px-6 py-4">Worker</th><th className="px-4 py-4">Sex</th><th className="px-4 py-4">Department</th><th className="px-4 py-4">Status</th><th className="px-4 py-4">WhatsApp care</th><th className="px-6 py-4 text-right"><span className="sr-only">Actions</span></th></tr>
               </thead>
               <tbody className="divide-y divide-[#edf0f6]">
                 {workers.map((worker) => {
@@ -90,6 +98,7 @@ export default async function WorkersPage({ searchParams }: { searchParams: Prom
                   return (
                     <tr key={worker.id} className="transition hover:bg-[#fafbfe]">
                       <td className="px-6 py-4"><p className="text-sm font-semibold text-[#253252]">{worker.full_name}</p><p className="mt-1 text-xs text-[var(--color-text-muted)]">{worker.phone_number ?? "No phone number"}</p></td>
+                      <td className="px-4 py-4 text-sm text-[var(--color-text-secondary)]">{worker.sex ?? "Not recorded"}</td>
                       <td className="px-4 py-4 text-sm text-[var(--color-text-secondary)]">{department?.name ?? "Not assigned"}</td>
                       <td className="px-4 py-4"><span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${statusStyle(worker.status)}`}>{worker.status}</span></td>
                       <td className="px-4 py-4"><span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${worker.whatsapp_opt_in ? "bg-[#edf7f1] text-[#347457]" : "bg-[#f3f4f7] text-[#7b8495]"}`}>{worker.whatsapp_opt_in ? "Enabled" : "Off"}</span></td>
@@ -108,6 +117,7 @@ export default async function WorkersPage({ searchParams }: { searchParams: Prom
                 <article key={worker.id} className="rounded-2xl border border-[var(--color-border)] bg-white p-5 shadow-[var(--shadow-sm)]">
                   <div className="flex items-start justify-between gap-3"><div className="min-w-0"><h2 className="truncate text-base font-semibold text-[#253252]">{worker.full_name}</h2><p className="mt-1 text-sm text-[var(--color-text-muted)]">{worker.phone_number ?? "No phone number"}</p></div><span className={`shrink-0 rounded-full px-3 py-1 text-xs font-semibold ${statusStyle(worker.status)}`}>{worker.status}</span></div>
                   <dl className="mt-5 grid grid-cols-2 gap-4 border-y border-[#edf0f6] py-4">
+                    <div><dt className="text-xs font-semibold uppercase tracking-[0.08em] text-[var(--color-text-muted)]">Sex</dt><dd className="mt-1 text-sm font-medium text-[var(--color-text-secondary)]">{worker.sex ?? "Not recorded"}</dd></div>
                     <div><dt className="text-xs font-semibold uppercase tracking-[0.08em] text-[var(--color-text-muted)]">Department</dt><dd className="mt-1 text-sm font-medium text-[var(--color-text-secondary)]">{department?.name ?? "Not assigned"}</dd></div>
                     <div><dt className="text-xs font-semibold uppercase tracking-[0.08em] text-[var(--color-text-muted)]">WhatsApp care</dt><dd className="mt-1 text-sm font-medium text-[var(--color-text-secondary)]">{worker.whatsapp_opt_in ? "Enabled" : "Off"}</dd></div>
                   </dl>

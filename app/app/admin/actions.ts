@@ -76,14 +76,15 @@ export async function createWorker(formData: FormData) {
   await requireSuperAdmin();
   const full_name = value(formData, "full_name");
   const phone_number = value(formData, "phone_number") || null;
+  const sex = value(formData, "sex") || null;
   const department_id = value(formData, "department_id");
   const status = value(formData, "status") || "Active";
   const joined_at = value(formData, "joined_at");
   const whatsapp_opt_in = formData.get("whatsapp_opt_in") === "on";
-  if (full_name.length < 2 || !department_id) redirect(withMessage("/app/workers/new", "error", "Name and department are required."));
+  if (full_name.length < 2 || !department_id || (sex && !["Male", "Female"].includes(sex))) redirect(withMessage("/app/workers/new", "error", "Enter valid worker details."));
 
   const supabase = await createClient();
-  const { error } = await supabase.from("workers").insert({ full_name, phone_number, department_id, status, joined_at: joined_at || undefined, whatsapp_opt_in });
+  const { error } = await supabase.from("workers").insert({ full_name, phone_number, sex, department_id, status, joined_at: joined_at || undefined, whatsapp_opt_in });
   if (error) redirect(withMessage("/app/workers/new", "error", error.message));
   revalidatePath("/app/workers");
   redirect(withMessage("/app/workers", "message", `${full_name} was added.`));
@@ -94,14 +95,15 @@ export async function updateWorker(formData: FormData) {
   const id = value(formData, "id");
   const full_name = value(formData, "full_name");
   const phone_number = value(formData, "phone_number") || null;
+  const sex = value(formData, "sex") || null;
   const department_id = value(formData, "department_id");
   const status = value(formData, "status");
   const joined_at = value(formData, "joined_at");
   const whatsapp_opt_in = formData.get("whatsapp_opt_in") === "on";
-  if (!id || full_name.length < 2 || !department_id) redirect(withMessage(`/app/workers/${id}/edit`, "error", "Complete all required fields."));
+  if (!id || full_name.length < 2 || !department_id || (sex && !["Male", "Female"].includes(sex))) redirect(withMessage(`/app/workers/${id}/edit`, "error", "Complete all required fields with valid values."));
 
   const supabase = await createClient();
-  const { error } = await supabase.from("workers").update({ full_name, phone_number, department_id, status, joined_at, whatsapp_opt_in }).eq("id", id);
+  const { error } = await supabase.from("workers").update({ full_name, phone_number, sex, department_id, status, joined_at, whatsapp_opt_in }).eq("id", id);
   if (error) redirect(withMessage(`/app/workers/${id}/edit`, "error", error.message));
   revalidatePath("/app/workers");
   redirect(withMessage("/app/workers", "message", `${full_name} was updated.`));

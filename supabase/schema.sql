@@ -46,6 +46,7 @@ create table if not exists public.workers (
   id uuid primary key default gen_random_uuid(),
   full_name text not null,
   phone_number text,
+  sex text check (sex is null or sex in ('Male', 'Female')),
   whatsapp_opt_in boolean not null default false,
   whatsapp_opted_in_at timestamptz,
   whatsapp_opted_out_at timestamptz,
@@ -59,9 +60,17 @@ create table if not exists public.workers (
 alter table public.workers
   add column if not exists whatsapp_opt_in boolean not null default false;
 alter table public.workers
+  add column if not exists sex text;
+alter table public.workers
   add column if not exists whatsapp_opted_in_at timestamptz;
 alter table public.workers
   add column if not exists whatsapp_opted_out_at timestamptz;
+
+alter table public.workers
+  drop constraint if exists workers_sex_check;
+alter table public.workers
+  add constraint workers_sex_check
+  check (sex is null or sex in ('Male', 'Female'));
 
 alter table public.workers
   drop constraint if exists workers_whatsapp_preference_state;

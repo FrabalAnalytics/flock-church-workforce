@@ -11,7 +11,7 @@ export default async function EditWorkerPage({ params, searchParams }: { params:
   const [{ id }, query] = await Promise.all([params, searchParams]);
   const supabase = await createClient();
   const [{ data: worker }, { data: departments }] = await Promise.all([
-    supabase.from("workers").select("id, full_name, phone_number, department_id, status, joined_at, whatsapp_opt_in").eq("id", id).single(),
+    supabase.from("workers").select("id, full_name, phone_number, sex, department_id, status, joined_at, whatsapp_opt_in").eq("id", id).single(),
     supabase.from("departments").select("id, name").order("name"),
   ]);
   if (!worker) notFound();
