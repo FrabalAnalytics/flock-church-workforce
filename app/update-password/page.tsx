@@ -3,6 +3,8 @@ import { AuthNotice, inputClass } from "@/components/auth-form";
 import { AuthSubmitButton } from "@/components/auth-submit-button";
 import { updatePassword } from "@/app/auth/actions";
 
+export const metadata = { title: "Choose a new password", description: "Securely update your Flock account password.", robots: { index: false, follow: false } };
+
 export default async function UpdatePasswordPage({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
   const params = await searchParams;
   return (

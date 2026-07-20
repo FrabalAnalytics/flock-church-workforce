@@ -4,6 +4,8 @@ import { WorkerForm } from "@/components/worker-form";
 import { requireSuperAdmin } from "@/lib/admin";
 import { createClient } from "@/lib/supabase/server";
 
+export const metadata = { title: "Edit worker", description: "Update a worker's directory and roster information." };
+
 export default async function EditWorkerPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ error?: string }> }) {
   await requireSuperAdmin();
   const [{ id }, query] = await Promise.all([params, searchParams]);

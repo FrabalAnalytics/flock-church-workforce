@@ -5,6 +5,8 @@ import { MetricPill, PageHeader } from "@/components/workspace-ui";
 import { requireProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 
+export const metadata = { title: "Log worker attendance", description: "Record today's worker attendance for your department." };
+
 export default async function NewAttendancePage({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
   const { profile } = await requireProfile();
   if (profile.role !== "department_head" || !profile.department_id) redirect("/app");

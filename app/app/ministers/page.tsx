@@ -3,6 +3,8 @@ import { FormSubmitButton } from "@/components/form-submit-button";
 import { WorkspaceNotice } from "@/components/workspace-notice";
 import { EmptyState, MetricPill, PageHeader, StatusBadge } from "@/components/workspace-ui";
 import { requireSuperAdmin } from "@/lib/admin";
+
+export const metadata = { title: "Minister directory", description: "Manage minister names used in congregation attendance records." };
 import { createClient } from "@/lib/supabase/server";
 
 export default async function MinistersPage({ searchParams }: { searchParams: Promise<{ message?: string; error?: string }> }) {

@@ -4,6 +4,8 @@ import { AuthNotice, inputClass } from "@/components/auth-form";
 import { AuthSubmitButton } from "@/components/auth-submit-button";
 import { signIn } from "@/app/auth/actions";
 
+export const metadata = { title: "Sign in", description: "Sign in to your approved Flock church account.", robots: { index: false, follow: false } };
+
 export default async function SignInPage({
   searchParams,
 }: {

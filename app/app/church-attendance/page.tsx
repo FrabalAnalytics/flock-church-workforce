@@ -3,6 +3,8 @@ import { correctChurchAttendance, submitChurchAttendance } from "@/app/app/churc
 import { FormSubmitButton } from "@/components/form-submit-button";
 import { TrendLineChart, type TrendPoint } from "@/components/trend-line-chart";
 import { WorkspaceNotice } from "@/components/workspace-notice";
+
+export const metadata = { title: "Congregation attendance", description: "Record and review aggregate congregation attendance." };
 import { EmptyState, MetricPill, PageHeader } from "@/components/workspace-ui";
 import { requireProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";

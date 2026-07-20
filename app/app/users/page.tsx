@@ -3,6 +3,8 @@ import { updateUserAccess } from "@/app/app/admin/actions";
 import { FormSubmitButton } from "@/components/form-submit-button";
 import { WorkspaceNotice } from "@/components/workspace-notice";
 import { EmptyState, MetricPill, PageHeader, StatusBadge } from "@/components/workspace-ui";
+
+export const metadata = { title: "User access", description: "Manage Flock user roles and department access." };
 import { requireSuperAdmin } from "@/lib/admin";
 import { createClient } from "@/lib/supabase/server";
 

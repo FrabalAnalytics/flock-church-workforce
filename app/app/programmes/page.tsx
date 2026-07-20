@@ -3,6 +3,8 @@ import { redirect } from "next/navigation";
 import { addProgrammeItem, createProgramme, deleteProgramme, publishProgramme, removeProgrammeItem, updateProgrammeItem, updateTemplateItem } from "@/app/app/programmes/actions";
 import { PrintProgrammeButton } from "@/components/print-programme-button";
 import { FormSubmitButton } from "@/components/form-submit-button";
+
+export const metadata = { title: "Service programmes", description: "Create, publish and review dated service programmes." };
 import { WorkspaceNotice } from "@/components/workspace-notice";
 import { EmptyState, MetricPill, PageHeader, StatusBadge } from "@/components/workspace-ui";
 import { requireProfile } from "@/lib/auth";

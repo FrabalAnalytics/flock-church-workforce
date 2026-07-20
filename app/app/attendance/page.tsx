@@ -3,6 +3,8 @@ import { correctSubmittedAttendance } from "@/app/app/attendance/actions";
 import { FormSubmitButton } from "@/components/form-submit-button";
 import { WorkspaceNotice } from "@/components/workspace-notice";
 import { EmptyState, MetricPill, PageHeader, StatusBadge } from "@/components/workspace-ui";
+
+export const metadata = { title: "Worker attendance", description: "Review submitted department worker attendance." };
 import { requireProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 

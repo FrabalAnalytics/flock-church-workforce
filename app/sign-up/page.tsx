@@ -4,6 +4,8 @@ import { AuthNotice, inputClass } from "@/components/auth-form";
 import { AuthSubmitButton } from "@/components/auth-submit-button";
 import { signUp } from "@/app/auth/actions";
 
+export const metadata = { title: "Request access", description: "Request access to your church's Flock workspace.", robots: { index: false, follow: false } };
+
 export default async function SignUpPage({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
   const params = await searchParams;
   return (

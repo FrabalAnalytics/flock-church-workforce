@@ -4,6 +4,8 @@ import { WorkspaceNotice } from "@/components/workspace-notice";
 import { requireProfile, type ProfileRole } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 
+export const metadata = { title: "Department overview", description: "Your department workforce, attendance and care overview." };
+
 type Submission = {
   id: string;
   roster_count: number;

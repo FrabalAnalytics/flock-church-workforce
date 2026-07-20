@@ -4,6 +4,8 @@ import { AuthNotice, inputClass } from "@/components/auth-form";
 import { AuthSubmitButton } from "@/components/auth-submit-button";
 import { requestPasswordReset } from "@/app/auth/actions";
 
+export const metadata = { title: "Reset password", description: "Request a secure Flock password-reset link.", robots: { index: false, follow: false } };
+
 export default async function ForgotPasswordPage({ searchParams }: { searchParams: Promise<{ error?: string; message?: string }> }) {
   const params = await searchParams;
   return (

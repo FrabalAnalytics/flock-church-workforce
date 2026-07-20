@@ -4,6 +4,8 @@ import { WorkspaceNotice } from "@/components/workspace-notice";
 import { TrendLineChart, type TrendPoint } from "@/components/trend-line-chart";
 import { EmptyState, PageHeader } from "@/components/workspace-ui";
 
+export const metadata = { title: "Reports", description: "Church workforce and congregation attendance reporting." };
+
 const serviceTypes = ["Sunday Service", "Tuesday Service", "Special Service", "Headquarters Service", "Tarry Night"];
 
 type ReportRow = {

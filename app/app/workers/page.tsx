@@ -3,6 +3,8 @@ import { WorkspaceNotice } from "@/components/workspace-notice";
 import { requireSuperAdmin } from "@/lib/admin";
 import { createClient } from "@/lib/supabase/server";
 
+export const metadata = { title: "Worker directory", description: "Manage the church workforce directory and roster status." };
+
 type WorkerSearchParams = {
   message?: string;
   error?: string;

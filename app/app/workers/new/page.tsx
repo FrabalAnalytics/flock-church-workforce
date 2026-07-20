@@ -3,6 +3,8 @@ import { WorkerForm } from "@/components/worker-form";
 import { requireSuperAdmin } from "@/lib/admin";
 import { createClient } from "@/lib/supabase/server";
 
+export const metadata = { title: "Add worker", description: "Add a worker to the church workforce directory." };
+
 export default async function NewWorkerPage({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
   await requireSuperAdmin();
   const params = await searchParams;

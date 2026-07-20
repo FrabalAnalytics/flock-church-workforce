@@ -3,6 +3,8 @@ import { resolveFollowup } from "@/app/app/follow-ups/actions";
 import { FormSubmitButton } from "@/components/form-submit-button";
 import { WorkspaceNotice } from "@/components/workspace-notice";
 import { EmptyState, MetricPill, PageHeader } from "@/components/workspace-ui";
+
+export const metadata = { title: "Care alerts", description: "Review workforce absence patterns and pastoral-care follow-ups." };
 import { requireProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 

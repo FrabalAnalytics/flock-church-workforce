@@ -4,6 +4,8 @@ import { FlockBrand } from "@/components/flock-brand";
 import { FormSubmitButton } from "@/components/form-submit-button";
 import { requireProfile } from "@/lib/auth";
 
+export const metadata = { title: "Approval pending", description: "Your Flock account is awaiting administrator approval.", robots: { index: false, follow: false } };
+
 export default async function PendingPage() {
   const { user, profile } = await requireProfile();
   if (profile.role !== "pending") redirect("/app");

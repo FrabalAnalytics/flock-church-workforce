@@ -3,6 +3,8 @@ import { FormSubmitButton } from "@/components/form-submit-button";
 import { WorkspaceNotice } from "@/components/workspace-notice";
 import { EmptyState, MetricPill, PageHeader } from "@/components/workspace-ui";
 import { requireSuperAdmin } from "@/lib/admin";
+
+export const metadata = { title: "Departments", description: "Manage ministry departments used throughout Flock." };
 import { createClient } from "@/lib/supabase/server";
 
 export default async function DepartmentsPage({ searchParams }: { searchParams: Promise<{ message?: string; error?: string }> }) {
