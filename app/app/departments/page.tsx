@@ -1,5 +1,7 @@
 import { createDepartment, renameDepartment } from "@/app/app/admin/actions";
+import { FormSubmitButton } from "@/components/form-submit-button";
 import { WorkspaceNotice } from "@/components/workspace-notice";
+import { EmptyState, MetricPill, PageHeader } from "@/components/workspace-ui";
 import { requireSuperAdmin } from "@/lib/admin";
 import { createClient } from "@/lib/supabase/server";
 
@@ -14,12 +16,16 @@ export default async function DepartmentsPage({ searchParams }: { searchParams: 
   const counts = new Map<string, number>();
   workers?.forEach((worker) => counts.set(worker.department_id, (counts.get(worker.department_id) ?? 0) + 1));
 
-  return <div className="mx-auto max-w-6xl">
+  return <div className="mx-auto max-w-7xl">
     <WorkspaceNotice message={params.message} error={params.error} />
-    <p className="text-sm font-semibold uppercase tracking-[0.15em] text-[#4f7df3]">Structure</p>
-    <h1 className="mt-2 text-3xl font-semibold tracking-[-0.035em]">Departments</h1>
-    <p className="mt-2 text-sm text-[#758097]">Create and rename the ministry departments used across Flock.</p>
-    <form action={createDepartment} className="mt-8 flex max-w-xl gap-3 rounded-2xl border border-[#e0e6f2] bg-white p-3"><input name="name" required placeholder="New department name" className="min-w-0 flex-1 rounded-xl border border-[#dce3f1] px-4 text-sm outline-none focus:border-[#4f7df3]" /><button className="rounded-xl bg-[#4f7df3] px-5 py-3 text-sm font-semibold text-white">Add department</button></form>
-    <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">{departments?.map((department) => <article key={department.id} className="rounded-3xl border border-[#e0e6f2] bg-white p-5"><div className="flex items-center justify-between"><span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#edf2ff] text-sm font-semibold text-[#4f7df3]">{department.name.slice(0, 2).toUpperCase()}</span><span className="text-xs text-[#8993a7]">{counts.get(department.id) ?? 0} workers</span></div><form action={renameDepartment} className="mt-5 flex gap-2"><input type="hidden" name="id" value={department.id} /><input name="name" defaultValue={department.name} required className="min-w-0 flex-1 rounded-xl border border-[#e0e6f2] px-3 py-2.5 text-sm font-semibold outline-none focus:border-[#4f7df3]" /><button className="rounded-xl bg-[#f3f6fc] px-3 text-xs font-semibold text-[#536078] hover:bg-[#eaf0fb]">Save</button></form></article>)}</div>
+    <PageHeader eyebrow="Church structure" title="Departments" description="Create and rename the ministry departments used for workers, attendance, access and reporting." />
+    <div className="mt-6 flex flex-wrap gap-2"><MetricPill value={departments?.length ?? 0} label="departments" /><MetricPill value={workers?.length ?? 0} label="workers assigned" /></div>
+
+    <form action={createDepartment} className="mt-7 grid max-w-2xl gap-3 rounded-2xl border border-[var(--color-border)] bg-white p-4 shadow-[var(--shadow-sm)] sm:grid-cols-[1fr_auto] sm:items-end">
+      <label className="text-sm font-semibold text-[var(--color-text-secondary)]">New department name<input name="name" minLength={2} required placeholder="e.g. Hospitality" className="mt-2 h-12 w-full rounded-xl border border-[var(--color-border)] px-4 text-sm font-normal outline-none focus:border-[var(--color-primary)]" /></label>
+      <FormSubmitButton pendingLabel="Adding..." className="min-h-12 rounded-xl bg-[var(--color-primary)] px-5 text-sm font-semibold text-white hover:bg-[var(--color-primary-strong)] disabled:cursor-wait disabled:opacity-60">Add department</FormSubmitButton>
+    </form>
+
+    {departments?.length ? <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">{departments.map((department) => <article key={department.id} className="rounded-3xl border border-[var(--color-border)] bg-white p-5 shadow-[var(--shadow-sm)]"><div className="flex items-center justify-between gap-4"><span className="flex h-11 w-11 items-center justify-center rounded-xl bg-[var(--color-primary-soft)] text-sm font-semibold text-[var(--color-primary)]">{department.name.slice(0, 2).toUpperCase()}</span><span className="rounded-full bg-[var(--color-surface-subtle)] px-3 py-1.5 text-xs font-semibold text-[var(--color-text-muted)]">{counts.get(department.id) ?? 0} workers</span></div><form action={renameDepartment} className="mt-5 grid grid-cols-[1fr_auto] gap-2"><input type="hidden" name="id" value={department.id} /><label className="sr-only" htmlFor={`department-${department.id}`}>Department name</label><input id={`department-${department.id}`} name="name" minLength={2} defaultValue={department.name} required className="h-12 min-w-0 rounded-xl border border-[var(--color-border)] px-3 text-sm font-semibold outline-none focus:border-[var(--color-primary)]" /><FormSubmitButton pendingLabel="Saving..." className="min-h-12 rounded-xl bg-[var(--color-primary-soft)] px-4 text-sm font-semibold text-[var(--color-primary-strong)] disabled:cursor-wait disabled:opacity-60">Save</FormSubmitButton></form></article>)}</div> : <div className="mt-6"><EmptyState title="No departments created" description="Create the first ministry department to begin assigning workers and Department Heads." /></div>}
   </div>;
 }
