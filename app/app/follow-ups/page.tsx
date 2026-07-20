@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { resolveFollowup } from "@/app/app/follow-ups/actions";
+import { FormSubmitButton } from "@/components/form-submit-button";
 import { WorkspaceNotice } from "@/components/workspace-notice";
+import { EmptyState, MetricPill, PageHeader } from "@/components/workspace-ui";
 import { requireProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 
@@ -50,35 +52,34 @@ export default async function FollowupsPage({
   const showResolved = params.view === "resolved";
   const canResolve = profile.role === "super_admin" || profile.role === "department_head";
   const supabase = await createClient();
-  const { data: followups, error } = await supabase
-    .from("absence_followups")
-    .select(`
-      id,
-      consecutive_misses,
-      notes,
-      resolved,
-      resolved_at,
-      created_at,
-      workers(id, full_name, phone_number, whatsapp_opt_in, departments(name)),
-      services(service_date, service_type),
-      followup_events(id, miss_count, event_type, message_body, delivery_status, created_at)
-    `)
-    .eq("resolved", showResolved)
-    .order(showResolved ? "resolved_at" : "created_at", { ascending: false });
+  const [followupsResult, openCountResult, resolvedCountResult] = await Promise.all([
+    supabase
+      .from("absence_followups")
+      .select(`
+        id,
+        consecutive_misses,
+        notes,
+        resolved,
+        resolved_at,
+        created_at,
+        workers(id, full_name, phone_number, whatsapp_opt_in, departments(name)),
+        services(service_date, service_type),
+        followup_events(id, miss_count, event_type, message_body, delivery_status, created_at)
+      `)
+      .eq("resolved", showResolved)
+      .order(showResolved ? "resolved_at" : "created_at", { ascending: false }),
+    supabase.from("absence_followups").select("*", { count: "exact", head: true }).eq("resolved", false),
+    supabase.from("absence_followups").select("*", { count: "exact", head: true }).eq("resolved", true),
+  ]);
+  const { data: followups, error } = followupsResult;
 
   return (
-    <div className="mx-auto max-w-6xl">
+    <div className="mx-auto max-w-7xl">
       <WorkspaceNotice message={params.message} error={params.error ?? error?.message} />
-      <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <p className="text-sm font-semibold uppercase tracking-[0.15em] text-[#4f7df3]">Pastoral care</p>
-          <h1 className="mt-2 text-3xl font-semibold tracking-[-0.035em]">Care alerts</h1>
-          <p className="mt-2 text-sm text-[#758097]">Review repeated absences, communication events and completed follow-up.</p>
-        </div>
-        <div className="flex rounded-xl bg-[#e9eef8] p-1 text-sm font-semibold">
-          <Link href="/app/follow-ups" className={`rounded-lg px-4 py-2 ${!showResolved ? "bg-white text-[#4168cd] shadow-sm" : "text-[#758097]"}`}>Open</Link>
-          <Link href="/app/follow-ups?view=resolved" className={`rounded-lg px-4 py-2 ${showResolved ? "bg-white text-[#4168cd] shadow-sm" : "text-[#758097]"}`}>Resolved</Link>
-        </div>
+      <PageHeader eyebrow="Pastoral care" title="Care alerts" description="Review repeated absences, communication events and completed follow-up." actions={<div className="flex flex-wrap gap-2"><MetricPill value={openCountResult.count ?? 0} label="open" tone={(openCountResult.count ?? 0) > 0 ? "warning" : "neutral"} /><MetricPill value={resolvedCountResult.count ?? 0} label="resolved" /></div>} />
+      <div className="mt-7 flex w-full rounded-xl bg-[#e9eef8] p-1 text-sm font-semibold sm:w-fit" role="navigation" aria-label="Care alert status">
+          <Link href="/app/follow-ups" aria-current={!showResolved ? "page" : undefined} className={`flex min-h-11 flex-1 items-center justify-center rounded-lg px-5 sm:flex-none ${!showResolved ? "bg-white text-[#4168cd] shadow-sm" : "text-[#758097] hover:text-[#34415f]"}`}>Open <span className="ml-2 text-xs">{openCountResult.count ?? 0}</span></Link>
+          <Link href="/app/follow-ups?view=resolved" aria-current={showResolved ? "page" : undefined} className={`flex min-h-11 flex-1 items-center justify-center rounded-lg px-5 sm:flex-none ${showResolved ? "bg-white text-[#4168cd] shadow-sm" : "text-[#758097] hover:text-[#34415f]"}`}>Resolved <span className="ml-2 text-xs">{resolvedCountResult.count ?? 0}</span></Link>
       </div>
 
       <div className="mt-8 space-y-5">
@@ -125,7 +126,7 @@ export default async function FollowupsPage({
                       Resolution note
                       <textarea name="note" rows={2} placeholder="Optional care note" className="mt-2 w-full resize-none rounded-xl border border-[#dce3f1] px-3 py-2 text-sm font-normal outline-none focus:border-[#4f7df3]" />
                     </label>
-                    <button className="w-full rounded-xl bg-[#4f7df3] px-4 py-2.5 text-sm font-semibold text-white">Mark resolved</button>
+                    <FormSubmitButton pendingLabel="Resolving..." className="min-h-12 w-full rounded-xl bg-[var(--color-primary)] px-4 text-sm font-semibold text-white transition hover:bg-[var(--color-primary-strong)] disabled:cursor-wait disabled:opacity-60">Mark resolved</FormSubmitButton>
                   </form>
                 ) : (
                   <span className="h-fit rounded-full bg-[#f2f5fb] px-3 py-1 text-xs font-semibold text-[#68738a]">Read only</span>
@@ -153,10 +154,7 @@ export default async function FollowupsPage({
             </article>
           );
         }) : (
-          <div className="rounded-3xl border border-dashed border-[#d8dfed] bg-white px-6 py-16 text-center">
-            <p className="font-semibold text-[#526078]">{showResolved ? "No resolved care alerts" : "No open care alerts"}</p>
-            <p className="mt-2 text-sm text-[#929bad]">{showResolved ? "Resolved follow-ups will remain available here." : "New absence patterns will appear after attendance is submitted."}</p>
-          </div>
+          <EmptyState title={showResolved ? "No resolved care alerts" : "No open care alerts"} description={showResolved ? "Resolved follow-ups will remain available here." : "New absence patterns will appear after attendance is submitted."} />
         )}
       </div>
     </div>

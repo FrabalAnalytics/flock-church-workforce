@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { signOut } from "@/app/auth/actions";
 import { FlockBrand } from "@/components/flock-brand";
-import { WorkspaceNav, type WorkspaceLink } from "@/components/workspace-nav";
+import { WorkspaceNav, type WorkspaceGroup } from "@/components/workspace-nav";
 import { requireProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 
@@ -19,57 +19,66 @@ export default async function WorkspaceLayout({ children }: { children: React.Re
     departmentName = data?.name ?? null;
   }
 
-  const links: Record<string, WorkspaceLink[]> = {
+  const navigation: Record<string, WorkspaceGroup[]> = {
     super_admin: [
-      { label: "Overview", href: "/app/reports" },
-      { label: "Worker directory", href: "/app/workers" },
-      { label: "Departments", href: "/app/departments" },
-      { label: "Ministers", href: "/app/ministers" },
-      { label: "Users", href: "/app/users" },
-      { label: "Worker attendance", href: "/app/attendance" },
-      { label: "Congregation attendance", href: "/app/church-attendance" },
-      { label: "Service programme", href: "/app/programmes" },
-      { label: "Care alerts", href: "/app/follow-ups" },
+      { label: "Workspace", links: [{ label: "Overview", href: "/app/reports", icon: "overview" }] },
+      { label: "People", links: [
+        { label: "Worker directory", href: "/app/workers", icon: "people" },
+        { label: "Users", href: "/app/users", icon: "users" },
+        { label: "Ministers", href: "/app/ministers", icon: "ministers" },
+        { label: "Departments", href: "/app/departments", icon: "departments" },
+      ] },
+      { label: "Ministry operations", links: [
+        { label: "Worker attendance", href: "/app/attendance", icon: "attendance" },
+        { label: "Congregation attendance", href: "/app/church-attendance", icon: "congregation" },
+        { label: "Service programme", href: "/app/programmes", icon: "programme" },
+        { label: "Care alerts", href: "/app/follow-ups", icon: "care" },
+      ] },
     ],
     church_leader: [
-      { label: "Overview", href: "/app/reports" },
-      { label: "Worker attendance", href: "/app/attendance" },
-      { label: "Congregation attendance", href: "/app/church-attendance" },
-      { label: "Service programme", href: "/app/programmes" },
-      { label: "Care alerts", href: "/app/follow-ups" },
+      { label: "Workspace", links: [{ label: "Overview", href: "/app/reports", icon: "overview" }] },
+      { label: "Ministry oversight", links: [
+        { label: "Worker attendance", href: "/app/attendance", icon: "attendance" },
+        { label: "Congregation attendance", href: "/app/church-attendance", icon: "congregation" },
+        { label: "Service programme", href: "/app/programmes", icon: "programme" },
+        { label: "Care alerts", href: "/app/follow-ups", icon: "care" },
+      ] },
     ],
     department_head: [
-      { label: "Overview", href: "/app" },
-      { label: "Log worker attendance", href: "/app/attendance/new" },
-      { label: "Worker attendance history", href: "/app/attendance" },
-      { label: "Worker reports", href: "/app/reports" },
-      { label: "Service programme", href: "/app/programmes" },
-      { label: "Follow-ups", href: "/app/follow-ups" },
+      { label: "Workspace", links: [{ label: "Overview", href: "/app", icon: "overview" }] },
+      { label: "Department operations", links: [
+        { label: "Log worker attendance", href: "/app/attendance/new", icon: "attendance" },
+        { label: "Attendance history", href: "/app/attendance", icon: "attendance" },
+        { label: "Worker reports", href: "/app/reports", icon: "overview" },
+        { label: "Service programme", href: "/app/programmes", icon: "programme" },
+        { label: "Follow-ups", href: "/app/follow-ups", icon: "care" },
+      ] },
     ],
   };
 
   return (
-    <main className="min-h-screen bg-[#f5f7fc] text-[#101c3d] lg:grid lg:grid-cols-[260px_1fr]">
-      <aside className="border-b border-[#e0e6f2] bg-white px-5 py-4 lg:min-h-screen lg:border-b-0 lg:border-r lg:px-6 lg:py-7">
+    <main className="min-h-screen bg-[var(--color-canvas)] text-[var(--color-text)] lg:grid lg:grid-cols-[280px_minmax(0,1fr)]">
+      <a href="#workspace-content" className="skip-link">Skip to main content</a>
+      <aside className="border-b border-[var(--color-border)] bg-white px-5 py-4 lg:sticky lg:top-0 lg:h-screen lg:overflow-y-auto lg:border-b-0 lg:border-r lg:px-6 lg:py-7">
         <div className="flex items-center justify-between lg:block">
           <div className="-ml-2"><FlockBrand compact /></div>
           <div className="rounded-full bg-[#edf2ff] px-3 py-1.5 text-xs font-semibold text-[#4f7df3] lg:mt-4 lg:inline-block">{roleLabels[profile.role]}</div>
         </div>
-        <WorkspaceNav links={links[profile.role]} />
-        <div className="mt-8 hidden space-y-3 lg:block">
-          <Link href="/privacy" className="block text-sm font-semibold text-[#7a859a] hover:text-[#4f7df3]">Privacy notice</Link>
-          <form action={signOut}><button type="submit" className="text-sm font-semibold text-[#7a859a] hover:text-[#4f7df3]">Sign out</button></form>
+        <WorkspaceNav groups={navigation[profile.role]} />
+        <div className="mt-9 hidden border-t border-[var(--color-border)] pt-5 lg:block">
+          <Link href="/privacy" className="flex min-h-11 items-center rounded-xl px-3 text-sm font-medium text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-subtle)] hover:text-[var(--color-text)]">Privacy notice</Link>
+          <form action={signOut}><button type="submit" className="flex min-h-11 w-full items-center rounded-xl px-3 text-sm font-medium text-[var(--color-text-secondary)] hover:bg-[var(--color-danger-soft)] hover:text-[var(--color-danger)]">Sign out</button></form>
         </div>
       </aside>
       <section className="min-w-0">
-        <header className="flex items-center justify-between border-b border-[#e2e7f1] bg-white px-5 py-4 sm:px-8 lg:px-12">
+        <header className="sticky top-0 z-30 flex items-center justify-between border-b border-[var(--color-border)] bg-white/95 px-5 py-3.5 backdrop-blur-xl sm:px-8 lg:px-10">
           <div className="min-w-0 pr-3"><p className="truncate text-sm font-semibold text-[#253252]">{profile.full_name}</p><p className="mt-0.5 truncate text-xs text-[#8993a7]">{departmentName ? `${departmentName} Department` : roleLabels[profile.role]}</p></div>
           <div className="flex shrink-0 items-center gap-3 lg:hidden">
             <Link href="/privacy" className="text-xs font-semibold text-[#647087]">Privacy</Link>
             <form action={signOut}><button type="submit" className="text-xs font-semibold text-[#647087]">Sign out</button></form>
           </div>
         </header>
-        <div className="overflow-x-hidden px-4 py-7 sm:px-8 sm:py-8 lg:px-12 lg:py-10">{children}</div>
+        <div id="workspace-content" tabIndex={-1} className="px-4 py-7 outline-none sm:px-8 sm:py-8 lg:px-10 lg:py-10">{children}</div>
       </section>
     </main>
   );

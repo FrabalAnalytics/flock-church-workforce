@@ -52,11 +52,14 @@ The Super Admin can:
 
 - Create and maintain departments.
 - Add and update worker records.
+- Maintain the Minister Directory.
 - Review newly registered users.
 - Assign user roles and departments.
 - View church-wide worker attendance and reports.
+- Correct previously submitted worker-attendance records.
 - View care and absence alerts.
-- Record overall church attendance.
+- Record and correct congregation attendance.
+- Create, edit, publish, republish, and permanently delete service programmes.
 - Export attendance information to CSV.
 
 Only trusted administrators should receive this role.
@@ -72,9 +75,10 @@ Church Leaders can:
 - Review attendance trends and department comparisons.
 - View care alerts and repeated absences.
 - View overall church attendance and demographic breakdowns.
+- View published service programmes.
 - Export authorised reports.
 
-Church Leaders cannot create worker records, assign roles, or submit overall church-attendance figures.
+Church Leaders cannot change profiles, workers, attendance, care alerts, programmes, departments, ministers, roles, or permissions. Their operational access is read-only.
 
 ### Department Head
 
@@ -86,9 +90,10 @@ Department Heads can:
 - Submit attendance for a service.
 - Mark workers as present or absent.
 - Review their department's attendance history and reports.
-- View follow-up information relevant to their department.
+- Review and resolve follow-up information relevant to their department.
+- View published service programmes.
 
-Department Heads cannot view or manage workers belonging to other departments.
+Department Heads cannot view or manage workers belonging to other departments. They cannot change their own profile identity or contact information; a Super Admin centrally manages those fields.
 
 ### Pending User
 
@@ -105,6 +110,8 @@ Every newly registered account starts as pending. A pending user cannot access o
 - New accounts remain pending until approved.
 - Access is controlled by user role and department.
 - Database Row-Level Security provides protection beyond the visible interface.
+- Profile names, phone numbers, roles, and department assignments are managed only by a Super Admin.
+- Users can still reset or change their own passwords through Supabase Auth.
 
 ### 5.2 Department management
 
@@ -112,9 +119,9 @@ The Super Admin can create and rename ministry departments. Departments are used
 
 Current seeded departments include Ushering, Sanctuary, Media, Children, Protocol, Music, Technical, and Enumerator. These can be adjusted by the Super Admin.
 
-### 5.3 Worker register
+### 5.3 Worker directory
 
-The worker register stores:
+The worker directory stores:
 
 - Full name.
 - Phone number.
@@ -134,6 +141,8 @@ On a service day, a Department Head selects the service type and marks the activ
 - Prevents a department from submitting the same service twice.
 - Records who submitted the attendance and when.
 - Updates the attendance overview and reports.
+
+A Super Admin can correct an already submitted worker-attendance record by changing which workers were Present or Absent. The original service, department, roster, and submitter remain unchanged. The system recalculates the totals, records who made the correction and when, and updates any affected absence-follow-up state.
 
 Supported service types currently include:
 
@@ -180,20 +189,24 @@ Workers marked On Leave or Inactive are removed from the active care queue witho
 
 Automated WhatsApp delivery has been prepared for future use but is currently paused. No paid Twilio messaging is required for the system's present attendance and dashboard functions.
 
-### 5.8 Overall church attendance
+### 5.8 Congregation attendance
 
 Overall congregation attendance is recorded separately from individual worker attendance. The system stores aggregate counts only:
 
 - Adult males.
 - Adult females.
 - Children.
+- New members, separated by male and female.
+- New converts, separated by male and female.
+- Minister for the service.
+- Optional service notes.
 - Automatically calculated total.
 
-Only the Super Admin can record these figures. Church Leaders can view the resulting overview and reports.
+New members and new converts are adult subsets already included in the adult totals; they do not increase the calculated congregation total. Only the Super Admin can record or correct these figures. Church Leaders can view the resulting overview and reports.
 
 The system allows one church-attendance record per calendar date, helping prevent double entry.
 
-The Church Attendance overview includes:
+The Congregation Attendance overview includes:
 
 - Total attendance.
 - Average attendance per recorded service.
@@ -207,9 +220,31 @@ The Church Attendance overview includes:
 
 No names, phone numbers, or personal details of ordinary attendees are collected.
 
-### 5.9 Data export
+### 5.9 Service programmes
+
+The Super Admin can create a dated service programme from a reusable template. Template rows are copied into the dated programme so later template changes do not rewrite an already planned service.
+
+The programme workflow supports:
+
+- Draft and published states.
+- Editing activities, times, responsible people, and notes.
+- Adding or removing programme items.
+- Validation against invalid or overlapping times before publication.
+- Republishing approved updates.
+- Read-only viewing by Church Leaders and Department Heads after publication.
+- Super-admin-only permanent deletion with exact-title confirmation.
+
+Deleting a programme also deletes its copied programme items and immediately removes it from Church Leader and Department Head views. The reusable source template remains available.
+
+### 5.10 Data export
 
 Authorised users can export worker-attendance and church-attendance reports as CSV files. These files can be opened in Microsoft Excel, Google Sheets, or similar tools for approved analysis and record keeping.
+
+### 5.11 Database migrations and recovery readiness
+
+The database uses ordered, timestamped migration files in `supabase/migrations`. The readable `supabase/schema.sql` file remains the current-state snapshot, while migrations provide a controlled history of changes for deployment and review.
+
+Backup and recovery procedures, verification scripts, and a backup register template are documented in the repository. Routine backups are intentionally pending until full onboarding, but the process is ready to activate before genuine church-wide data becomes operational.
 
 ---
 
@@ -226,19 +261,27 @@ Authorised users can export worker-attendance and church-attendance reports as C
 ### On a service day
 
 1. Each Department Head signs in on a phone, tablet, or computer.
-2. The Department Head opens Log Attendance.
+2. The Department Head opens Log Worker Attendance.
 3. The service type is selected.
 4. Present workers are marked.
 5. Attendance is submitted once for that department and service.
 6. Leadership reports update from the submitted records.
 
-### Recording overall church attendance
+### Recording congregation attendance
 
-1. The Super Admin opens Church Attendance.
+1. The Super Admin opens Congregation Attendance.
 2. The service date and service type are selected.
-3. Adult male, adult female, and children totals are entered.
-4. The system calculates the total.
-5. The record becomes visible to authorised Church Leaders.
+3. The minister, adult male, adult female, children, new-member, and new-convert figures are entered.
+4. Optional service notes are added and the system calculates the total.
+5. The record becomes visible as read-only information to authorised Church Leaders.
+
+### Preparing a service programme
+
+1. The Super Admin creates a dated programme from an active reusable template.
+2. Activities, times, responsible people, and notes are reviewed and adjusted.
+3. The programme is published after validation.
+4. Church Leaders and Department Heads can view the published programme.
+5. Approved changes can be republished; an erroneous programme can be permanently deleted only by the Super Admin after exact-title confirmation.
 
 ### Reviewing performance and care needs
 
@@ -298,6 +341,9 @@ Key safeguards include:
 - Pending approval for new accounts.
 - Server-side validation for privileged actions.
 - Audit fields showing who submitted or updated records.
+- Super-admin-only attendance correction functions.
+- Centrally managed profile identity and contact information.
+- Timestamped database migrations and a documented recovery process.
 - Aggregate-only congregation attendance.
 - A published privacy notice within the application.
 
@@ -319,7 +365,7 @@ Before full organisational rollout, the church should confirm its legal name, pr
 ### Phase 1: Preparation
 
 - Confirm departments and approved system administrators.
-- Clean and import the initial worker register.
+- Clean and import the initial worker-directory data.
 - Review privacy and data-retention responsibilities.
 - Confirm which leaders require access.
 
@@ -348,12 +394,11 @@ Before full organisational rollout, the church should confirm its legal name, pr
 
 ## 10. Current scope and future opportunities
 
-The current system includes authentication, role administration, departments, workers, worker attendance, leadership reporting, attendance trends, care alerts, aggregate church attendance, privacy information, and CSV exports.
+The current system includes authentication, centrally managed user profiles, role administration, departments, a worker directory, worker attendance and corrections, leadership reporting, attendance trends, care alerts, congregation attendance and corrections, a Minister Directory, reusable programme templates, dated published service programmes, privacy information, CSV exports, database migrations, and backup/recovery procedures.
 
 Possible future additions include:
 
 - Validated bulk worker import within the application.
-- Digital weekly service programmes and reusable templates.
 - QR-code access to published service information.
 - Approved PDF reports.
 - Optional paid WhatsApp care messaging.
@@ -377,10 +422,10 @@ These are future opportunities and should be introduced only after the core atte
 3. Sign in as a Church Leader.
 4. Demonstrate filters, KPIs, trend lines, and department comparisons.
 5. Show care alerts and explain their pastoral purpose.
-6. Show the aggregate Church Attendance overview.
+6. Show the Congregation Attendance overview.
 7. Sign in as a Super Admin.
-8. Demonstrate worker, department, and user-access management.
-9. Explain privacy, role restrictions, and duplicate prevention.
+8. Demonstrate worker, department, user-access, attendance-correction, and service-programme management.
+9. Explain privacy, read-only leadership access, role restrictions, duplicate prevention, and migration controls.
 
 ### Closing statement
 
@@ -392,7 +437,7 @@ These are future opportunities and should be introduced only after the core atte
 
 ### Does every church worker need an account?
 
-No. Accounts are required for authorised system users such as Super Admins, Church Leaders, and Department Heads. Workers can exist in the register without having login accounts.
+No. Accounts are required for authorised system users such as Super Admins, Church Leaders, and Department Heads. Workers can exist in the worker directory without having login accounts.
 
 ### Can a Department Head see another department's workers?
 
@@ -400,15 +445,27 @@ No. Department access is restricted to the department assigned to that user.
 
 ### Can attendance be submitted twice?
 
-Departmental worker attendance is limited to one submission per department and service. Overall church attendance is limited to one record per calendar date.
+Departmental worker attendance is limited to one submission per department and service. Congregation attendance is limited to one record per calendar date.
 
-### Can Church Leaders change overall church attendance?
+### Can a submitted attendance record be corrected?
 
-No. Church Leaders can view it, but only a Super Admin can submit it.
+Yes. Only a Super Admin can correct submitted worker attendance or congregation attendance. Worker corrections preserve the original service, department, roster, and submitter while recording the correction administrator and time.
+
+### Can Church Leaders change congregation attendance or other operational records?
+
+No. Church Leaders have read-only operational access. Only a Super Admin can submit or correct congregation attendance and manage system records.
 
 ### Does the system collect personal details for every church attendee?
 
-No. Overall church attendance consists only of aggregate adult male, adult female, and children totals.
+No. Congregation attendance consists only of aggregate adult male, adult female, children, new-member, and new-convert counts.
+
+### Who can change a user's name, phone number, role, or department?
+
+Only a Super Admin. Church Leaders and Department Heads cannot change their own profile identity or contact information, although every user can still change or reset their own password through Supabase Auth.
+
+### Who can change or delete a service programme?
+
+Only a Super Admin can create, edit, publish, republish, or permanently delete a programme. Church Leaders and Department Heads can view published programmes only.
 
 ### Is WhatsApp required?
 
@@ -421,4 +478,3 @@ Yes. Authorised users can export applicable attendance reports as CSV files.
 ### Can the system work on a mobile phone?
 
 Yes. The interface and navigation are designed for mobile, tablet, and desktop use.
-

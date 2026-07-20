@@ -3,6 +3,20 @@
 :root {
   --background: #fbfcff;
   --foreground: #101c3d;
+  --color-canvas: #f5f7fc;
+  --color-surface: #ffffff;
+  --color-surface-subtle: #f6f8fd;
+  --color-text: #101c3d;
+  --color-text-secondary: #667188;
+  --color-text-muted: #8993a7;
+  --color-icon-muted: #9aa4b7;
+  --color-border: #e0e6f2;
+  --color-primary: #4f7df3;
+  --color-primary-strong: #365fc7;
+  --color-primary-soft: #edf2ff;
+  --color-danger: #a94740;
+  --color-danger-soft: #fff1f0;
+  --shadow-sm: 0 1px 2px rgba(16, 28, 61, 0.05), 0 6px 18px rgba(16, 28, 61, 0.04);
 }
 
 @theme inline {
@@ -20,6 +34,8 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
 button,
@@ -28,12 +44,57 @@ a {
 }
 
 button:focus-visible,
-a:focus-visible {
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+summary:focus-visible,
+[tabindex]:focus-visible {
   outline: 3px solid rgba(79, 125, 243, 0.35);
   outline-offset: 3px;
+}
+
+button,
+select,
+summary {
+  touch-action: manipulation;
+}
+
+.skip-link {
+  position: fixed;
+  left: 1rem;
+  top: 1rem;
+  z-index: 100;
+  transform: translateY(-180%);
+  border-radius: 0.75rem;
+  background: var(--color-text);
+  padding: 0.75rem 1rem;
+  color: white;
+  font-size: 0.875rem;
+  font-weight: 700;
+  transition: transform 150ms ease;
+}
+
+.skip-link:focus {
+  transform: translateY(0);
 }
 
 ::selection {
   background: #cddaff;
   color: #101c3d;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
 }
