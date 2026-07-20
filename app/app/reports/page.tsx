@@ -2,6 +2,7 @@ import { requireProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { WorkspaceNotice } from "@/components/workspace-notice";
 import { TrendLineChart, type TrendPoint } from "@/components/trend-line-chart";
+import { EmptyState, PageHeader } from "@/components/workspace-ui";
 
 const serviceTypes = ["Sunday Service", "Tuesday Service", "Special Service", "Headquarters Service", "Tarry Night"];
 
@@ -111,16 +112,9 @@ export default async function ReportsPage({
   }));
 
   return (
-    <div className="mx-auto max-w-6xl">
-      <WorkspaceNotice message={params.message} error={params.error} />
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <p className="text-sm font-semibold uppercase tracking-[0.15em] text-[#4f7df3]">Church leadership</p>
-          <h1 className="mt-2 text-3xl font-semibold tracking-[-0.035em]">{profile.role === "department_head" ? "Worker attendance reports" : "Worker attendance overview"}</h1>
-          <p className="mt-2 text-sm text-[#758097]">Track church workforce participation across services and departments.</p>
-        </div>
-        <a href={`/api/reports/attendance.csv?${exportParams}`} className="w-fit rounded-xl bg-[#4f7df3] px-5 py-3 text-sm font-semibold text-white">Export CSV</a>
-      </div>
+    <div className="mx-auto max-w-7xl">
+      <WorkspaceNotice message={params.message} error={params.error ?? error?.message} />
+      <PageHeader eyebrow="Church leadership" title={profile.role === "department_head" ? "Worker attendance reports" : "Worker attendance overview"} description="Track church workforce participation across services and departments." actions={<a href={`/api/reports/attendance.csv?${exportParams}`} className="flex min-h-12 w-full items-center justify-center rounded-xl bg-[var(--color-primary)] px-5 text-sm font-semibold text-white shadow-[0_10px_24px_rgba(79,125,243,0.2)] hover:bg-[var(--color-primary-strong)] sm:w-auto">Export CSV</a>} />
 
       <div className="mt-7 flex flex-wrap gap-2">
         {[7, 30, 90].map((days) => (
@@ -138,15 +132,13 @@ export default async function ReportsPage({
       </form>
       <p className="mt-3 text-xs font-medium text-[#8993a7]">Showing {displayDate(from)} – {displayDate(to)}</p>
 
-      {error && <div className="mt-6 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error.message}</div>}
-
       <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {[
           ["Total headcount", roster, "Expected worker records in this period"],
           ["Average per service", servicesLogged ? Math.round(present / servicesLogged) : 0, "Present workers"],
           ["Services logged", servicesLogged, `${rows.length} department submissions`],
           ["Attendance rate", `${percentage(present, roster)}%`, `${present} of ${roster} records`],
-        ].map(([label, value, detail]) => <section key={label} className="rounded-2xl border border-[#e8e5da] bg-[#fbfaf5] p-5"><p className="text-sm font-medium text-[#6d6a60]">{label}</p><p className="mt-2 text-3xl font-semibold text-[#24231f]">{value}</p><p className="mt-2 text-xs text-[#8e8a7e]">{detail}</p></section>)}
+        ].map(([label, value, detail]) => <section key={label} className="rounded-3xl border border-[var(--color-border)] bg-white p-5 shadow-[var(--shadow-sm)]"><p className="text-sm font-medium text-[var(--color-text-secondary)]">{label}</p><p className="mt-2 text-3xl font-semibold text-[var(--color-text)]">{value}</p><p className="mt-2 text-xs text-[var(--color-text-muted)]">{detail}</p></section>)}
       </div>
 
       <section className="mt-6 rounded-3xl border border-[#e0e6f2] bg-white p-5 sm:p-6">
@@ -200,7 +192,7 @@ export default async function ReportsPage({
               </div>
             </div>
           );
-        })}</div> : <p className="px-6 py-14 text-center text-sm text-[#8993a7]">No service activity matches these filters.</p>}
+        })}</div> : <div className="p-5"><EmptyState title="No worker attendance found" description="No service activity matches the selected date, department and service filters." /></div>}
       </section>
     </div>
   );

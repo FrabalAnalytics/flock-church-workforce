@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { correctSubmittedAttendance } from "@/app/app/attendance/actions";
+import { FormSubmitButton } from "@/components/form-submit-button";
 import { WorkspaceNotice } from "@/components/workspace-notice";
+import { EmptyState, MetricPill, PageHeader, StatusBadge } from "@/components/workspace-ui";
 import { requireProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 
@@ -43,17 +45,13 @@ export default async function AttendanceHistoryPage({
     .order("submitted_at", { ascending: false });
 
   return (
-    <div className="mx-auto max-w-6xl">
+    <div className="mx-auto max-w-7xl">
       <WorkspaceNotice message={params.message} error={params.error ?? error?.message} />
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <p className="text-sm font-semibold uppercase tracking-[0.15em] text-[#4f7df3]">Worker service records</p>
-          <h1 className="mt-2 text-3xl font-semibold tracking-[-0.035em]">Worker attendance history</h1>
-          <p className="mt-2 text-sm text-[#758097]">Review department submissions and each worker’s attendance status.</p>
-        </div>
-        {profile.role === "department_head" && (
-          <Link href="/app/attendance/new" className="w-fit rounded-xl bg-[#4f7df3] px-5 py-3 text-sm font-semibold text-white">Log worker attendance</Link>
-        )}
+      <PageHeader eyebrow="Worker service records" title="Worker attendance history" description="Review department submissions and each worker's attendance status." actions={profile.role === "department_head" ? <Link href="/app/attendance/new" className="flex min-h-12 w-full items-center justify-center rounded-xl bg-[var(--color-primary)] px-5 text-sm font-semibold text-white shadow-[0_10px_24px_rgba(79,125,243,0.2)] hover:bg-[var(--color-primary-strong)] sm:w-auto">Log worker attendance</Link> : undefined} />
+      <div className="mt-6 flex flex-wrap gap-2">
+        <MetricPill value={submissions?.length ?? 0} label="submissions" />
+        <MetricPill value={submissions?.reduce((total, submission) => total + submission.present_count, 0) ?? 0} label="present records" />
+        <MetricPill value={submissions?.reduce((total, submission) => total + submission.absent_count, 0) ?? 0} label="absent records" tone={submissions?.some((submission) => submission.absent_count > 0) ? "warning" : "neutral"} />
       </div>
 
       <div className="mt-8 space-y-5">
@@ -62,7 +60,7 @@ export default async function AttendanceHistoryPage({
           const department = submission.departments as unknown as { name: string } | null;
           const logs = (submission.attendance_logs ?? []) as unknown as AttendanceLog[];
           return (
-            <details key={submission.id} className="group overflow-hidden rounded-3xl border border-[#e0e6f2] bg-white">
+            <details key={submission.id} className="group overflow-hidden rounded-3xl border border-[var(--color-border)] bg-white shadow-[var(--shadow-sm)]">
               <summary className="cursor-pointer list-none p-5 sm:p-6">
                 <div className="grid gap-5 sm:grid-cols-[1fr_auto] sm:items-center">
                   <div>
@@ -71,9 +69,9 @@ export default async function AttendanceHistoryPage({
                     {submission.corrected_at && <p className="mt-1 text-xs font-medium text-[#8a6b22]">Corrected {new Intl.DateTimeFormat("en-NG", { dateStyle: "medium", timeStyle: "short" }).format(new Date(submission.corrected_at))}</p>}
                   </div>
                   <div className="flex flex-wrap gap-2 text-xs font-semibold">
-                    <span className="rounded-full bg-[#f2f5fb] px-3 py-1.5 text-[#617087]">Roster {submission.roster_count}</span>
-                    <span className="rounded-full bg-[#edf7f1] px-3 py-1.5 text-[#347457]">Present {submission.present_count}</span>
-                    <span className="rounded-full bg-[#fff1f0] px-3 py-1.5 text-[#b5524b]">Absent {submission.absent_count}</span>
+                    <StatusBadge>Roster {submission.roster_count}</StatusBadge>
+                    <StatusBadge tone="success">Present {submission.present_count}</StatusBadge>
+                    <StatusBadge tone={submission.absent_count ? "danger" : "neutral"}>Absent {submission.absent_count}</StatusBadge>
                   </div>
                 </div>
                 <p className="mt-4 text-xs font-semibold text-[#4f7df3] group-open:hidden">Show individual records</p>
@@ -101,7 +99,7 @@ export default async function AttendanceHistoryPage({
                           </label>
                         ))}
                       </div>
-                      <div className="mt-4 flex justify-end"><button className="rounded-xl bg-[#4f7df3] px-4 py-2.5 text-sm font-semibold text-white">Save correction</button></div>
+                      <div className="mt-4 flex justify-end"><FormSubmitButton pendingLabel="Saving correction..." className="min-h-12 rounded-xl bg-[var(--color-primary)] px-5 text-sm font-semibold text-white hover:bg-[var(--color-primary-strong)] disabled:cursor-wait disabled:opacity-60">Save correction</FormSubmitButton></div>
                     </form>
                   </details>
                 )}
@@ -109,10 +107,7 @@ export default async function AttendanceHistoryPage({
             </details>
           );
         }) : (
-          <div className="rounded-3xl border border-dashed border-[#d8dfed] bg-white px-6 py-16 text-center">
-            <p className="font-semibold text-[#526078]">No worker attendance has been submitted yet</p>
-            <p className="mt-2 text-sm text-[#929bad]">Completed department attendance will appear here.</p>
-          </div>
+          <EmptyState title="No worker attendance has been submitted yet" description="Completed department attendance will appear here." action={profile.role === "department_head" ? <Link href="/app/attendance/new" className="inline-flex min-h-11 items-center rounded-xl bg-[var(--color-primary-soft)] px-5 text-sm font-semibold text-[var(--color-primary-strong)]">Log worker attendance</Link> : undefined} />
         )}
       </div>
     </div>
