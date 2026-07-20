@@ -33,7 +33,7 @@ const sections = [
         <li>Worker name, phone number, department, service status, and join date.</li>
         <li>Service attendance recorded as Present or Absent.</li>
         <li>Consecutive absence counts, care alerts, and follow-up notes.</li>
-        <li>WhatsApp message content, delivery state, and communication history.</li>
+        <li>WhatsApp consent preferences and, when messaging is enabled, delivery history.</li>
         <li>User account details for authorized church leaders and administrators.</li>
         <li>Technical and security records needed to operate and protect the service.</li>
       </ul>
@@ -46,7 +46,7 @@ const sections = [
         <li>To replace paper-based workforce attendance records.</li>
         <li>To help authorized leaders understand workforce engagement.</li>
         <li>To notice absence patterns and support timely pastoral care.</li>
-        <li>To send agreed workforce check-ins through WhatsApp.</li>
+        <li>To support agreed workforce check-ins if WhatsApp delivery is enabled.</li>
         <li>To maintain accurate records, prevent misuse, and secure the platform.</li>
       </ul>
     ),
@@ -56,9 +56,9 @@ const sections = [
     body: (
       <>
         <p>
-          Flock can automatically recognize consecutive missed services. A first
-          miss may queue a gentle WhatsApp check-in; later misses may create
-          department, urgent, or pastoral alerts.
+          Flock can automatically recognize consecutive missed services and
+          create department, urgent, or pastoral care alerts. WhatsApp delivery
+          is currently paused and requires separate church approval and setup.
         </p>
         <p>
           These alerts support human care. They do not make disciplinary or other
@@ -73,14 +73,14 @@ const sections = [
     body: (
       <>
         <p>
-          Automated WhatsApp messages are sent only where the worker has opted
-          in. A phone number may still be retained for legitimate church
+          If automated WhatsApp delivery is enabled in the future, messages will
+          be sent only where the worker has opted in. A phone number may still be retained for legitimate church
           administration or emergencies even when automated messages are off.
         </p>
         <p>
-          A worker can opt out of automated messages at any time by replying
-          STOP, contacting their department head, or asking the church
-          administrator to update their communication preference.
+          A worker can withdraw consent at any time by contacting their
+          department head or asking the church administrator to update their
+          communication preference.
         </p>
       </>
     ),
@@ -95,9 +95,9 @@ const sections = [
           Super Admins manage the platform and workforce records.
         </p>
         <p>
-          Flock also relies on service providers such as Supabase for database
-          and authentication services, Vercel for hosting, and Twilio and
-          WhatsApp for opted-in messages. They may process only the information
+          Flock relies on service providers such as Supabase for database and
+          authentication services and Vercel for hosting. If messaging is later
+          enabled, approved messaging providers may process only the information
           needed to provide those services, potentially in other countries.
         </p>
       </>
@@ -173,7 +173,7 @@ export default function PrivacyPage() {
             and only for clear church purposes.
           </p>
           <p className="mt-6 text-sm font-medium text-[#768198]">
-            Effective 12 July 2026 · Last reviewed 19 July 2026
+            Effective 12 July 2026 · Last reviewed 20 July 2026
           </p>
         </div>
       </section>

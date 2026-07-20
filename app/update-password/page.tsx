@@ -1,5 +1,6 @@
 import { AuthShell } from "@/components/auth-shell";
-import { AuthNotice, buttonClass, inputClass } from "@/components/auth-form";
+import { AuthNotice, inputClass } from "@/components/auth-form";
+import { AuthSubmitButton } from "@/components/auth-submit-button";
 import { updatePassword } from "@/app/auth/actions";
 
 export default async function UpdatePasswordPage({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
@@ -10,7 +11,7 @@ export default async function UpdatePasswordPage({ searchParams }: { searchParam
       <form action={updatePassword} className="space-y-5">
         <label className="block text-sm font-medium text-[#34415f]">New password<input className={inputClass} name="password" type="password" minLength={8} required autoComplete="new-password" /></label>
         <label className="block text-sm font-medium text-[#34415f]">Confirm password<input className={inputClass} name="confirm_password" type="password" minLength={8} required autoComplete="new-password" /></label>
-        <button className={buttonClass} type="submit">Update password</button>
+        <AuthSubmitButton idleLabel="Update password" pendingLabel="Updating password..." />
       </form>
     </AuthShell>
   );
