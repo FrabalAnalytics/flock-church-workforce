@@ -13,7 +13,8 @@ export function AuthNotice({
           ? "border-red-200 bg-red-50 text-red-700"
           : "border-[#cbd8fb] bg-[#eef3ff] text-[#3458b0]"
       }`}
-      role="status"
+      role={error ? "alert" : "status"}
+      aria-live={error ? "assertive" : "polite"}
     >
       {error ?? message}
     </div>

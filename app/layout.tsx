@@ -13,9 +13,12 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Flock — Church workforce, cared for",
+  title: {
+    default: "Flock — Church attendance and ministry care",
+    template: "%s · Flock",
+  },
   description:
-    "Track church workforce attendance, understand engagement, and follow up before people disconnect.",
+    "Manage worker attendance, congregation insights, service programmes and ministry care from one secure church workspace.",
 };
 
 export default function RootLayout({

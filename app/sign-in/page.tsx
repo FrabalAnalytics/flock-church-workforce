@@ -30,7 +30,7 @@ export default async function SignInPage({
       </form>
       <p className="mt-7 text-center text-sm text-[#758097]">
         Need an account?{" "}
-        <Link href="/sign-up" className="font-semibold text-[#4f7df3]">Get started</Link>
+        <Link href="/sign-up" className="font-semibold text-[#4f7df3]">Request access</Link>
       </p>
     </AuthShell>
   );

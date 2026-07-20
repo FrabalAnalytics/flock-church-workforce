@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { FlockBrand } from "@/components/flock-brand";
+import { PublicMobileNav } from "@/components/public-mobile-nav";
 
 const features = [
   {
@@ -28,7 +29,7 @@ const features = [
     number: "03",
     title: "Care before people disconnect",
     description:
-      "One missed service can start a gentle, opt-in WhatsApp check-in. Repeated misses escalate to department and pastoral care.",
+      "Attendance patterns create clear care alerts so department and pastoral leaders can follow up personally and responsibly.",
     icon: (
       <svg viewBox="0 0 24 24" aria-hidden="true">
         <path d="M20 11.5a8 8 0 0 1-11.7 7.1L4 20l1.4-4.1A8 8 0 1 1 20 11.5Z" />
@@ -114,9 +115,10 @@ export default function Home() {
           </nav>
 
           <div className="flex items-center gap-2 sm:gap-3">
+            <PublicMobileNav />
             <Link
               href="/sign-in"
-              className="rounded-full px-3 py-2.5 text-sm font-semibold text-[#253252] transition hover:bg-[#f0f4ff] sm:px-5"
+              className="hidden rounded-full px-3 py-2.5 text-sm font-semibold text-[#253252] transition hover:bg-[#f0f4ff] sm:inline-flex sm:px-5"
             >
               Sign in
             </Link>
@@ -124,7 +126,7 @@ export default function Home() {
               href="/sign-up"
               className="rounded-full bg-[#4f7df3] px-4 py-2.5 text-sm font-semibold text-white shadow-[0_8px_24px_rgba(79,125,243,0.28)] transition hover:-translate-y-0.5 hover:bg-[#3f6fe5] sm:px-5"
             >
-              Get started
+              Request access
             </Link>
           </div>
         </div>
@@ -157,7 +159,7 @@ export default function Home() {
                 href="/sign-up"
                 className="group inline-flex items-center gap-2 rounded-full bg-[#4f7df3] px-7 py-3.5 text-sm font-semibold text-white shadow-[0_14px_35px_rgba(79,125,243,0.3)] transition hover:-translate-y-0.5 hover:bg-[#3f6fe5]"
               >
-                Get started
+                Request access
                 <span className="transition-transform group-hover:translate-x-0.5">
                   <Arrow />
                 </span>
@@ -190,7 +192,7 @@ export default function Home() {
                   </p>
                 </div>
                 <div className="rounded-full bg-[#edf2ff] px-3 py-1.5 text-xs font-semibold text-[#4f7df3]">
-                  Live overview
+                  Illustrative preview
                 </div>
               </div>
 
@@ -408,7 +410,7 @@ export default function Home() {
                 href="/sign-up"
                 className="group inline-flex items-center gap-2 rounded-full bg-white px-7 py-3.5 text-sm font-semibold text-[#345fc9] shadow-lg transition hover:-translate-y-0.5"
               >
-                Get started
+                Request access
                 <span className="transition-transform group-hover:translate-x-0.5">
                   <Arrow />
                 </span>
