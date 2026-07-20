@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { signOut } from "@/app/auth/actions";
 import { FlockBrand } from "@/components/flock-brand";
@@ -7,6 +8,8 @@ import { requireProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 
 const roleLabels = { super_admin: "Super Admin", church_leader: "Church Leader", department_head: "Department Head" };
+
+export const metadata: Metadata = { title: "Workspace", robots: { index: false, follow: false } };
 
 export default async function WorkspaceLayout({ children }: { children: React.ReactNode }) {
   const { profile } = await requireProfile();

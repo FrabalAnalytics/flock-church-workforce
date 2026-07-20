@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
@@ -19,7 +19,12 @@ export const metadata: Metadata = {
   },
   description:
     "Manage worker attendance, congregation insights, service programmes and ministry care from one secure church workspace.",
+  applicationName: "Flock",
+  manifest: "/manifest.webmanifest",
+  icons: { icon: "/favicon.ico" },
 };
+
+export const viewport: Viewport = { themeColor: "#101c3d", colorScheme: "light" };
 
 export default function RootLayout({
   children,
