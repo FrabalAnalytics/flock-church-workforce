@@ -74,11 +74,12 @@ export default async function FollowupsPage({
     supabase.from("absence_followups").select("*", { count: "exact", head: true }).eq("resolved", true),
   ]);
   const { data: followups, error } = followupsResult;
+  const urgentCount = showResolved ? 0 : (followups ?? []).filter((followup) => followup.consecutive_misses >= 4).length;
 
   return (
     <div className="mx-auto max-w-7xl">
       <WorkspaceNotice message={params.message} error={params.error ?? error?.message} />
-      <PageHeader eyebrow="Pastoral care" title="Care alerts" description="Review repeated absences, communication events and completed follow-up." actions={<div className="flex flex-wrap gap-2"><MetricPill value={openCountResult.count ?? 0} label="open" tone={(openCountResult.count ?? 0) > 0 ? "warning" : "neutral"} /><MetricPill value={resolvedCountResult.count ?? 0} label="resolved" /></div>} />
+      <PageHeader eyebrow="Pastoral care" title="Care alerts" description="Review repeated absences, communication events and completed follow-up." actions={<div className="flex flex-wrap gap-2">{urgentCount > 0 && <MetricPill value={urgentCount} label="urgent" tone="danger" />}<MetricPill value={openCountResult.count ?? 0} label="open" tone={(openCountResult.count ?? 0) > 0 ? "warning" : "neutral"} /><MetricPill value={resolvedCountResult.count ?? 0} label="resolved" /></div>} />
       <div className="mt-7 flex w-full rounded-xl bg-[#e9eef8] p-1 text-sm font-semibold sm:w-fit" role="navigation" aria-label="Care alert status">
           <Link href="/app/follow-ups" aria-current={!showResolved ? "page" : undefined} className={`flex min-h-11 flex-1 items-center justify-center rounded-lg px-5 sm:flex-none ${!showResolved ? "bg-white text-[#4168cd] shadow-sm" : "text-[#758097] hover:text-[#34415f]"}`}>Open <span className="ml-2 text-xs">{openCountResult.count ?? 0}</span></Link>
           <Link href="/app/follow-ups?view=resolved" aria-current={showResolved ? "page" : undefined} className={`flex min-h-11 flex-1 items-center justify-center rounded-lg px-5 sm:flex-none ${showResolved ? "bg-white text-[#4168cd] shadow-sm" : "text-[#758097] hover:text-[#34415f]"}`}>Resolved <span className="ml-2 text-xs">{resolvedCountResult.count ?? 0}</span></Link>
@@ -106,9 +107,11 @@ export default async function FollowupsPage({
                       {followup.consecutive_misses} consecutive {followup.consecutive_misses === 1 ? "miss" : "misses"}
                     </span>
                   </div>
-                  <p className="mt-2 text-sm text-[#758097]">
-                    {worker?.departments?.name ?? "Department unavailable"} · {worker?.phone_number ?? "No phone number"}
-                  </p>
+                  <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-2 text-sm text-[#758097]">
+                    <span>{worker?.departments?.name ?? "Department unavailable"}</span>
+                    <span aria-hidden="true" className="text-[#c3cad7]">•</span>
+                    {worker?.phone_number ? <a href={`tel:${worker.phone_number}`} className="inline-flex min-h-9 items-center rounded-lg bg-[var(--color-primary-soft)] px-3 font-semibold text-[var(--color-primary-strong)] hover:bg-[#e2eaff]">Call {worker.phone_number}</a> : <span>No phone number</span>}
+                  </div>
                   <p className="mt-1 text-xs text-[#929bad]">
                     Latest absence: {service?.service_type ?? "Service"}{service?.service_date ? ` on ${service.service_date}` : ""} · WhatsApp {worker?.whatsapp_opt_in ? "enabled" : "off"}
                   </p>
@@ -136,9 +139,9 @@ export default async function FollowupsPage({
               </div>
 
               <details className="group border-t border-[#edf0f6]">
-                <summary className="cursor-pointer list-none px-5 py-4 text-sm font-semibold text-[#4f7df3] sm:px-7">
-                  {events.length} communication {events.length === 1 ? "event" : "events"}
-                  <span className="ml-2 text-[#9aa3b4] group-open:hidden">Show details</span>
+                <summary className="flex cursor-pointer list-none items-center justify-between gap-4 px-5 py-4 text-sm font-semibold text-[#4f7df3] sm:px-7">
+                  <span>{events.length} communication {events.length === 1 ? "event" : "events"}<span className="ml-2 text-[#9aa3b4] group-open:hidden">Show details</span></span>
+                  <svg viewBox="0 0 24 24" aria-hidden="true" className="h-5 w-5 shrink-0 fill-none stroke-current transition group-open:rotate-180" strokeWidth="1.8"><path d="m7 10 5 5 5-5" /></svg>
                 </summary>
                 <div className="divide-y divide-[#edf0f6] border-t border-[#edf0f6] px-5 sm:px-7">
                   {events.length ? events.map((event) => (
