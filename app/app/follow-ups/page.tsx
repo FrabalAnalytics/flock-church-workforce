@@ -1,6 +1,5 @@
 import Link from "next/link";
-import { resolveFollowup } from "@/app/app/follow-ups/actions";
-import { FormSubmitButton } from "@/components/form-submit-button";
+import { ResolveFollowupForm } from "@/components/resolve-followup-form";
 import { WorkspaceNotice } from "@/components/workspace-notice";
 import { EmptyState, MetricPill, PageHeader } from "@/components/workspace-ui";
 
@@ -112,13 +111,14 @@ export default async function FollowupsPage({
     resolvedParams.set("priority", priority);
   }
   const clearHref = showResolved ? "/app/follow-ups?view=resolved" : "/app/follow-ups";
+  const openHref = `/app/follow-ups${openParams.size ? `?${openParams}` : ""}`;
 
   return (
     <div className="mx-auto max-w-7xl">
       <WorkspaceNotice message={params.message} error={params.error ?? error?.message} />
       <PageHeader eyebrow="Pastoral care" title="Care alerts" description="Review repeated absences, communication events and completed follow-up." actions={<div className="flex flex-wrap gap-2">{urgentCount > 0 && <MetricPill value={urgentCount} label="urgent" tone="danger" />}<MetricPill value={openCountResult.count ?? 0} label="open" tone={(openCountResult.count ?? 0) > 0 ? "warning" : "neutral"} /><MetricPill value={resolvedCountResult.count ?? 0} label="resolved" /></div>} />
       <div className="mt-7 flex w-full rounded-xl bg-[#e9eef8] p-1 text-sm font-semibold sm:w-fit" role="navigation" aria-label="Care alert status">
-          <Link href={`/app/follow-ups${openParams.size ? `?${openParams}` : ""}`} aria-current={!showResolved ? "page" : undefined} className={`flex min-h-11 flex-1 items-center justify-center rounded-lg px-5 sm:flex-none ${!showResolved ? "bg-white text-[#4168cd] shadow-sm" : "text-[#758097] hover:text-[#34415f]"}`}>Open <span className="ml-2 text-xs">{openCountResult.count ?? 0}</span></Link>
+          <Link href={openHref} aria-current={!showResolved ? "page" : undefined} className={`flex min-h-11 flex-1 items-center justify-center rounded-lg px-5 sm:flex-none ${!showResolved ? "bg-white text-[#4168cd] shadow-sm" : "text-[#758097] hover:text-[#34415f]"}`}>Open <span className="ml-2 text-xs">{openCountResult.count ?? 0}</span></Link>
           <Link href={`/app/follow-ups?${resolvedParams}`} aria-current={showResolved ? "page" : undefined} className={`flex min-h-11 flex-1 items-center justify-center rounded-lg px-5 sm:flex-none ${showResolved ? "bg-white text-[#4168cd] shadow-sm" : "text-[#758097] hover:text-[#34415f]"}`}>Resolved <span className="ml-2 text-xs">{resolvedCountResult.count ?? 0}</span></Link>
       </div>
 
@@ -166,14 +166,7 @@ export default async function FollowupsPage({
                     {followup.resolved_at && <p className="mt-2 text-xs text-[#929bad]">{formatDate(followup.resolved_at)}</p>}
                   </div>
                 ) : canResolve ? (
-                  <form action={resolveFollowup} className="w-full space-y-3 lg:w-72">
-                    <input type="hidden" name="followup_id" value={followup.id} />
-                    <label className="block text-xs font-semibold text-[#68738a]">
-                      Resolution note
-                      <textarea name="note" rows={2} placeholder="Optional care note" className="mt-2 w-full resize-none rounded-xl border border-[#dce3f1] px-3 py-2 text-sm font-normal outline-none focus:border-[#4f7df3]" />
-                    </label>
-                    <FormSubmitButton pendingLabel="Resolving..." className="min-h-12 w-full rounded-xl bg-[var(--color-primary)] px-4 text-sm font-semibold text-white transition hover:bg-[var(--color-primary-strong)] disabled:cursor-wait disabled:opacity-60">Mark resolved</FormSubmitButton>
-                  </form>
+                  <ResolveFollowupForm followupId={followup.id} workerName={worker?.full_name ?? "this worker"} returnTo={openHref} />
                 ) : (
                   <span className="h-fit rounded-full bg-[#f2f5fb] px-3 py-1 text-xs font-semibold text-[#68738a]">Read only</span>
                 )}

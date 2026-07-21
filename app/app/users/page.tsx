@@ -36,6 +36,11 @@ export default async function UsersPage({ searchParams }: { searchParams: Promis
     return matchesSearch && matchesRole && matchesDepartment;
   });
   const hasFilters = Boolean(params.q || params.role || params.department);
+  const returnParams = new URLSearchParams();
+  if (params.q) returnParams.set("q", params.q);
+  if (params.role && params.role in labels) returnParams.set("role", params.role);
+  if (params.department && departmentNames.has(params.department)) returnParams.set("department", params.department);
+  const returnTo = `/app/users${returnParams.size ? `?${returnParams}` : ""}`;
 
   return (
     <div className="mx-auto max-w-7xl">
@@ -88,7 +93,7 @@ export default async function UsersPage({ searchParams }: { searchParams: Promis
                 </div>
               </div>
 
-              <UserAccessForm id={user.id} fullName={user.full_name} initialRole={user.role as keyof typeof labels} initialDepartmentId={user.department_id} departments={departments ?? []} isCurrentUser={user.id === currentUser.id} />
+              <UserAccessForm id={user.id} fullName={user.full_name} initialRole={user.role as keyof typeof labels} initialDepartmentId={user.department_id} departments={departments ?? []} isCurrentUser={user.id === currentUser.id} returnTo={returnTo} />
             </div>
           </article>
         )) : <EmptyState title="No users found" description="No user accounts match the selected search and filters." action={hasFilters ? <Link href="/app/users" className="inline-flex min-h-11 items-center rounded-xl bg-[var(--color-primary-soft)] px-5 text-sm font-semibold text-[var(--color-primary-strong)]">Clear filters</Link> : undefined} />}

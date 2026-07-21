@@ -17,6 +17,29 @@ function destination(type: "message" | "error", text: string) {
   return `/app/attendance${type === "error" ? "/new" : ""}?${type}=${encodeURIComponent(text)}`;
 }
 
+function safeAttendanceReturnPath(value: string) {
+  try {
+    const url = new URL(value, "https://flock.local");
+    if (url.origin !== "https://flock.local" || url.pathname !== "/app/attendance") return "/app/attendance";
+    const params = new URLSearchParams();
+    const from = url.searchParams.get("from");
+    const to = url.searchParams.get("to");
+    const service = url.searchParams.get("service");
+    const department = url.searchParams.get("department");
+    if (/^\d{4}-\d{2}-\d{2}$/.test(from ?? "")) params.set("from", from!);
+    if (/^\d{4}-\d{2}-\d{2}$/.test(to ?? "")) params.set("to", to!);
+    if (serviceTypes.has(service ?? "")) params.set("service", service!);
+    if (/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(department ?? "")) params.set("department", department!);
+    return `/app/attendance${params.size ? `?${params}` : ""}`;
+  } catch {
+    return "/app/attendance";
+  }
+}
+
+function historyDestination(returnTo: string, type: "message" | "error", text: string) {
+  return `${returnTo}${returnTo.includes("?") ? "&" : "?"}${type}=${encodeURIComponent(text)}`;
+}
+
 export async function submitAttendance(formData: FormData) {
   const { profile } = await requireProfile();
 
@@ -50,10 +73,11 @@ export async function submitAttendance(formData: FormData) {
 }
 
 export async function correctSubmittedAttendance(formData: FormData) {
+  const returnTo = safeAttendanceReturnPath(String(formData.get("return_to") ?? ""));
   const { profile } = await requireProfile();
 
   if (profile.role !== "super_admin") {
-    redirect(`/app/attendance?error=${encodeURIComponent("Only a super admin can correct submitted attendance.")}`);
+    redirect(historyDestination(returnTo, "error", "Only a super admin can correct submitted attendance."));
   }
 
   const submissionId = String(formData.get("submission_id") ?? "").trim();
@@ -63,7 +87,7 @@ export async function correctSubmittedAttendance(formData: FormData) {
     .filter(Boolean);
 
   if (!submissionId) {
-    redirect(`/app/attendance?error=${encodeURIComponent("Select a valid attendance submission.")}`);
+    redirect(historyDestination(returnTo, "error", "Select a valid attendance submission."));
   }
 
   const supabase = await createClient();
@@ -73,12 +97,12 @@ export async function correctSubmittedAttendance(formData: FormData) {
   });
 
   if (error) {
-    redirect(`/app/attendance?error=${encodeURIComponent(error.message)}`);
+    redirect(historyDestination(returnTo, "error", error.message));
   }
 
   revalidatePath("/app/attendance");
   revalidatePath("/app");
   revalidatePath("/app/reports");
   revalidatePath("/app/follow-ups");
-  redirect(destination("message", "Submitted worker attendance was corrected."));
+  redirect(historyDestination(returnTo, "message", "Submitted worker attendance was corrected."));
 }

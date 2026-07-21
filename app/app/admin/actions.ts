@@ -13,6 +13,27 @@ function withMessage(path: string, type: "message" | "error", text: string) {
   return `${path}?${type}=${encodeURIComponent(text)}`;
 }
 
+function safeUsersReturnPath(value: string) {
+  try {
+    const url = new URL(value, "https://flock.local");
+    if (url.origin !== "https://flock.local" || url.pathname !== "/app/users") return "/app/users";
+    const params = new URLSearchParams();
+    const query = url.searchParams.get("q");
+    const role = url.searchParams.get("role");
+    const department = url.searchParams.get("department");
+    if (query) params.set("q", query.slice(0, 120));
+    if (["pending", "church_leader", "department_head", "super_admin"].includes(role ?? "")) params.set("role", role!);
+    if (/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(department ?? "")) params.set("department", department!);
+    return `/app/users${params.size ? `?${params}` : ""}`;
+  } catch {
+    return "/app/users";
+  }
+}
+
+function usersDestination(returnTo: string, type: "message" | "error", text: string) {
+  return `${returnTo}${returnTo.includes("?") ? "&" : "?"}${type}=${encodeURIComponent(text)}`;
+}
+
 export async function createDepartment(formData: FormData) {
   await requireSuperAdmin();
   const name = value(formData, "name");
@@ -110,23 +131,24 @@ export async function updateWorker(formData: FormData) {
 }
 
 export async function updateUserAccess(formData: FormData) {
+  const returnTo = safeUsersReturnPath(value(formData, "return_to"));
   const { user } = await requireSuperAdmin();
   const id = value(formData, "id");
   const role = value(formData, "role");
   const department_id = value(formData, "department_id") || null;
   if (!id || !["pending", "church_leader", "department_head", "super_admin"].includes(role)) {
-    redirect(withMessage("/app/users", "error", "Select a valid role."));
+    redirect(usersDestination(returnTo, "error", "Select a valid role."));
   }
   if (id === user.id && role !== "super_admin") {
-    redirect(withMessage("/app/users", "error", "You cannot remove your own Super Admin access."));
+    redirect(usersDestination(returnTo, "error", "You cannot remove your own Super Admin access."));
   }
   if (role === "department_head" && !department_id) {
-    redirect(withMessage("/app/users", "error", "Department Heads must be assigned a department."));
+    redirect(usersDestination(returnTo, "error", "Department Heads must be assigned a department."));
   }
 
   const supabase = await createClient();
   const { error } = await supabase.from("profiles").update({ role, department_id: role === "department_head" ? department_id : null }).eq("id", id);
-  if (error) redirect(withMessage("/app/users", "error", error.message));
+  if (error) redirect(usersDestination(returnTo, "error", error.message));
   revalidatePath("/app", "layout");
-  redirect(withMessage("/app/users", "message", "User access updated."));
+  redirect(usersDestination(returnTo, "message", "User access updated."));
 }

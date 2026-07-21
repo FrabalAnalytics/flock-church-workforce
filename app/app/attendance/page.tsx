@@ -1,6 +1,5 @@
 import Link from "next/link";
-import { correctSubmittedAttendance } from "@/app/app/attendance/actions";
-import { FormSubmitButton } from "@/components/form-submit-button";
+import { AttendanceCorrectionForm } from "@/components/attendance-correction-form";
 import { WorkspaceNotice } from "@/components/workspace-notice";
 import { EmptyState, MetricPill, PageHeader, StatusBadge } from "@/components/workspace-ui";
 
@@ -76,6 +75,12 @@ export default async function AttendanceHistoryPage({
     supabase.from("departments").select("id, name").order("name"),
   ]);
   const hasFilters = Boolean(params.from || params.to || service || department);
+  const returnParams = new URLSearchParams();
+  if (params.from) returnParams.set("from", params.from);
+  if (params.to) returnParams.set("to", params.to);
+  if (service) returnParams.set("service", service);
+  if (department) returnParams.set("department", department);
+  const returnTo = `/app/attendance${returnParams.size ? `?${returnParams}` : ""}`;
 
   return (
     <div className="mx-auto max-w-7xl">
@@ -136,8 +141,7 @@ export default async function AttendanceHistoryPage({
                   <details className="my-3 rounded-2xl border border-[#dce3f1] bg-[#f8faff] p-4">
                     <summary className="cursor-pointer text-sm font-semibold text-[#4168cd]">Correct submitted attendance</summary>
                     <p className="mt-2 text-xs leading-5 text-[#758097]">Select every worker who was present. The original service, department, and submitted roster cannot be changed.</p>
-                    <form action={correctSubmittedAttendance} className="mt-4">
-                      <input type="hidden" name="submission_id" value={submission.id} />
+                    <AttendanceCorrectionForm submissionId={submission.id} serviceLabel={`${service?.service_type ?? "Service"} · ${department?.name ?? "Department"}`} rosterCount={submission.roster_count} returnTo={returnTo}>
                       <div className="grid gap-2 sm:grid-cols-2">
                         {logs.map((log) => (
                           <label key={log.worker_id} className="flex cursor-pointer items-center gap-3 rounded-xl border border-[#e3e8f2] bg-white px-3 py-3 text-sm font-medium text-[#34415f]">
@@ -146,8 +150,7 @@ export default async function AttendanceHistoryPage({
                           </label>
                         ))}
                       </div>
-                      <div className="mt-4 flex justify-end"><FormSubmitButton pendingLabel="Saving correction..." className="min-h-12 rounded-xl bg-[var(--color-primary)] px-5 text-sm font-semibold text-white hover:bg-[var(--color-primary-strong)] disabled:cursor-wait disabled:opacity-60">Save correction</FormSubmitButton></div>
-                    </form>
+                    </AttendanceCorrectionForm>
                   </details>
                 )}
               </div>

@@ -17,6 +17,27 @@ function destination(type: "message" | "error", text: string) {
   return `/app/church-attendance?${type}=${encodeURIComponent(text)}`;
 }
 
+function safeReturnPath(value: string) {
+  try {
+    const url = new URL(value, "https://flock.local");
+    if (url.origin !== "https://flock.local" || url.pathname !== "/app/church-attendance") return "/app/church-attendance";
+    const params = new URLSearchParams();
+    const from = url.searchParams.get("from");
+    const to = url.searchParams.get("to");
+    const service = url.searchParams.get("service");
+    if (/^\d{4}-\d{2}-\d{2}$/.test(from ?? "")) params.set("from", from!);
+    if (/^\d{4}-\d{2}-\d{2}$/.test(to ?? "")) params.set("to", to!);
+    if (serviceTypes.has(service ?? "")) params.set("service", service!);
+    return `/app/church-attendance${params.size ? `?${params}` : ""}`;
+  } catch {
+    return "/app/church-attendance";
+  }
+}
+
+function correctionDestination(returnTo: string, type: "message" | "error", text: string) {
+  return `${returnTo}${returnTo.includes("?") ? "&" : "?"}${type}=${encodeURIComponent(text)}`;
+}
+
 function count(formData: FormData, field: string) {
   const raw = String(formData.get(field) ?? "").trim();
   const parsed = Number(raw);
@@ -80,8 +101,9 @@ export async function submitChurchAttendance(formData: FormData) {
 }
 
 export async function correctChurchAttendance(formData: FormData) {
+  const returnTo = safeReturnPath(String(formData.get("return_to") ?? ""));
   const { profile } = await requireProfile();
-  if (profile.role !== "super_admin") redirect(destination("error", "Only a super admin can correct church attendance."));
+  if (profile.role !== "super_admin") redirect(correctionDestination(returnTo, "error", "Only a super admin can correct church attendance."));
 
   const attendanceId = String(formData.get("attendance_id") ?? "").trim();
   const ministerId = String(formData.get("minister_id") ?? "").trim();
@@ -93,20 +115,20 @@ export async function correctChurchAttendance(formData: FormData) {
   const newMembersFemaleCount = count(formData, "new_members_female_count");
   const newConvertsMaleCount = count(formData, "new_converts_male_count");
   const newConvertsFemaleCount = count(formData, "new_converts_female_count");
-  if (!attendanceId || !ministerId) redirect(destination("error", "Select a valid service record and minister."));
-  if (serviceNotes.length > 2000) redirect(destination("error", "Service notes cannot exceed 2,000 characters."));
+  if (!attendanceId || !ministerId) redirect(correctionDestination(returnTo, "error", "Select a valid service record and minister."));
+  if (serviceNotes.length > 2000) redirect(correctionDestination(returnTo, "error", "Service notes cannot exceed 2,000 characters."));
   if (
     adultMaleCount === null || adultFemaleCount === null || childrenCount === null
     || newMembersMaleCount === null || newMembersFemaleCount === null
     || newConvertsMaleCount === null || newConvertsFemaleCount === null
   ) {
-    redirect(destination("error", "Enter zero or a positive whole number for every attendance group."));
+    redirect(correctionDestination(returnTo, "error", "Enter zero or a positive whole number for every attendance group."));
   }
   if (
     newMembersMaleCount + newConvertsMaleCount > adultMaleCount
     || newMembersFemaleCount + newConvertsFemaleCount > adultFemaleCount
   ) {
-    redirect(destination("error", "New members and new converts must be different people already included in the matching adult total."));
+    redirect(correctionDestination(returnTo, "error", "New members and new converts must be different people already included in the matching adult total."));
   }
 
   const supabase = await createClient();
@@ -122,9 +144,9 @@ export async function correctChurchAttendance(formData: FormData) {
     p_minister_id: ministerId,
     p_service_notes: serviceNotes || null,
   });
-  if (error) redirect(destination("error", error.message));
+  if (error) redirect(correctionDestination(returnTo, "error", error.message));
   revalidatePath("/app/church-attendance");
   revalidatePath("/app");
   revalidatePath("/app/reports");
-  redirect(destination("message", "Congregation attendance correction was saved."));
+  redirect(correctionDestination(returnTo, "message", "Congregation attendance correction was saved."));
 }

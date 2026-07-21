@@ -14,6 +14,13 @@ const roleHelp: Record<Role, string> = {
   super_admin: "Full access to people, structure and system administration.",
 };
 
+const roleLabels: Record<Role, string> = {
+  pending: "Pending",
+  department_head: "Department Head",
+  church_leader: "Church Leader",
+  super_admin: "Super Admin",
+};
+
 export function UserAccessForm({
   id,
   fullName,
@@ -21,6 +28,7 @@ export function UserAccessForm({
   initialDepartmentId,
   departments,
   isCurrentUser,
+  returnTo,
 }: {
   id: string;
   fullName: string;
@@ -28,12 +36,31 @@ export function UserAccessForm({
   initialDepartmentId: string | null;
   departments: Department[];
   isCurrentUser: boolean;
+  returnTo: string;
 }) {
   const [role, setRole] = useState<Role>(initialRole);
+  const [departmentId, setDepartmentId] = useState(initialDepartmentId ?? "");
   const needsDepartment = role === "department_head";
+  const effectiveDepartment = needsDepartment ? departmentId : "";
+  const initialEffectiveDepartment = initialRole === "department_head" ? initialDepartmentId ?? "" : "";
+  const hasChanges = role !== initialRole || effectiveDepartment !== initialEffectiveDepartment;
+  const departmentName = departments.find((department) => department.id === departmentId)?.name ?? "Not assigned";
 
   function confirmChange(event: React.FormEvent<HTMLFormElement>) {
-    if (role === "super_admin" && initialRole !== "super_admin" && !window.confirm(`Grant ${fullName} full Super Admin access?`)) {
+    if (!hasChanges) {
+      event.preventDefault();
+      return;
+    }
+    const details = [`Role: ${roleLabels[initialRole]} → ${roleLabels[role]}`];
+    if (effectiveDepartment !== initialEffectiveDepartment) details.push(`Department: ${departmentName}`);
+    const warning = role === "super_admin"
+      ? "This grants full administrative access."
+      : initialRole === "super_admin"
+        ? "This removes full administrative access."
+        : role === "pending"
+          ? "This removes workspace access until the account is approved again."
+          : "The change applies on the user's next authenticated request.";
+    if (!window.confirm(`Save access changes for ${fullName}?\n\n${details.join("\n")}\n\n${warning}`)) {
       event.preventDefault();
     }
   }
@@ -41,6 +68,7 @@ export function UserAccessForm({
   return (
     <form action={updateUserAccess} onSubmit={confirmChange} className="grid gap-4 rounded-2xl bg-[var(--color-surface-subtle)] p-4 sm:grid-cols-2 xl:grid-cols-[1fr_1fr_auto] xl:items-end">
       <input type="hidden" name="id" value={id} />
+      <input type="hidden" name="return_to" value={returnTo} />
       {isCurrentUser && <input type="hidden" name="role" value="super_admin" />}
       <label className="text-sm font-semibold text-[var(--color-text-secondary)]">
         Role
@@ -54,13 +82,13 @@ export function UserAccessForm({
       </label>
       <label className="text-sm font-semibold text-[var(--color-text-secondary)]">
         Department {needsDepartment && <span className="text-[var(--color-danger)]">Required</span>}
-        <select name="department_id" defaultValue={initialDepartmentId ?? ""} required={needsDepartment} disabled={!needsDepartment} className="mt-2 h-12 w-full rounded-xl border border-[var(--color-border)] bg-white px-3 text-sm font-normal disabled:cursor-not-allowed disabled:bg-[#eef1f6] disabled:text-[var(--color-text-muted)]">
+        <select name="department_id" value={departmentId} onChange={(event) => setDepartmentId(event.target.value)} required={needsDepartment} disabled={!needsDepartment} className="mt-2 h-12 w-full rounded-xl border border-[var(--color-border)] bg-white px-3 text-sm font-normal disabled:cursor-not-allowed disabled:bg-[#eef1f6] disabled:text-[var(--color-text-muted)]">
           <option value="">{needsDepartment ? "Select department" : "Not required for this role"}</option>
           {departments.map((department) => <option key={department.id} value={department.id}>{department.name}</option>)}
         </select>
         <span className="mt-1.5 block text-xs font-normal leading-5 text-[var(--color-text-muted)]">{needsDepartment ? "Controls the roster this user can access." : "Only Department Heads are assigned to a department."}</span>
       </label>
-      <FormSubmitButton pendingLabel="Saving access..." className="min-h-12 rounded-xl bg-[var(--color-primary)] px-5 text-sm font-semibold text-white transition hover:bg-[var(--color-primary-strong)] disabled:cursor-wait disabled:opacity-60 sm:col-span-2 xl:col-span-1">Save access</FormSubmitButton>
+      <FormSubmitButton disabled={!hasChanges} pendingLabel="Saving access..." className="min-h-12 rounded-xl bg-[var(--color-primary)] px-5 text-sm font-semibold text-white transition hover:bg-[var(--color-primary-strong)] disabled:cursor-not-allowed disabled:opacity-45 sm:col-span-2 xl:col-span-1">{hasChanges ? "Review and save" : "No changes"}</FormSubmitButton>
     </form>
   );
 }
