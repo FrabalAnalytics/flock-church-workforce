@@ -6,15 +6,20 @@ import { submitAttendance } from "@/app/app/attendance/actions";
 
 type Worker = { id: string; full_name: string; phone_number: string | null };
 
+const serviceTypes = ["Sunday Service", "Tuesday Service", "Special Service", "Headquarters Service", "Tarry Night"];
+
 function SubmitButton({ disabled }: { disabled: boolean }) {
   const { pending } = useFormStatus();
   return <button type="submit" disabled={disabled || pending} className="min-h-12 w-full rounded-xl bg-[var(--color-primary)] px-6 text-sm font-semibold text-white shadow-[0_10px_24px_rgba(79,125,243,0.2)] hover:bg-[var(--color-primary-strong)] disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto">{pending ? "Submitting worker attendance…" : "Submit worker attendance"}</button>;
 }
 
-export function AttendanceForm({ workers }: { workers: Worker[] }) {
+export function AttendanceForm({ workers, submittedServiceTypes = [] }: { workers: Worker[]; submittedServiceTypes?: string[] }) {
   const [presentIds, setPresentIds] = useState(() => new Set<string>());
   const [query, setQuery] = useState("");
   const [view, setView] = useState<"all" | "present" | "absent">("all");
+  const [selectedService, setSelectedService] = useState("");
+  const submittedServices = new Set(submittedServiceTypes);
+  const replacesSubmission = submittedServices.has(selectedService);
   const allPresent = workers.length > 0 && presentIds.size === workers.length;
   const normalizedQuery = query.trim().toLocaleLowerCase();
   const visibleWorkers = workers.filter((worker) => {
@@ -37,7 +42,10 @@ export function AttendanceForm({ workers }: { workers: Worker[] }) {
 
   function confirmSubmission(event: React.FormEvent<HTMLFormElement>) {
     const absentCount = workers.length - presentIds.size;
-    if (absentCount > 0 && !window.confirm(`Submit attendance with ${absentCount} ${absentCount === 1 ? "worker" : "workers"} marked absent?`)) {
+    const confirmation: string[] = [];
+    if (replacesSubmission) confirmation.push(`${selectedService} was already submitted today. Saving will replace its current worker attendance.`);
+    if (absentCount > 0) confirmation.push(`${absentCount} ${absentCount === 1 ? "worker is" : "workers are"} marked absent.`);
+    if (confirmation.length && !window.confirm(`${confirmation.join("\n\n")}\n\nContinue?`)) {
       event.preventDefault();
     }
   }
@@ -46,7 +54,8 @@ export function AttendanceForm({ workers }: { workers: Worker[] }) {
     <form action={submitAttendance} onSubmit={confirmSubmission} className="mt-8 space-y-6">
       {Array.from(presentIds).map((id) => <input key={id} type="hidden" name="present_worker_ids" value={id} />)}
       <section className="rounded-3xl border border-[var(--color-border)] bg-white p-5 shadow-[var(--shadow-sm)] sm:p-7">
-        <label className="block text-sm font-semibold text-[var(--color-text-secondary)]">Service type<select name="service_type" required defaultValue="" className="mt-2 h-12 w-full rounded-xl border border-[var(--color-border)] bg-white px-4 text-sm font-normal outline-none focus:border-[var(--color-primary)] sm:max-w-md"><option value="" disabled>Select the service</option><option>Sunday Service</option><option>Tuesday Service</option><option>Special Service</option><option>Headquarters Service</option><option>Tarry Night</option></select></label>
+        <label className="block text-sm font-semibold text-[var(--color-text-secondary)]">Service type<select name="service_type" required value={selectedService} onChange={(event) => setSelectedService(event.target.value)} className="mt-2 h-12 w-full rounded-xl border border-[var(--color-border)] bg-white px-4 text-sm font-normal outline-none focus:border-[var(--color-primary)] sm:max-w-md"><option value="" disabled>Select the service</option>{serviceTypes.map((service) => <option key={service} value={service}>{service}{submittedServices.has(service) ? " · already submitted" : ""}</option>)}</select></label>
+        {replacesSubmission && <div className="mt-4 rounded-2xl border border-[#f0dfbd] bg-[#fffaf0] px-4 py-3 text-sm leading-6 text-[#80662f]" role="status"><strong className="font-semibold">Correction mode.</strong> Saving this roster will replace the existing {selectedService} attendance for today.</div>}
       </section>
       <section className="overflow-hidden rounded-3xl border border-[var(--color-border)] bg-white shadow-[var(--shadow-sm)]">
         <div className="flex flex-col gap-4 border-b border-[var(--color-border)] bg-[var(--color-surface-subtle)] px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-7">
