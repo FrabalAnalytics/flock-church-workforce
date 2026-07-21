@@ -72,6 +72,13 @@ export default async function ReportsPage({
   const exportParams = new URLSearchParams({ from, to });
   if (params.department) exportParams.set("department", params.department);
   if (params.service) exportParams.set("service", params.service);
+  const quickRangeHref = (days: number) => {
+    const queryParams = new URLSearchParams({ range: String(days) });
+    if (params.department) queryParams.set("department", params.department);
+    if (params.service) queryParams.set("service", params.service);
+    return `/app/reports?${queryParams}`;
+  };
+  const activeFilterCount = Number(Boolean(params.department)) + Number(Boolean(params.service));
 
   const attendanceByDepartment = [...rows.reduce((groups, row) => {
     const name = row.departments?.name ?? "Unknown department";
@@ -118,13 +125,25 @@ export default async function ReportsPage({
       <WorkspaceNotice message={params.message} error={params.error ?? error?.message} />
       <PageHeader eyebrow="Church leadership" title={profile.role === "department_head" ? "Worker attendance reports" : "Worker attendance overview"} description="Track church workforce participation across services and departments." actions={<a href={`/api/reports/attendance.csv?${exportParams}`} className="flex min-h-12 w-full items-center justify-center rounded-xl bg-[var(--color-primary)] px-5 text-sm font-semibold text-white shadow-[0_10px_24px_rgba(79,125,243,0.2)] hover:bg-[var(--color-primary-strong)] sm:w-auto">Export CSV</a>} />
 
-      <div className="mt-7 flex flex-wrap gap-2">
+      <nav aria-label="Report sections" className="mt-6 flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none]">
+        <a href="#report-summary" className="flex min-h-11 shrink-0 items-center rounded-xl bg-[var(--color-primary)] px-4 text-sm font-semibold text-white">Summary</a>
+        <a href="#attendance-trend" className="flex min-h-11 shrink-0 items-center rounded-xl border border-[var(--color-border)] bg-white px-4 text-sm font-semibold text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-subtle)]">Attendance trend</a>
+        <a href="#department-comparison" className="flex min-h-11 shrink-0 items-center rounded-xl border border-[var(--color-border)] bg-white px-4 text-sm font-semibold text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-subtle)]">Departments</a>
+        <a href="#service-log" className="flex min-h-11 shrink-0 items-center rounded-xl border border-[var(--color-border)] bg-white px-4 text-sm font-semibold text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-subtle)]">Service log</a>
+      </nav>
+
+      <section className="mt-5 rounded-3xl border border-[var(--color-border)] bg-white p-4 shadow-[var(--shadow-sm)] sm:p-5" aria-labelledby="report-filters-title">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div><h2 id="report-filters-title" className="text-sm font-semibold text-[var(--color-text)]">Report period and filters</h2><p className="mt-1 text-xs text-[var(--color-text-muted)]">Date shortcuts preserve your department and service selections.</p></div>
+          {activeFilterCount > 0 && <span className="rounded-full bg-[var(--color-primary-soft)] px-3 py-1.5 text-xs font-semibold text-[var(--color-primary-strong)]">{activeFilterCount} active {activeFilterCount === 1 ? "filter" : "filters"}</span>}
+        </div>
+      <div className="mt-4 flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none]">
         {[7, 30, 90].map((days) => (
-          <a key={days} href={`/app/reports?range=${days}`} className={`rounded-xl border px-4 py-2.5 text-sm font-semibold ${selectedRange === days || (!params.from && !selectedRange && days === 90) ? "border-[#4f7df3] bg-[#edf2ff] text-[#4168cd]" : "border-[#dce3f1] bg-white text-[#5e6a81]"}`}>Last {days} days</a>
+          <a key={days} href={quickRangeHref(days)} className={`shrink-0 rounded-xl border px-4 py-2.5 text-sm font-semibold ${selectedRange === days || (!params.from && !selectedRange && days === 90) ? "border-[#4f7df3] bg-[#edf2ff] text-[#4168cd]" : "border-[#dce3f1] bg-white text-[#5e6a81]"}`}>Last {days} days</a>
         ))}
       </div>
 
-      <form className="mt-3 grid gap-3 rounded-2xl border border-[#e0e6f2] bg-white p-4 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_1.2fr_1.2fr_auto_auto]">
+      <form className="mt-4 grid gap-3 border-t border-[var(--color-border)] pt-4 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_1.2fr_1.2fr_auto_auto]">
         <label className="text-xs font-semibold text-[#68738a]">From<input type="date" name="from" defaultValue={from} className="mt-2 h-11 w-full rounded-xl border border-[#dce3f1] px-3 text-sm font-normal" /></label>
         <label className="text-xs font-semibold text-[#68738a]">To<input type="date" name="to" defaultValue={to} className="mt-2 h-11 w-full rounded-xl border border-[#dce3f1] px-3 text-sm font-normal" /></label>
         <label className="text-xs font-semibold text-[#68738a]">Department<select name="department" defaultValue={params.department ?? ""} disabled={profile.role === "department_head"} className="mt-2 h-11 w-full rounded-xl border border-[#dce3f1] bg-white px-3 text-sm font-normal disabled:bg-[#f4f6fa]"><option value="">All visible</option>{departments?.map((department) => <option key={department.id} value={department.id}>{department.name}</option>)}</select></label>
@@ -132,18 +151,19 @@ export default async function ReportsPage({
         <button className="self-end rounded-xl bg-[#edf2ff] px-5 py-3 text-sm font-semibold text-[#4168cd]">Apply</button>
         <a href="/app/reports" className="self-end rounded-xl border border-[#dce3f1] bg-white px-5 py-3 text-center text-sm font-semibold text-[#68738a]">Clear</a>
       </form>
-      <p className="mt-3 text-xs font-medium text-[#8993a7]">Showing {displayDate(from)} – {displayDate(to)}</p>
+      <p className="mt-3 text-xs font-medium text-[#8993a7]" aria-live="polite">Showing {displayDate(from)} – {displayDate(to)}</p>
+      </section>
 
-      <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div id="report-summary" className="mt-6 grid scroll-mt-24 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {[
-          ["Total headcount", roster, "Expected worker records in this period"],
-          ["Average per service", servicesLogged ? Math.round(present / servicesLogged) : 0, "Present workers"],
+          ["Worker records", roster, "Expected attendance marks in this period"],
+          ["Average present", servicesLogged ? Math.round(present / servicesLogged) : 0, "Workers present per service"],
           ["Services logged", servicesLogged, `${rows.length} department submissions`],
           ["Attendance rate", `${percentage(present, roster)}%`, `${present} of ${roster} records`],
         ].map(([label, value, detail]) => <section key={label} className="rounded-3xl border border-[var(--color-border)] bg-white p-5 shadow-[var(--shadow-sm)]"><p className="text-sm font-medium text-[var(--color-text-secondary)]">{label}</p><p className="mt-2 text-3xl font-semibold text-[var(--color-text)]">{value}</p><p className="mt-2 text-xs text-[var(--color-text-muted)]">{detail}</p></section>)}
       </div>
 
-      <section className="mt-6 rounded-3xl border border-[#e0e6f2] bg-white p-5 sm:p-6">
+      <section id="attendance-trend" className="mt-6 scroll-mt-24 rounded-3xl border border-[#e0e6f2] bg-white p-5 sm:p-6">
         <div>
           <h2 className="text-lg font-semibold">Worker attendance trend</h2>
           <p className="mt-1 text-xs text-[#8993a7]">Attendance rate by service for the active filters above.</p>
@@ -153,7 +173,7 @@ export default async function ReportsPage({
         </div>
       </section>
 
-      <div className="mt-6 grid gap-5 lg:grid-cols-[1.2fr_0.8fr]">
+      <div id="department-comparison" className="mt-6 grid scroll-mt-24 gap-5 lg:grid-cols-[1.2fr_0.8fr]">
         <section className="rounded-3xl border border-[#e0e1e5] bg-white p-5 sm:p-6">
           <h2 className="font-semibold">Headcount by department</h2>
           <div className="mt-5 space-y-4">
@@ -169,7 +189,7 @@ export default async function ReportsPage({
         </section>
       </div>
 
-      <section className="mt-6 overflow-hidden rounded-3xl border border-[#e0e1e5] bg-white">
+      <section id="service-log" className="mt-6 scroll-mt-24 overflow-hidden rounded-3xl border border-[#e0e1e5] bg-white">
         <div className="border-b border-[#e8ecf4] px-5 py-4 sm:px-6"><h2 className="font-semibold">Service log</h2></div>
         {rows.length ? <div className="divide-y divide-[#edf0f6]">{rows.slice(0, 100).map((row) => {
           const rate = percentage(row.present_count, row.roster_count);

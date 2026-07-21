@@ -36,19 +36,20 @@ export function TrendLineChart({
   const area = `${left},${top + chartHeight} ${coordinates} ${x(points.length - 1)},${top + chartHeight}`;
   const labelStep = Math.max(1, Math.ceil(points.length / 6));
   const change = points.length > 1 ? points.at(-1)!.value - points[0].value : 0;
+  const chartId = `trend-${title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "")}`;
 
   return (
     <div>
       <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
         <p className="text-xs text-[#8993a7]">Hover or tap a point for its service details.</p>
         <span className={`rounded-full px-3 py-1 text-xs font-semibold ${change >= 0 ? "bg-[#edf8f1] text-[#2f7b50]" : "bg-[#fff1f0] text-[#b5524b]"}`}>
-          {change > 0 ? "+" : ""}{change}{suffix} from first to latest
+          {points.length === 1 ? "1 recorded data point" : <>{change > 0 ? "+" : ""}{change}{suffix} from first to latest</>}
         </span>
       </div>
       <div className="w-full overflow-hidden">
-        <svg viewBox={`0 0 ${width} ${height}`} className="h-auto min-h-56 w-full" role="img" aria-labelledby="trend-title trend-description">
-          <title id="trend-title">{title}</title>
-          <desc id="trend-description">{points.map((point) => `${point.label}: ${point.value}${suffix}`).join(", ")}</desc>
+        <svg viewBox={`0 0 ${width} ${height}`} className="h-auto min-h-56 w-full" role="img" aria-labelledby={`${chartId}-title ${chartId}-description`}>
+          <title id={`${chartId}-title`}>{title}</title>
+          <desc id={`${chartId}-description`}>{points.map((point) => `${point.label}: ${point.value}${suffix}`).join(", ")}</desc>
           {[0, 0.25, 0.5, 0.75, 1].map((ratio) => {
             const value = Math.round(roundedMaximum * (1 - ratio));
             const lineY = top + chartHeight * ratio;
@@ -73,6 +74,17 @@ export function TrendLineChart({
           ))}
         </svg>
       </div>
+      <details className="group mt-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-subtle)]">
+        <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-4 px-4 py-2.5 text-xs font-semibold text-[var(--color-text-secondary)]">
+          View chart data
+          <svg viewBox="0 0 24 24" aria-hidden="true" className="h-4 w-4 fill-none stroke-current transition group-open:rotate-180" strokeWidth="1.8"><path d="m7 10 5 5 5-5" /></svg>
+        </summary>
+        <div className="max-h-64 overflow-y-auto border-t border-[var(--color-border)] px-4">
+          <ul className="divide-y divide-[var(--color-border)]">
+            {points.map((point, index) => <li key={`${point.label}-data-${index}`} className="flex items-start justify-between gap-4 py-3 text-xs"><span className="leading-5 text-[var(--color-text-secondary)]">{point.detail}</span><strong className="shrink-0 text-[var(--color-text)]">{point.value}{suffix}</strong></li>)}
+          </ul>
+        </div>
+      </details>
     </div>
   );
 }
