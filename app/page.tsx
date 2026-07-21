@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { FlockBrand } from "@/components/flock-brand";
-import { PublicMobileNav } from "@/components/public-mobile-nav";
 
 const features = [
   {
@@ -91,7 +90,7 @@ export default function Home() {
   return (
     <main className="overflow-hidden bg-[#fbfcff] text-[#101c3d]">
       <header className="relative z-20 border-b border-[#dfe6f8]/80 bg-white/90 backdrop-blur-xl">
-        <div className="mx-auto flex h-24 max-w-7xl items-center justify-between px-5 sm:px-8 lg:px-12">
+        <div className="mx-auto flex h-20 max-w-7xl items-center justify-between px-5 sm:h-24 sm:px-8 lg:px-12">
           <a href="#top" aria-label="Flock home" className="-ml-2">
             <FlockBrand compact />
           </a>
@@ -115,7 +114,6 @@ export default function Home() {
           </nav>
 
           <div className="flex items-center gap-2 sm:gap-3">
-            <PublicMobileNav />
             <Link
               href="/sign-in"
               className="hidden rounded-full px-3 py-2.5 text-sm font-semibold text-[#253252] transition hover:bg-[#f0f4ff] sm:inline-flex sm:px-5"
@@ -130,6 +128,20 @@ export default function Home() {
             </Link>
           </div>
         </div>
+        <nav aria-label="Mobile main navigation" className="border-t border-[#e8edf8] px-4 py-2 md:hidden">
+          <div className="mx-auto flex max-w-7xl gap-2 overflow-x-auto overscroll-x-contain pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            {[
+              ["Why Flock", "#why-flock"],
+              ["Features", "#features"],
+              ["Insights", "#insights"],
+              ["How it works", "#how-it-works"],
+            ].map(([label, href]) => (
+              <a key={href} href={href} className="flex min-h-10 shrink-0 items-center rounded-full border border-[#dfe6f3] bg-white px-4 text-sm font-semibold text-[#5e6880] transition active:bg-[#edf2ff] active:text-[#365fc7]">
+                {label}
+              </a>
+            ))}
+          </div>
+        </nav>
       </header>
 
       <section
