@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
-import { correctChurchAttendance, submitChurchAttendance } from "@/app/app/church-attendance/actions";
+import { correctChurchAttendance } from "@/app/app/church-attendance/actions";
+import { ChurchAttendanceEntryForm } from "@/components/church-attendance-entry-form";
 import { FormSubmitButton } from "@/components/form-submit-button";
 import { TrendLineChart, type TrendPoint } from "@/components/trend-line-chart";
 import { WorkspaceNotice } from "@/components/workspace-notice";
@@ -135,7 +136,7 @@ export default async function ChurchAttendancePage({
           <div><h2 className="text-lg font-semibold">Record a service</h2><p className="mt-1 text-xs text-[#8993a7]">Only one church-attendance record is allowed for each calendar date.</p></div>
           <span className="w-fit rounded-full bg-[#edf8f1] px-3 py-1 text-xs font-semibold text-[#2f7b50]">Aggregate counts only</span>
         </div>
-        <form action={submitChurchAttendance} className="mt-5">
+        <ChurchAttendanceEntryForm canSubmit={activeMinisters.length > 0}>
           {!activeMinisters.length && <div className="mb-5 rounded-2xl border border-[#f0d9a8] bg-[#fff9ec] px-4 py-3 text-sm text-[#7b5b19]">Add an active minister in the <a href="/app/ministers" className="font-semibold underline">Minister Directory</a> before recording attendance.</div>}
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
             <label className="text-xs font-semibold text-[#68738a]">Service date<input type="date" name="service_date" max={isoDate(new Date())} defaultValue={isoDate(new Date())} required className="mt-2 h-11 w-full rounded-xl border border-[#dce3f1] px-3 text-sm font-normal" /></label>
@@ -158,8 +159,7 @@ export default async function ChurchAttendancePage({
               <label className="text-xs font-semibold text-[#68738a]">New converts — female<input type="number" name="new_converts_female_count" min="0" step="1" defaultValue="0" required className="mt-2 h-11 w-full rounded-xl border border-[#dce3f1] bg-white px-3 text-sm font-normal" /></label>
             </div>
           </div>
-          <div className="mt-5 flex justify-end"><FormSubmitButton disabled={!activeMinisters.length} pendingLabel="Saving attendance..." className="min-h-12 rounded-xl bg-[var(--color-primary)] px-5 text-sm font-semibold text-white hover:bg-[var(--color-primary-strong)] disabled:cursor-not-allowed disabled:bg-[#aebbdc]">Save church attendance</FormSubmitButton></div>
-        </form>
+        </ChurchAttendanceEntryForm>
       </section> : <div className="mt-7 rounded-2xl border border-[#dbe3f2] bg-[#f7f9fd] px-5 py-4 text-sm text-[#68738a]">Congregation attendance is read-only for church leaders. A super admin records each service total.</div>}
 
       <div className="mt-7 flex flex-wrap gap-2">{[7, 30, 90].map((days) => <a key={days} href={`/app/church-attendance?range=${days}`} className={`rounded-xl border px-4 py-2.5 text-sm font-semibold ${selectedRange === days || (!params.from && !selectedRange && days === 90) ? "border-[#4f7df3] bg-[#edf2ff] text-[#4168cd]" : "border-[#dce3f1] bg-white text-[#5e6a81]"}`}>Last {days} days</a>)}</div>
