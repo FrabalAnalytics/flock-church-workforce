@@ -23,6 +23,16 @@ type CareAlert = {
   workers: { full_name: string; departments: { name: string } | null } | null;
 };
 
+type TodayService = {
+  id: string;
+  service_type: string;
+};
+
+type TodaySubmission = {
+  id: string;
+  service_id: string;
+};
+
 const roleEyebrows: Record<ProfileRole, string> = {
   pending: "Account",
   super_admin: "Administration",
@@ -43,6 +53,17 @@ function metric(label: string, value: string | number, detail: string) {
   return { label, value, detail };
 }
 
+function lagosDate() {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "Africa/Lagos",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(new Date());
+  const value = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+  return `${value.year}-${value.month}-${value.day}`;
+}
+
 export default async function WorkspaceOverview({
   searchParams,
 }: {
@@ -58,6 +79,7 @@ export default async function WorkspaceOverview({
     redirect(`/app/reports${query.size ? `?${query}` : ""}`);
   }
   const supabase = await createClient();
+  const today = lagosDate();
 
   const [
     activeWorkersResult,
@@ -65,6 +87,8 @@ export default async function WorkspaceOverview({
     recentSubmissionsResult,
     openFollowupsResult,
     recentAlertsResult,
+    todayServicesResult,
+    todaySubmissionsResult,
     departmentsResult,
     pendingResult,
   ] = await Promise.all([
@@ -86,6 +110,11 @@ export default async function WorkspaceOverview({
       .eq("resolved", false)
       .order("consecutive_misses", { ascending: false })
       .limit(5),
+    supabase.from("services").select("id, service_type").eq("service_date", today).order("service_type"),
+    supabase
+      .from("attendance_submissions")
+      .select("id, service_id, services!inner(service_date)")
+      .eq("services.service_date", today),
     profile.role === "super_admin"
       ? supabase.from("departments").select("*", { count: "exact", head: true })
       : Promise.resolve({ count: null }),
@@ -116,6 +145,11 @@ export default async function WorkspaceOverview({
     .sort((a, b) => b.rate - a.rate);
   const recentSubmissions = (recentSubmissionsResult.data ?? []) as unknown as Submission[];
   const recentAlerts = (recentAlertsResult.data ?? []) as unknown as CareAlert[];
+  const todayServices = (todayServicesResult.data ?? []) as TodayService[];
+  const todaySubmissions = (todaySubmissionsResult.data ?? []) as unknown as TodaySubmission[];
+  const completedServiceIds = new Set(todaySubmissions.map((submission) => submission.service_id));
+  const outstandingToday = todayServices.filter((service) => !completedServiceIds.has(service.id));
+  const todayComplete = todayServices.length > 0 && outstandingToday.length === 0;
 
   const metrics = [
     metric("Active workers", activeWorkersResult.count ?? 0, profile.role === "department_head" ? "Your department roster" : "Visible workforce"),
@@ -146,6 +180,8 @@ export default async function WorkspaceOverview({
     recentSubmissionsResult.error,
     openFollowupsResult.error,
     recentAlertsResult.error,
+    todayServicesResult.error,
+    todaySubmissionsResult.error,
   ].filter(Boolean);
 
   return (
@@ -158,6 +194,23 @@ export default async function WorkspaceOverview({
           ? "Keep your department attendance and care follow-up current."
           : "Monitor workforce participation and care activity across the records you can access."}
       </p>
+
+      {profile.role === "department_head" && (
+        <section className={`mt-8 overflow-hidden rounded-3xl border ${todayComplete ? "border-[#cfe3d5] bg-[#f4faf6]" : outstandingToday.length ? "border-[#efd8a8] bg-[#fffaf0]" : "border-[#dbe3f2] bg-white"}`} aria-labelledby="today-attendance-title">
+          <div className="grid gap-5 p-5 sm:p-6 lg:grid-cols-[1fr_auto] lg:items-center">
+            <div>
+              <div className="flex flex-wrap items-center gap-3">
+                <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[var(--color-text-muted)]">Today · {formatDate(today)}</p>
+                <span className={`rounded-full px-3 py-1 text-xs font-semibold ${todayComplete ? "bg-[#e3f2e8] text-[#347457]" : outstandingToday.length ? "bg-[#fff0cf] text-[#976619]" : "bg-[var(--color-primary-soft)] text-[var(--color-primary-strong)]"}`}>{todayComplete ? "Attendance complete" : outstandingToday.length ? `${outstandingToday.length} outstanding` : "No service yet"}</span>
+              </div>
+              <h2 id="today-attendance-title" className="mt-3 text-xl font-semibold text-[var(--color-text)]">{todayComplete ? "Your department is up to date" : outstandingToday.length ? "Worker attendance needs attention" : "Ready for today’s service"}</h2>
+              <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--color-text-secondary)]">{todayComplete ? `Attendance has been submitted for ${todayServices.length === 1 ? "today’s service" : `all ${todayServices.length} services recorded today`}.` : outstandingToday.length ? `${todaySubmissions.length} of ${todayServices.length} recorded ${todayServices.length === 1 ? "service has" : "services have"} attendance from your department.` : "No service activity has been recorded today. Start attendance when your department is ready."}</p>
+              {todayServices.length > 0 && <div className="mt-4 flex flex-wrap gap-2">{todayServices.map((service) => { const complete = completedServiceIds.has(service.id); return <span key={service.id} className={`rounded-full px-3 py-1.5 text-xs font-semibold ${complete ? "bg-white text-[#347457]" : "bg-white text-[#976619]"}`}>{complete ? "✓" : "○"} {service.service_type}</span>; })}</div>}
+            </div>
+            <Link href={todayComplete ? `/app/attendance?from=${today}&to=${today}` : "/app/attendance/new"} className={`flex min-h-12 w-full items-center justify-center rounded-xl px-5 text-sm font-semibold shadow-[var(--shadow-sm)] lg:w-auto ${todayComplete ? "border border-[#cfe3d5] bg-white text-[#347457]" : "bg-[var(--color-primary)] text-white hover:bg-[var(--color-primary-strong)]"}`}>{todayComplete ? "Review today’s records" : "Log worker attendance"}</Link>
+          </div>
+        </section>
+      )}
 
       <div className="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {metrics.map((item) => (
