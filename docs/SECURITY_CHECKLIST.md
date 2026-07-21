@@ -52,6 +52,8 @@ department's workers, attendance records or care alerts.
 - Every `security definer` function uses an empty or fixed `search_path`, checks
   the caller where needed, and has the narrowest possible EXECUTE grant.
 - New foreign-key columns used by RLS or filters have supporting indexes.
+- Audit events remain read-only to application users and new high-risk tables
+  have an approved audit trigger or a documented reason for exclusion.
 - A migration dry run has been reviewed before `db push`.
 
 ## Incident response

@@ -168,6 +168,15 @@ department is expected. Once it is closed, new department submissions are
 rejected until a Super Admin reopens attendance. Days that have not been placed
 under service-day control continue to use the original attendance workflow.
 
+#### Audit history
+
+Sensitive record changes are written automatically to an immutable audit
+history. The history identifies the record type and ID, action, authenticated
+actor, timestamp, and before-and-after values. It covers user access,
+departments, workers, services, expected departments, worker and congregation
+attendance, care follow-ups, ministers, and service programmes. Only Super
+Admins can view this history, and application users cannot edit or delete it.
+
 ### 5.5 Leadership overview and reporting
 
 The leadership Overview provides:
@@ -412,7 +421,7 @@ Before full organisational rollout, the church should confirm its legal name, pr
 
 ## 10. Current scope and future opportunities
 
-The current system includes authentication, centrally managed user profiles, role administration, departments, a worker directory, service-day scheduling and submission monitoring, worker attendance and corrections, leadership reporting, attendance trends, care alerts, congregation attendance and corrections, a Minister Directory, reusable programme templates, dated published service programmes, privacy information, CSV exports, database migrations, and backup/recovery procedures.
+The current system includes authentication, centrally managed user profiles, role administration, immutable audit history, departments, a worker directory, service-day scheduling and submission monitoring, worker attendance and corrections, leadership reporting, attendance trends, care alerts, congregation attendance and corrections, a Minister Directory, reusable programme templates, dated published service programmes, privacy information, CSV exports, database migrations, and backup/recovery procedures.
 
 Possible future additions include:
 
@@ -420,7 +429,6 @@ Possible future additions include:
 - QR-code access to published service information.
 - Approved PDF reports.
 - Optional paid WhatsApp care messaging.
-- More detailed audit history for corrected records.
 - Offline-friendly service-day workflows.
 
 These are future opportunities and should be introduced only after the core attendance process is stable and adopted.

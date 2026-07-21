@@ -30,6 +30,7 @@ export default async function WorkspaceLayout({ children }: { children: React.Re
         { label: "Users", href: "/app/users", icon: "users" },
         { label: "Ministers", href: "/app/ministers", icon: "ministers" },
         { label: "Departments", href: "/app/departments", icon: "departments" },
+        { label: "Audit history", href: "/app/audit", icon: "audit" },
       ] },
       { label: "Ministry operations", links: [
         { label: "Service-day control", href: "/app/service-days", icon: "control" },
