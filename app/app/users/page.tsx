@@ -1,6 +1,5 @@
 import Link from "next/link";
-import { updateUserAccess } from "@/app/app/admin/actions";
-import { FormSubmitButton } from "@/components/form-submit-button";
+import { UserAccessForm } from "@/components/user-access-form";
 import { WorkspaceNotice } from "@/components/workspace-notice";
 import { EmptyState, MetricPill, PageHeader, StatusBadge } from "@/components/workspace-ui";
 
@@ -17,7 +16,7 @@ function initials(name: string) {
 }
 
 export default async function UsersPage({ searchParams }: { searchParams: Promise<UserSearchParams> }) {
-  await requireSuperAdmin();
+  const { user: currentUser } = await requireSuperAdmin();
   const params = await searchParams;
   const supabase = await createClient();
   const [{ data: allUsers }, { data: departments }] = await Promise.all([
@@ -26,6 +25,8 @@ export default async function UsersPage({ searchParams }: { searchParams: Promis
   ]);
 
   const pendingCount = allUsers?.filter((user) => user.role === "pending").length ?? 0;
+  const departmentHeadCount = allUsers?.filter((user) => user.role === "department_head").length ?? 0;
+  const leaderCount = allUsers?.filter((user) => user.role === "church_leader" || user.role === "super_admin").length ?? 0;
   const departmentNames = new Map(departments?.map((department) => [department.id, department.name]));
   const normalizedSearch = params.q?.trim().toLowerCase();
   const users = allUsers?.filter((user) => {
@@ -42,9 +43,16 @@ export default async function UsersPage({ searchParams }: { searchParams: Promis
       <PageHeader
         eyebrow="Access control"
         title="Users"
-        description="Approve accounts and centrally manage each person's role, department, name and contact information."
+        description="Approve accounts and manage each person's workspace role and department access."
         actions={<MetricPill value={pendingCount} label="pending approval" tone={pendingCount ? "warning" : "neutral"} />}
       />
+
+      <div className="mt-6 flex flex-wrap gap-2" aria-label="User access summary">
+        <MetricPill value={allUsers?.length ?? 0} label="total accounts" />
+        <MetricPill value={leaderCount} label="church leaders and admins" />
+        <MetricPill value={departmentHeadCount} label="department heads" />
+        {pendingCount > 0 && <Link href="/app/users?role=pending" className="inline-flex"><MetricPill value={pendingCount} label="needs review" tone="warning" /></Link>}
+      </div>
 
       <div className="mt-7 rounded-2xl border border-[#d9e3fb] bg-[#f4f7ff] px-4 py-3.5 text-sm leading-6 text-[#49608f]">
         <strong className="font-semibold text-[#304d91]">Protected identity records.</strong> Church Leaders and Department Heads cannot change their own profile details; changes made here apply to their next authenticated request.
@@ -72,7 +80,7 @@ export default async function UsersPage({ searchParams }: { searchParams: Promis
               <div className="min-w-0">
                 <div className="flex items-start gap-3">
                   <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[var(--color-primary-soft)] text-sm font-semibold text-[var(--color-primary)]">{initials(user.full_name)}</span>
-                  <div className="min-w-0"><h2 className="truncate font-semibold text-[#253252]">{user.full_name}</h2><p className="mt-1 truncate text-sm text-[var(--color-text-muted)]">{user.email ?? "Email unavailable"}</p><p className="mt-1 text-xs text-[var(--color-text-muted)]">{user.phone_number ?? "No phone number"}</p></div>
+                  <div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><h2 className="truncate font-semibold text-[#253252]">{user.full_name}</h2>{user.id === currentUser.id && <StatusBadge tone="info">You</StatusBadge>}</div><p className="mt-1 truncate text-sm text-[var(--color-text-muted)]">{user.email ?? "Email unavailable"}</p><p className="mt-1 text-xs text-[var(--color-text-muted)]">{user.phone_number ?? "No phone number"}</p><p className="mt-1 text-xs text-[var(--color-text-muted)]">Joined {new Intl.DateTimeFormat("en-NG", { dateStyle: "medium" }).format(new Date(user.created_at))}</p></div>
                 </div>
                 <div className="mt-4 flex flex-wrap items-center gap-2">
                   <StatusBadge tone={user.role === "pending" ? "warning" : user.role === "super_admin" ? "info" : "success"}>{labels[user.role as keyof typeof labels]}</StatusBadge>
@@ -80,12 +88,7 @@ export default async function UsersPage({ searchParams }: { searchParams: Promis
                 </div>
               </div>
 
-              <form action={updateUserAccess} className="grid gap-4 rounded-2xl bg-[var(--color-surface-subtle)] p-4 sm:grid-cols-2 xl:grid-cols-[1fr_1fr_auto] xl:items-end">
-                <input type="hidden" name="id" value={user.id} />
-                <label className="text-sm font-semibold text-[var(--color-text-secondary)]">Role<select name="role" defaultValue={user.role} className="mt-2 h-12 w-full rounded-xl border border-[var(--color-border)] bg-white px-3 text-sm font-normal"><option value="pending">Pending</option><option value="department_head">Department Head</option><option value="church_leader">Church Leader</option><option value="super_admin">Super Admin</option></select></label>
-                <label className="text-sm font-semibold text-[var(--color-text-secondary)]">Department<select name="department_id" defaultValue={user.department_id ?? ""} className="mt-2 h-12 w-full rounded-xl border border-[var(--color-border)] bg-white px-3 text-sm font-normal"><option value="">Not assigned</option>{departments?.map((department) => <option key={department.id} value={department.id}>{department.name}</option>)}</select></label>
-                <FormSubmitButton pendingLabel="Saving..." className="min-h-12 rounded-xl bg-[var(--color-primary)] px-5 text-sm font-semibold text-white transition hover:bg-[var(--color-primary-strong)] disabled:cursor-wait disabled:opacity-60 sm:col-span-2 xl:col-span-1">Save access</FormSubmitButton>
-              </form>
+              <UserAccessForm id={user.id} fullName={user.full_name} initialRole={user.role as keyof typeof labels} initialDepartmentId={user.department_id} departments={departments ?? []} isCurrentUser={user.id === currentUser.id} />
             </div>
           </article>
         )) : <EmptyState title="No users found" description="No user accounts match the selected search and filters." action={hasFilters ? <Link href="/app/users" className="inline-flex min-h-11 items-center rounded-xl bg-[var(--color-primary-soft)] px-5 text-sm font-semibold text-[var(--color-primary-strong)]">Clear filters</Link> : undefined} />}
