@@ -146,6 +146,7 @@ export async function deleteProgramme(formData: FormData) {
 export async function updateTemplateItem(formData: FormData) {
   await requireSuperAdmin();
   const id = value(formData, "id");
+  const templateId = value(formData, "template_id");
   const eventName = value(formData, "event_name");
   const responsibleName = value(formData, "responsible_name");
   const startTime = value(formData, "start_time");
@@ -160,7 +161,11 @@ export async function updateTemplateItem(formData: FormData) {
   if (error) redirect(destination("error", error.message));
   if (!updatedItem) redirect(destination("error", "The template row was not updated. Refresh the page and try again."));
   revalidatePath("/app/programmes");
-  redirect(`/app/programmes?template=open&message=${encodeURIComponent("Template row saved successfully. Create a new dated programme to use this change.")}`);
+  const params = new URLSearchParams({
+    template: templateId || "open",
+    message: "Template row saved successfully. Create a new dated programme to use this change.",
+  });
+  redirect(`/app/programmes?${params}`);
 }
 
 export async function publishProgramme(formData: FormData) {
