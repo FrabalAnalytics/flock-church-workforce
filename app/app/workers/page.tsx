@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { WorkspaceNotice } from "@/components/workspace-notice";
+import { MetricPill } from "@/components/workspace-ui";
 import { requireSuperAdmin } from "@/lib/admin";
 import { createClient } from "@/lib/supabase/server";
 
@@ -24,7 +25,13 @@ export default async function WorkersPage({ searchParams }: { searchParams: Prom
   await requireSuperAdmin();
   const params = await searchParams;
   const supabase = await createClient();
-  const { data: departments } = await supabase.from("departments").select("id, name").order("name");
+  const [departmentsResult, activeResult, leaveResult, inactiveResult] = await Promise.all([
+    supabase.from("departments").select("id, name").order("name"),
+    supabase.from("workers").select("*", { count: "exact", head: true }).eq("status", "Active"),
+    supabase.from("workers").select("*", { count: "exact", head: true }).eq("status", "On Leave"),
+    supabase.from("workers").select("*", { count: "exact", head: true }).eq("status", "Inactive"),
+  ]);
+  const departments = departmentsResult.data;
 
   let query = supabase
     .from("workers")
@@ -48,6 +55,13 @@ export default async function WorkersPage({ searchParams }: { searchParams: Prom
           <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--color-text-secondary)]">Manage worker information and the people included in department attendance.</p>
         </div>
         <Link href="/app/workers/new" className="inline-flex min-h-12 w-full items-center justify-center rounded-xl bg-[var(--color-primary)] px-5 text-sm font-semibold text-white shadow-[0_10px_24px_rgba(79,125,243,0.2)] transition hover:bg-[var(--color-primary-strong)] sm:w-auto">Add worker</Link>
+      </div>
+
+      <div className="mt-6 flex flex-wrap gap-2" aria-label="Workforce status summary">
+        <MetricPill value={(activeResult.count ?? 0) + (leaveResult.count ?? 0) + (inactiveResult.count ?? 0)} label="total workers" />
+        <MetricPill value={activeResult.count ?? 0} label="active" />
+        <MetricPill value={leaveResult.count ?? 0} label="on leave" tone={(leaveResult.count ?? 0) > 0 ? "warning" : "neutral"} />
+        <MetricPill value={inactiveResult.count ?? 0} label="inactive" />
       </div>
 
       <form className="mt-7 rounded-2xl border border-[var(--color-border)] bg-white p-4 shadow-[var(--shadow-sm)]">

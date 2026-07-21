@@ -13,7 +13,15 @@ function SubmitButton({ disabled }: { disabled: boolean }) {
 
 export function AttendanceForm({ workers }: { workers: Worker[] }) {
   const [presentIds, setPresentIds] = useState(() => new Set<string>());
+  const [query, setQuery] = useState("");
+  const [view, setView] = useState<"all" | "present" | "absent">("all");
   const allPresent = workers.length > 0 && presentIds.size === workers.length;
+  const normalizedQuery = query.trim().toLocaleLowerCase();
+  const visibleWorkers = workers.filter((worker) => {
+    const matchesQuery = !normalizedQuery || `${worker.full_name} ${worker.phone_number ?? ""}`.toLocaleLowerCase().includes(normalizedQuery);
+    const matchesView = view === "all" || (view === "present" ? presentIds.has(worker.id) : !presentIds.has(worker.id));
+    return matchesQuery && matchesView;
+  });
 
   function toggleWorker(id: string) {
     setPresentIds((current) => {
@@ -27,8 +35,16 @@ export function AttendanceForm({ workers }: { workers: Worker[] }) {
     setPresentIds(allPresent ? new Set() : new Set(workers.map((worker) => worker.id)));
   }
 
+  function confirmSubmission(event: React.FormEvent<HTMLFormElement>) {
+    const absentCount = workers.length - presentIds.size;
+    if (absentCount > 0 && !window.confirm(`Submit attendance with ${absentCount} ${absentCount === 1 ? "worker" : "workers"} marked absent?`)) {
+      event.preventDefault();
+    }
+  }
+
   return (
-    <form action={submitAttendance} className="mt-8 space-y-6">
+    <form action={submitAttendance} onSubmit={confirmSubmission} className="mt-8 space-y-6">
+      {Array.from(presentIds).map((id) => <input key={id} type="hidden" name="present_worker_ids" value={id} />)}
       <section className="rounded-3xl border border-[var(--color-border)] bg-white p-5 shadow-[var(--shadow-sm)] sm:p-7">
         <label className="block text-sm font-semibold text-[var(--color-text-secondary)]">Service type<select name="service_type" required defaultValue="" className="mt-2 h-12 w-full rounded-xl border border-[var(--color-border)] bg-white px-4 text-sm font-normal outline-none focus:border-[var(--color-primary)] sm:max-w-md"><option value="" disabled>Select the service</option><option>Sunday Service</option><option>Tuesday Service</option><option>Special Service</option><option>Headquarters Service</option><option>Tarry Night</option></select></label>
       </section>
@@ -37,18 +53,32 @@ export function AttendanceForm({ workers }: { workers: Worker[] }) {
           <div><h2 className="font-semibold text-[var(--color-text)]">Active roster</h2><p className="mt-1 text-xs text-[var(--color-text-muted)]">Tick every worker who is present. Unticked workers are recorded absent.</p></div>
           <button type="button" onClick={toggleAll} disabled={!workers.length} className="min-h-11 w-full rounded-xl border border-[var(--color-border)] bg-white px-4 text-sm font-semibold text-[var(--color-primary)] disabled:opacity-50 sm:w-auto">{allPresent ? "Clear all" : "Mark all present"}</button>
         </div>
+        {workers.length > 0 && <div className="border-b border-[var(--color-border)] bg-white px-5 py-4 sm:px-7">
+          <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
+            <label className="relative block">
+              <span className="sr-only">Search active roster</span>
+              <svg viewBox="0 0 24 24" aria-hidden="true" className="absolute left-3.5 top-1/2 h-5 w-5 -translate-y-1/2 fill-none stroke-[var(--color-icon-muted)]" strokeWidth="1.8"><circle cx="11" cy="11" r="6.5" /><path d="m16 16 4 4" /></svg>
+              <input value={query} onChange={(event) => setQuery(event.target.value)} type="search" placeholder="Search worker name or phone" className="h-12 w-full rounded-xl border border-[var(--color-border)] bg-white pl-11 pr-4 text-sm outline-none focus:border-[var(--color-primary)]" />
+            </label>
+            <div className="flex rounded-xl bg-[var(--color-surface-subtle)] p-1" aria-label="Filter attendance status">
+              {(["all", "present", "absent"] as const).map((option) => <button key={option} type="button" onClick={() => setView(option)} aria-pressed={view === option} className={`min-h-10 flex-1 rounded-lg px-3 text-xs font-semibold capitalize transition sm:flex-none ${view === option ? "bg-white text-[var(--color-primary-strong)] shadow-[var(--shadow-sm)]" : "text-[var(--color-text-secondary)]"}`}>{option}</button>)}
+            </div>
+          </div>
+          <p className="mt-3 text-xs text-[var(--color-text-muted)]" aria-live="polite">Showing {visibleWorkers.length} of {workers.length} active workers. Filtering does not change marked attendance.</p>
+        </div>}
         {workers.length ? (
           <div className="divide-y divide-[var(--color-border)]">
-            {workers.map((worker) => {
+            {visibleWorkers.map((worker) => {
               const present = presentIds.has(worker.id);
               return (
                 <label key={worker.id} className="flex min-h-16 cursor-pointer items-center gap-4 px-5 py-4 transition hover:bg-[var(--color-surface-subtle)] sm:px-7">
-                  <input type="checkbox" name="present_worker_ids" value={worker.id} checked={present} onChange={() => toggleWorker(worker.id)} className="h-5 w-5 rounded accent-[var(--color-primary)]" />
+                  <input type="checkbox" checked={present} onChange={() => toggleWorker(worker.id)} className="h-5 w-5 rounded accent-[var(--color-primary)]" />
                   <span className="min-w-0 flex-1"><span className="block text-sm font-semibold text-[var(--color-text)]">{worker.full_name}</span><span className="mt-1 block text-xs text-[var(--color-text-muted)]">{worker.phone_number ?? "No phone number"}</span></span>
                   <span className={`rounded-full px-3 py-1 text-xs font-semibold ${present ? "bg-[#edf7f1] text-[#347457]" : "bg-[#fff1f0] text-[#b5524b]"}`}>{present ? "Present" : "Absent"}</span>
                 </label>
               );
             })}
+            {!visibleWorkers.length && <div className="px-6 py-12 text-center"><p className="text-sm font-semibold text-[var(--color-text-secondary)]">No workers match this view</p><button type="button" onClick={() => { setQuery(""); setView("all"); }} className="mt-3 min-h-11 rounded-xl px-4 text-sm font-semibold text-[var(--color-primary)] hover:bg-[var(--color-primary-soft)]">Clear roster filters</button></div>}
           </div>
         ) : <p className="px-6 py-12 text-center text-sm text-[var(--color-text-muted)]">There are no active workers in this department.</p>}
       </section>
