@@ -155,6 +155,19 @@ Supported service types currently include:
 - Headquarters Service.
 - Tarry Night.
 
+#### Service-day control
+
+Super Admins can schedule a service date and choose every department expected
+to submit worker attendance. The control centre shows submitted, pending, and
+late departments in one place. It also records manual reminder activity and
+allows attendance to be closed or reopened with confirmation and an operational
+event history. Church Leaders have read-only oversight of the same status.
+
+When a managed service is open, Department Heads can submit only when their
+department is expected. Once it is closed, new department submissions are
+rejected until a Super Admin reopens attendance. Days that have not been placed
+under service-day control continue to use the original attendance workflow.
+
 ### 5.5 Leadership overview and reporting
 
 The leadership Overview provides:
@@ -263,12 +276,14 @@ Backup and recovery procedures, verification scripts, and a backup register temp
 
 ### On a service day
 
-1. Each Department Head signs in on a phone, tablet, or computer.
-2. The Department Head opens Log Worker Attendance.
-3. The service type is selected.
+1. The Super Admin schedules the service and expected departments.
+2. Each Department Head signs in on a phone, tablet, or computer.
+3. The Department Head opens Log Worker Attendance and selects an assigned open service.
 4. Present workers are marked.
 5. Attendance is submitted once for that department and service.
-6. Leadership reports update from the submitted records.
+6. Leadership monitors submitted, pending, and late departments.
+7. The Super Admin closes attendance when reporting is complete.
+8. Leadership reports update from the submitted records.
 
 ### Recording congregation attendance
 
@@ -397,7 +412,7 @@ Before full organisational rollout, the church should confirm its legal name, pr
 
 ## 10. Current scope and future opportunities
 
-The current system includes authentication, centrally managed user profiles, role administration, departments, a worker directory, worker attendance and corrections, leadership reporting, attendance trends, care alerts, congregation attendance and corrections, a Minister Directory, reusable programme templates, dated published service programmes, privacy information, CSV exports, database migrations, and backup/recovery procedures.
+The current system includes authentication, centrally managed user profiles, role administration, departments, a worker directory, service-day scheduling and submission monitoring, worker attendance and corrections, leadership reporting, attendance trends, care alerts, congregation attendance and corrections, a Minister Directory, reusable programme templates, dated published service programmes, privacy information, CSV exports, database migrations, and backup/recovery procedures.
 
 Possible future additions include:
 

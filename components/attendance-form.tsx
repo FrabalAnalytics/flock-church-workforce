@@ -6,14 +6,24 @@ import { submitAttendance } from "@/app/app/attendance/actions";
 
 type Worker = { id: string; full_name: string; phone_number: string | null };
 
-const serviceTypes = ["Sunday Service", "Tuesday Service", "Special Service", "Headquarters Service", "Tarry Night"];
+const defaultServiceTypes = ["Sunday Service", "Tuesday Service", "Special Service", "Headquarters Service", "Tarry Night"];
 
 function SubmitButton({ disabled }: { disabled: boolean }) {
   const { pending } = useFormStatus();
   return <button type="submit" disabled={disabled || pending} className="min-h-12 w-full rounded-xl bg-[var(--color-primary)] px-6 text-sm font-semibold text-white shadow-[0_10px_24px_rgba(79,125,243,0.2)] hover:bg-[var(--color-primary-strong)] disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto">{pending ? "Submitting worker attendance…" : "Submit worker attendance"}</button>;
 }
 
-export function AttendanceForm({ workers, submittedServiceTypes = [] }: { workers: Worker[]; submittedServiceTypes?: string[] }) {
+export function AttendanceForm({
+  workers,
+  submittedServiceTypes = [],
+  availableServiceTypes = defaultServiceTypes,
+  scheduleMessage,
+}: {
+  workers: Worker[];
+  submittedServiceTypes?: string[];
+  availableServiceTypes?: string[];
+  scheduleMessage?: string;
+}) {
   const [presentIds, setPresentIds] = useState(() => new Set<string>());
   const [query, setQuery] = useState("");
   const [view, setView] = useState<"all" | "present" | "absent">("all");
@@ -54,7 +64,8 @@ export function AttendanceForm({ workers, submittedServiceTypes = [] }: { worker
     <form action={submitAttendance} onSubmit={confirmSubmission} className="mt-8 space-y-6">
       {Array.from(presentIds).map((id) => <input key={id} type="hidden" name="present_worker_ids" value={id} />)}
       <section className="rounded-3xl border border-[var(--color-border)] bg-white p-5 shadow-[var(--shadow-sm)] sm:p-7">
-        <label className="block text-sm font-semibold text-[var(--color-text-secondary)]">Service type<select name="service_type" required value={selectedService} onChange={(event) => setSelectedService(event.target.value)} className="mt-2 h-12 w-full rounded-xl border border-[var(--color-border)] bg-white px-4 text-sm font-normal outline-none focus:border-[var(--color-primary)] sm:max-w-md"><option value="" disabled>Select the service</option>{serviceTypes.map((service) => <option key={service} value={service}>{service}{submittedServices.has(service) ? " · already submitted" : ""}</option>)}</select></label>
+        <label className="block text-sm font-semibold text-[var(--color-text-secondary)]">Service type<select name="service_type" required disabled={!availableServiceTypes.length} value={selectedService} onChange={(event) => setSelectedService(event.target.value)} className="mt-2 h-12 w-full rounded-xl border border-[var(--color-border)] bg-white px-4 text-sm font-normal outline-none focus:border-[var(--color-primary)] disabled:cursor-not-allowed disabled:bg-[var(--color-surface-subtle)] sm:max-w-md"><option value="" disabled>{availableServiceTypes.length ? "Select the service" : "No open service available"}</option>{availableServiceTypes.map((service) => <option key={service} value={service}>{service}{submittedServices.has(service) ? " · already submitted" : ""}</option>)}</select></label>
+        {scheduleMessage && <p className="mt-3 text-xs leading-5 text-[var(--color-text-muted)]">{scheduleMessage}</p>}
         {replacesSubmission && <div className="mt-4 rounded-2xl border border-[#f0dfbd] bg-[#fffaf0] px-4 py-3 text-sm leading-6 text-[#80662f]" role="status"><strong className="font-semibold">Correction mode.</strong> Saving this roster will replace the existing {selectedService} attendance for today.</div>}
       </section>
       <section className="overflow-hidden rounded-3xl border border-[var(--color-border)] bg-white shadow-[var(--shadow-sm)]">
@@ -93,7 +104,7 @@ export function AttendanceForm({ workers, submittedServiceTypes = [] }: { worker
       </section>
       <div className="sticky bottom-3 z-10 flex flex-col gap-4 rounded-2xl border border-[#dbe5ff] bg-[#edf2ff]/95 px-5 py-4 shadow-[0_16px_35px_rgba(31,48,88,0.14)] backdrop-blur sm:flex-row sm:items-center sm:justify-between">
         <div aria-live="polite" className="flex gap-6 text-sm"><p><span className="font-semibold text-[var(--color-text)]">{presentIds.size}</span> <span className="text-[var(--color-text-secondary)]">present</span></p><p><span className="font-semibold text-[var(--color-text)]">{workers.length - presentIds.size}</span> <span className="text-[var(--color-text-secondary)]">absent</span></p></div>
-        <SubmitButton disabled={!workers.length} />
+        <SubmitButton disabled={!workers.length || !availableServiceTypes.length} />
       </div>
     </form>
   );

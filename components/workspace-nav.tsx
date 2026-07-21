@@ -11,6 +11,7 @@ export type WorkspaceIcon =
   | "ministers"
   | "users"
   | "attendance"
+  | "control"
   | "congregation"
   | "programme"
   | "care";
@@ -34,6 +35,7 @@ function NavIcon({ name }: { name: WorkspaceIcon }) {
     ministers: <><circle cx="12" cy="8" r="4" /><path d="M5 20a7 7 0 0 1 14 0M12 12v8" /></>,
     users: <><path d="M15 19a6 6 0 0 0-12 0" /><circle cx="9" cy="8" r="4" /><path d="M17 11v6m3-3h-6" /></>,
     attendance: <><rect x="4" y="5" width="16" height="15" rx="2" /><path d="M8 3v4m8-4v4M4 10h16m-12 4 2 2 4-4" /></>,
+    control: <><rect x="3" y="4" width="18" height="16" rx="2" /><path d="M7 9h10M7 14h4m4 0h2M8 2v4m8-4v4" /></>,
     congregation: <><circle cx="9" cy="8" r="3.5" /><path d="M2.5 20a6.5 6.5 0 0 1 13 0M16 5.5a3 3 0 0 1 0 5.8M18 14a5.5 5.5 0 0 1 3.5 5" /></>,
     programme: <><path d="M6 3h12a2 2 0 0 1 2 2v16H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z" /><path d="M8 8h8M8 12h8M8 16h5" /></>,
     care: <><path d="M12 21S4 16.5 4 9.5A4.5 4.5 0 0 1 12 6.7a4.5 4.5 0 0 1 8 2.8C20 16.5 12 21 12 21Z" /></>,

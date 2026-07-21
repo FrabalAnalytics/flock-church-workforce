@@ -32,6 +32,7 @@ export default async function WorkspaceLayout({ children }: { children: React.Re
         { label: "Departments", href: "/app/departments", icon: "departments" },
       ] },
       { label: "Ministry operations", links: [
+        { label: "Service-day control", href: "/app/service-days", icon: "control" },
         { label: "Worker attendance", href: "/app/attendance", icon: "attendance" },
         { label: "Congregation attendance", href: "/app/church-attendance", icon: "congregation" },
         { label: "Service programme", href: "/app/programmes", icon: "programme" },
@@ -41,6 +42,7 @@ export default async function WorkspaceLayout({ children }: { children: React.Re
     church_leader: [
       { label: "Workspace", links: [{ label: "Overview", href: "/app/reports", icon: "overview" }] },
       { label: "Ministry oversight", links: [
+        { label: "Service-day control", href: "/app/service-days", icon: "control" },
         { label: "Worker attendance", href: "/app/attendance", icon: "attendance" },
         { label: "Congregation attendance", href: "/app/church-attendance", icon: "congregation" },
         { label: "Service programme", href: "/app/programmes", icon: "programme" },
