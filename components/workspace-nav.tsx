@@ -6,6 +6,7 @@ import { useEffect, useId, useMemo, useRef, useState } from "react";
 
 export type WorkspaceIcon =
   | "overview"
+  | "actions"
   | "people"
   | "departments"
   | "ministers"
@@ -31,6 +32,7 @@ export type WorkspaceGroup = {
 function NavIcon({ name }: { name: WorkspaceIcon }) {
   const paths: Record<WorkspaceIcon, React.ReactNode> = {
     overview: <><path d="M4 13h6V4H4v9Zm10 7h6v-9h-6v9ZM4 20h6v-3H4v3Zm10-13h6V4h-6v3Z" /></>,
+    actions: <><path d="M12 3a7 7 0 0 0-7 7v3l-2 3h18l-2-3v-3a7 7 0 0 0-7-7Z" /><path d="M9.5 20h5M12 7v4m0 2.5v.5" /></>,
     people: <><path d="M16 20v-1.5a4.5 4.5 0 0 0-4.5-4.5h-4A4.5 4.5 0 0 0 3 18.5V20" /><circle cx="9.5" cy="7" r="4" /><path d="M17 11a3.5 3.5 0 0 0 0-7M18.5 14.5a4 4 0 0 1 2.5 3.7V20" /></>,
     departments: <><path d="M4 20V8l8-4 8 4v12M8 20v-8h8v8M2 20h20" /></>,
     ministers: <><circle cx="12" cy="8" r="4" /><path d="M5 20a7 7 0 0 1 14 0M12 12v8" /></>,
