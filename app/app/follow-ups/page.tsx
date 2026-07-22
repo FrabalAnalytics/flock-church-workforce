@@ -143,7 +143,7 @@ export default async function FollowupsPage({
               <div className="grid gap-6 p-5 sm:p-7 lg:grid-cols-[1fr_auto]">
                 <div>
                   <div className="flex flex-wrap items-center gap-3">
-                    <h2 className="text-lg font-semibold text-[#253252]">{worker?.full_name ?? "Unknown worker"}</h2>
+                    <h2 className="text-lg font-semibold text-[#253252]">{worker ? <Link href={`/app/workers/${worker.id}`} className="hover:text-[var(--color-primary)]">{worker.full_name}</Link> : "Unknown worker"}</h2>
                     <span className={`rounded-full px-3 py-1 text-xs font-semibold ${followup.consecutive_misses >= 4 ? "bg-[#fff1f0] text-[#b5524b]" : followup.consecutive_misses >= 2 ? "bg-[#fff3dc] text-[#a76813]" : "bg-[#edf2ff] text-[#4168cd]"}`}>
                       {followup.consecutive_misses} consecutive {followup.consecutive_misses === 1 ? "miss" : "misses"}
                     </span>

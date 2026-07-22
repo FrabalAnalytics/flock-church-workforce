@@ -146,6 +146,12 @@ Worker statuses include Active, Inactive, and On Leave. Only active workers are 
 
 The sex field is optional so existing records remain valid. It is centrally managed by a Super Admin and can be used to filter the worker directory without affecting attendance calculations.
 
+Authorized leaders can open a worker profile that brings the directory record,
+attendance rate, recent service history, contact action, and open or resolved care
+history together in one place. Department Heads can access profiles only for
+workers in their assigned department, while editing remains restricted to Super
+Admins.
+
 Super Admins can also import up to 500 workers from a CSV file. The import
 screen validates headings, department names, dates, roster values, sex values,
 and WhatsApp consent before submission. It previews errors and repeated file
@@ -185,6 +191,18 @@ When a managed service is open, Department Heads can submit only when their
 department is expected. Once it is closed, new department submissions are
 rejected until a Super Admin reopens attendance. Days that have not been placed
 under service-day control continue to use the original attendance workflow.
+
+#### Offline-friendly mobile use
+
+Flock can be installed on a supported phone or computer for quicker access. Its
+service worker caches only the public offline screen, brand assets, and immutable
+application code. It never caches authenticated pages, API responses, rosters,
+attendance records, or session tokens.
+
+If the connection drops while an attendance form is open, the local draft remains
+available and submission stays disabled until the device reconnects. Navigating or
+refreshing while fully offline shows a clear fallback page instead of suggesting
+that a submission succeeded.
 
 #### Audit history
 
@@ -284,7 +302,7 @@ Public sharing is off by default and can be enabled only by a Super Admin after 
 
 ### 5.10 Data export
 
-Authorised users can export worker-attendance and church-attendance reports as CSV files for approved analysis in spreadsheet tools. They can also download leadership-ready PDF reports containing the active date and service filters, summary metrics, comparison tables, paginated service logs, generation details, and a confidentiality notice. Row-level security continues to restrict Department Head worker reports to their own department, while congregation PDFs remain available only to Church Leaders and Super Admins.
+Authorised users can export worker-attendance and church-attendance reports as CSV files for approved analysis in spreadsheet tools. They can also download leadership-ready PDF reports containing the active date and service filters, summary metrics, comparison tables, paginated service logs, generation details, and a confidentiality notice. Every CSV and PDF includes the church name configured in Settings, and its download filename uses a safe version of that name. Row-level security continues to restrict Department Head worker reports to their own department, while congregation PDFs remain available only to Church Leaders and Super Admins.
 
 ### 5.11 Database migrations and recovery readiness
 
@@ -493,12 +511,11 @@ Before full organisational rollout, the church should confirm its legal name, pr
 
 ## 10. Current scope and future opportunities
 
-The current system includes authentication and password recovery, managed invitations, centrally managed user profiles, protected account deletion, role administration, immutable audit history, church settings and system health, guided onboarding, a role-aware Action Centre with personal seen and snooze controls, departments, a worker directory with validated CSV import, resilient attendance drafts, service-day scheduling and submission monitoring, worker attendance and corrections, leadership reporting, attendance trends, care alerts, optional WhatsApp delivery monitoring, congregation attendance and corrections, a Minister Directory, reusable programme templates, dated published service programmes, revocable QR-code programme sharing, privacy information, CSV and leadership-ready PDF reports, protected JSON data export, database migrations, and documented backup/recovery procedures.
+The current system includes authentication and password recovery, managed invitations, centrally managed user profiles, protected account deletion, role administration, immutable audit history, church settings and system health, guided onboarding, a role-aware Action Centre with personal seen and snooze controls, departments, a worker directory with validated CSV import, resilient attendance drafts, service-day scheduling and submission monitoring, worker attendance and corrections, leadership reporting, attendance trends, care alerts, optional WhatsApp delivery monitoring, congregation attendance and corrections, a Minister Directory, reusable programme templates, dated published service programmes, revocable QR-code programme sharing, installable offline-aware mobile access, privacy information, CSV and leadership-ready PDF reports, protected JSON data export, database migrations, and documented backup/recovery procedures.
 
 Possible future additions include:
 
 - Tenant isolation and church switching for a multi-church edition.
-- Offline-friendly service-day workflows.
 
 These are future opportunities and should be introduced only after the core attendance process is stable and adopted.
 
@@ -578,7 +595,9 @@ No. The system works without Twilio or paid WhatsApp messaging. When the church 
 
 ### Can reports be downloaded?
 
-Yes. Authorised users can export applicable attendance reports as CSV files.
+Yes. Authorised users can export applicable attendance reports as CSV or PDF files.
+Every report carries the church name configured in Settings and uses it in the
+download filename.
 
 ### Can the church's complete application data be backed up?
 
@@ -591,3 +610,6 @@ Not yet. The current release is a single-church workspace. A separate deployment
 ### Can the system work on a mobile phone?
 
 Yes. The interface and navigation are designed for mobile, tablet, and desktop use.
+On supported devices, Flock can also be installed from the browser to the home
+screen. If connectivity drops while an attendance form is already open, its draft
+is retained locally and can be submitted after the device reconnects.

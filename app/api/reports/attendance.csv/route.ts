@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { reportChurchName, reportFilenameStem } from "@/lib/report-export";
 
 const serviceTypes = new Set(["Sunday Service", "Tuesday Service", "Special Service", "Headquarters Service", "Tarry Night"]);
 
@@ -28,7 +29,10 @@ export async function GET(request: Request) {
   if (department) query = query.eq("department_id", department);
   if (service && serviceTypes.has(service)) query = query.eq("services.service_type", service);
 
-  const { data, error } = await query;
+  const [{ data, error }, { data: churchNameValue }] = await Promise.all([
+    query,
+    supabase.rpc("current_church_name"),
+  ]);
   if (error) {
     console.error("Attendance export failed", error);
     return new Response("The attendance export could not be generated.", { status: 500 });
@@ -40,12 +44,18 @@ export async function GET(request: Request) {
     const serviceRow = row.services as unknown as { service_date: string; service_type: string } | null;
     return [serviceRow?.service_date, serviceRow?.service_type, departmentRow?.name, worker?.full_name, row.status, row.created_at].map(csvCell).join(",");
   });
-  const csv = `\uFEFF${[header.map(csvCell).join(","), ...lines].join("\r\n")}`;
+  const churchName = reportChurchName(churchNameValue);
+  const preamble = [
+    ["Church name", churchName],
+    ["Report", "Worker attendance"],
+    [],
+  ].map((row) => row.map(csvCell).join(","));
+  const csv = `\uFEFF${[...preamble, header.map(csvCell).join(","), ...lines].join("\r\n")}`;
 
   return new Response(csv, {
     headers: {
       "Content-Type": "text/csv; charset=utf-8",
-      "Content-Disposition": `attachment; filename="flock-attendance-${new Date().toISOString().slice(0, 10)}.csv"`,
+      "Content-Disposition": `attachment; filename="${reportFilenameStem(churchName)}-worker-attendance-${new Date().toISOString().slice(0, 10)}.csv"`,
       "Cache-Control": "private, no-store",
     },
   });

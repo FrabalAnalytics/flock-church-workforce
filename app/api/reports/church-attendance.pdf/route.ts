@@ -1,5 +1,5 @@
 import { createPdfReport, pdfDownloadResponse } from "@/lib/pdf-report";
-import { parseReportFilters, reportPeriod } from "@/lib/report-export";
+import { parseReportFilters, reportChurchName, reportFilenameStem, reportPeriod } from "@/lib/report-export";
 import { createClient } from "@/lib/supabase/server";
 
 type ChurchRow = {
@@ -22,11 +22,14 @@ export async function GET(request: Request) {
   const supabase = await createClient();
   const { data: userData, error: userError } = await supabase.auth.getUser();
   if (userError || !userData.user) return new Response("Unauthorized", { status: 401 });
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("full_name, role")
-    .eq("id", userData.user.id)
-    .single();
+  const [{ data: profile }, { data: churchNameValue }] = await Promise.all([
+    supabase
+      .from("profiles")
+      .select("full_name, role")
+      .eq("id", userData.user.id)
+      .single(),
+    supabase.rpc("current_church_name"),
+  ]);
   if (!profile || !["super_admin", "church_leader"].includes(profile.role)) {
     return new Response("Forbidden", { status: 403 });
   }
@@ -62,7 +65,9 @@ export async function GET(request: Request) {
     .map(([service, totals]) => ({ service, ...totals, average: totals.services ? Math.round(totals.attendance / totals.services) : 0 }))
     .sort((a, b) => b.attendance - a.attendance);
 
+  const churchName = reportChurchName(churchNameValue);
   const pdf = await createPdfReport({
+    churchName,
     title: "Congregation attendance report",
     period: reportPeriod(filters.from, filters.to),
     scope: `${filters.service ?? "All service types"} | Aggregate counts only - no attendee identities`,
@@ -113,5 +118,5 @@ export async function GET(request: Request) {
       },
     ],
   });
-  return pdfDownloadResponse(pdf, `flock-congregation-attendance-${filters.from}-to-${filters.to}.pdf`);
+  return pdfDownloadResponse(pdf, `${reportFilenameStem(churchName)}-congregation-attendance-${filters.from}-to-${filters.to}.pdf`);
 }

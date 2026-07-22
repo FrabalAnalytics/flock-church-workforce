@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { PDFDocument } from "pdf-lib";
 import { createPdfReport, safePdfText } from "../lib/pdf-report.ts";
-import { parseReportFilters, reportPeriod } from "../lib/report-export.ts";
+import { parseReportFilters, reportChurchName, reportFilenameStem, reportPeriod } from "../lib/report-export.ts";
 
 test("PDF text sanitization preserves report generation for unsupported glyphs", () => {
   assert.equal(safePdfText("Sunday — Service • 😀"), "Sunday - Service | ?");
@@ -20,6 +20,13 @@ test("report period formats a readable inclusive range", () => {
   assert.equal(reportPeriod("2026-01-01", "2026-01-31"), "1 Jan 2026 - 31 Jan 2026");
 });
 
+test("report branding validates church names and creates safe filename stems", () => {
+  assert.equal(reportChurchName("  TREM Victory Centre  "), "TREM Victory Centre");
+  assert.equal(reportChurchName(""), "Flock Church");
+  assert.equal(reportFilenameStem("TREM Victory Centre, Lagos"), "trem-victory-centre-lagos");
+  assert.equal(reportFilenameStem("Église Grâce"), "eglise-grace");
+});
+
 test("PDF report builder creates a valid paginated document", async () => {
   const rows = Array.from({ length: 70 }, (_, index) => ({
     date: `2026-01-${String((index % 28) + 1).padStart(2, "0")}`,
@@ -27,6 +34,7 @@ test("PDF report builder creates a valid paginated document", async () => {
     total: 100 + index,
   }));
   const bytes = await createPdfReport({
+    churchName: "Test Church",
     title: "Attendance report",
     period: "1 Jan 2026 - 31 Jan 2026",
     scope: "All visible departments",

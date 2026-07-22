@@ -5,8 +5,11 @@ export default function manifest(): MetadataRoute.Manifest {
     name: "Flock Church Workforce",
     short_name: "Flock",
     description: "Secure church workforce attendance, ministry reporting and pastoral-care coordination.",
-    start_url: "/",
+    id: "/app",
+    start_url: "/app",
+    scope: "/",
     display: "standalone",
+    orientation: "portrait-primary",
     background_color: "#f5f7fc",
     theme_color: "#101c3d",
     icons: [

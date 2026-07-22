@@ -1,5 +1,5 @@
 import { createPdfReport, pdfDownloadResponse } from "@/lib/pdf-report";
-import { parseReportFilters, reportPeriod } from "@/lib/report-export";
+import { parseReportFilters, reportChurchName, reportFilenameStem, reportPeriod } from "@/lib/report-export";
 import { createClient } from "@/lib/supabase/server";
 
 type SubmissionRow = {
@@ -21,11 +21,14 @@ export async function GET(request: Request) {
   const supabase = await createClient();
   const { data: userData, error: userError } = await supabase.auth.getUser();
   if (userError || !userData.user) return new Response("Unauthorized", { status: 401 });
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("full_name, role")
-    .eq("id", userData.user.id)
-    .single();
+  const [{ data: profile }, { data: churchNameValue }] = await Promise.all([
+    supabase
+      .from("profiles")
+      .select("full_name, role")
+      .eq("id", userData.user.id)
+      .single(),
+    supabase.rpc("current_church_name"),
+  ]);
   if (!profile || !["super_admin", "church_leader", "department_head"].includes(profile.role)) {
     return new Response("Forbidden", { status: 403 });
   }
@@ -66,7 +69,9 @@ export async function GET(request: Request) {
   const scopeParts = [filters.service ?? "All service types"];
   if (filters.department) scopeParts.push(departments[0]?.department ?? "Selected department");
   else scopeParts.push(profile.role === "department_head" ? "Assigned department" : "All visible departments");
+  const churchName = reportChurchName(churchNameValue);
   const pdf = await createPdfReport({
+    churchName,
     title: "Worker attendance report",
     period: reportPeriod(filters.from, filters.to),
     scope: scopeParts.join(" | "),
@@ -113,5 +118,5 @@ export async function GET(request: Request) {
       },
     ],
   });
-  return pdfDownloadResponse(pdf, `flock-worker-attendance-${filters.from}-to-${filters.to}.pdf`);
+  return pdfDownloadResponse(pdf, `${reportFilenameStem(churchName)}-worker-attendance-${filters.from}-to-${filters.to}.pdf`);
 }

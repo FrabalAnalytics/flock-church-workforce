@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { reportChurchName, reportFilenameStem } from "@/lib/report-export";
 
 const serviceTypes = new Set(["Sunday Service", "Tuesday Service", "Special Service", "Headquarters Service", "Tarry Night"]);
 
@@ -27,7 +28,10 @@ export async function GET(request: Request) {
   if (from) query = query.gte("services.service_date", from);
   if (to) query = query.lte("services.service_date", to);
   if (service && serviceTypes.has(service)) query = query.eq("services.service_type", service);
-  const { data, error } = await query;
+  const [{ data, error }, { data: churchNameValue }] = await Promise.all([
+    query,
+    supabase.rpc("current_church_name"),
+  ]);
   if (error) {
     console.error("Church attendance export failed", error);
     return new Response("The church attendance export could not be generated.", { status: 500 });
@@ -40,6 +44,12 @@ export async function GET(request: Request) {
     const ministerName = minister ? `${minister.title ? `${minister.title} ` : ""}${minister.full_name}` : "";
     return [serviceRow?.service_date, serviceRow?.service_type, ministerName, row.service_notes, row.adult_male_count, row.adult_female_count, row.children_count, row.new_members_male_count, row.new_members_female_count, row.new_members_male_count + row.new_members_female_count, row.new_converts_male_count, row.new_converts_female_count, row.new_converts_male_count + row.new_converts_female_count, row.total_count, row.updated_at].map(csvCell).join(",");
   });
-  const csv = `\uFEFF${[header.map(csvCell).join(","), ...lines].join("\r\n")}`;
-  return new Response(csv, { headers: { "Content-Type": "text/csv; charset=utf-8", "Content-Disposition": `attachment; filename="flock-church-attendance-${new Date().toISOString().slice(0, 10)}.csv"`, "Cache-Control": "private, no-store" } });
+  const churchName = reportChurchName(churchNameValue);
+  const preamble = [
+    ["Church name", churchName],
+    ["Report", "Congregation attendance"],
+    [],
+  ].map((row) => row.map(csvCell).join(","));
+  const csv = `\uFEFF${[...preamble, header.map(csvCell).join(","), ...lines].join("\r\n")}`;
+  return new Response(csv, { headers: { "Content-Type": "text/csv; charset=utf-8", "Content-Disposition": `attachment; filename="${reportFilenameStem(churchName)}-congregation-attendance-${new Date().toISOString().slice(0, 10)}.csv"`, "Cache-Control": "private, no-store" } });
 }

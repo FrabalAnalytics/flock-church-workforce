@@ -597,6 +597,24 @@ as $$
   where p.id = (select auth.uid());
 $$;
 
+-- Expose only the non-sensitive church name to authenticated report users.
+create or replace function public.current_church_name()
+returns text
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select coalesce(
+    (
+      select cs.church_name
+      from public.church_settings as cs
+      where cs.id = '00000000-0000-4000-8000-000000000001'
+    ),
+    'Flock Church'
+  );
+$$;
+
 create or replace function public.current_department_id()
 returns uuid
 language sql
@@ -633,11 +651,13 @@ as $$
 $$;
 
 revoke all on function public.current_profile_role() from public;
+revoke all on function public.current_church_name() from public;
 revoke all on function public.current_department_id() from public;
 revoke all on function public.is_super_admin() from public;
 revoke all on function public.is_church_leader() from public;
 
 grant execute on function public.current_profile_role() to authenticated;
+grant execute on function public.current_church_name() to authenticated;
 grant execute on function public.current_department_id() to authenticated;
 grant execute on function public.is_super_admin() to authenticated;
 grant execute on function public.is_church_leader() to authenticated;

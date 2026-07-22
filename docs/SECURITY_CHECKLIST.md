@@ -65,6 +65,17 @@ department's workers, attendance records or care alerts.
   have an approved audit trigger or a documented reason for exclusion.
 - A migration dry run has been reviewed before `db push`.
 
+## Offline and PWA review
+
+- The service worker never caches authenticated `/app` navigation, API responses,
+  Supabase responses, rosters, attendance data, or session tokens.
+- Only the public offline page, public brand assets, the web manifest, and immutable
+  `/_next/static/` assets are eligible for caching.
+- Attendance submission remains disabled while the browser reports that it is
+  offline; an offline state must never display a false success message.
+- Sign-out and clearing site data have been tested on shared devices.
+- `/sw.js` is served with no-cache and `Service-Worker-Allowed: /` headers.
+
 ## Incident response
 
 If a secret or personal-data export is exposed:

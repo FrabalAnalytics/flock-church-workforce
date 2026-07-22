@@ -15,6 +15,7 @@ export type PdfReportTable = {
 };
 
 export type PdfReportOptions = {
+  churchName: string;
   title: string;
   period: string;
   scope: string;
@@ -51,9 +52,9 @@ function fitText(text: unknown, font: PDFFont, size: number, maxWidth: number) {
   return `${result.trimEnd()}...`;
 }
 
-function drawPageHeader(page: PDFPage, title: string, period: string, font: PDFFont, bold: PDFFont) {
+function drawPageHeader(page: PDFPage, churchName: string, title: string, period: string, font: PDFFont, bold: PDFFont) {
   page.drawRectangle({ x: 0, y: PAGE_HEIGHT - 82, width: PAGE_WIDTH, height: 82, color: NAVY });
-  page.drawText("FLOCK", { x: MARGIN, y: PAGE_HEIGHT - 34, size: 10, font: bold, color: rgb(169 / 255, 192 / 255, 1) });
+  page.drawText(fitText(churchName.toUpperCase(), bold, 10, 500), { x: MARGIN, y: PAGE_HEIGHT - 34, size: 10, font: bold, color: rgb(169 / 255, 192 / 255, 1) });
   page.drawText(fitText(title, bold, 21, 500), { x: MARGIN, y: PAGE_HEIGHT - 59, size: 21, font: bold, color: rgb(1, 1, 1) });
   const periodText = fitText(period, font, 9, 220);
   page.drawText(periodText, { x: PAGE_WIDTH - MARGIN - font.widthOfTextAtSize(periodText, 9), y: PAGE_HEIGHT - 55, size: 9, font, color: rgb(219 / 255, 229 / 255, 1) });
@@ -82,15 +83,15 @@ export async function createPdfReport(options: PdfReportOptions) {
   const document = await PDFDocument.create();
   const font = await document.embedFont(StandardFonts.Helvetica);
   const bold = await document.embedFont(StandardFonts.HelveticaBold);
-  document.setTitle(safePdfText(options.title));
-  document.setAuthor("Flock");
+  document.setTitle(safePdfText(`${options.churchName} - ${options.title}`));
+  document.setAuthor(safePdfText(options.churchName));
   document.setSubject(safePdfText(options.scope));
   document.setCreator("Flock church workforce system");
   document.setProducer("Flock");
   document.setCreationDate(new Date());
 
   let page = document.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
-  drawPageHeader(page, options.title, options.period, font, bold);
+  drawPageHeader(page, options.churchName, options.title, options.period, font, bold);
   let y = PAGE_HEIGHT - 112;
 
   page.drawText(fitText(options.scope, font, 9, PAGE_WIDTH - MARGIN * 2), { x: MARGIN, y, size: 9, font, color: MUTED });
@@ -107,7 +108,7 @@ export async function createPdfReport(options: PdfReportOptions) {
 
   function newPage() {
     page = document.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
-    drawPageHeader(page, options.title, options.period, font, bold);
+    drawPageHeader(page, options.churchName, options.title, options.period, font, bold);
     y = PAGE_HEIGHT - 112;
   }
 
@@ -156,7 +157,7 @@ export async function createPdfReport(options: PdfReportOptions) {
   const pages = document.getPages();
   const generatedAt = new Intl.DateTimeFormat("en-NG", { dateStyle: "medium", timeStyle: "short", timeZone: "Africa/Lagos" }).format(new Date());
   pages.forEach((currentPage, index) => {
-    const footer = `Generated ${generatedAt} by ${safePdfText(options.generatedBy)}  |  Confidential leadership report`;
+    const footer = `${safePdfText(options.churchName)}  |  Generated ${generatedAt} by ${safePdfText(options.generatedBy)}  |  Confidential`;
     currentPage.drawText(fitText(footer, font, 7.5, 630), { x: MARGIN, y: 23, size: 7.5, font, color: MUTED });
     const pageNumber = `Page ${index + 1} of ${pages.length}`;
     currentPage.drawText(pageNumber, { x: PAGE_WIDTH - MARGIN - font.widthOfTextAtSize(pageNumber, 7.5), y: 23, size: 7.5, font, color: MUTED });

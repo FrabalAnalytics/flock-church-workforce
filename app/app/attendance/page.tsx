@@ -151,7 +151,7 @@ export default async function AttendanceHistoryPage({
                   .sort((a, b) => (a.workers?.full_name ?? "").localeCompare(b.workers?.full_name ?? ""))
                   .map((log, index) => (
                     <div key={`${log.workers?.full_name ?? "worker"}-${index}`} className="flex items-center justify-between border-b border-[#f0f2f7] py-3 last:border-0">
-                      <p className="text-sm font-medium text-[#34415f]">{log.workers?.full_name ?? "Unknown worker"}</p>
+                      {log.workers ? <Link href={`/app/workers/${log.workers.id}`} className="text-sm font-medium text-[#34415f] hover:text-[var(--color-primary)]">{log.workers.full_name}</Link> : <p className="text-sm font-medium text-[#34415f]">Unknown worker</p>}
                       <span className={`rounded-full px-3 py-1 text-xs font-semibold ${log.status === "Present" ? "bg-[#edf7f1] text-[#347457]" : "bg-[#fff1f0] text-[#b5524b]"}`}>{log.status}</span>
                     </div>
                   )) : <p className="py-5 text-sm text-[#8993a7]">No individual records are available.</p>}

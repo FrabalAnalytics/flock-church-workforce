@@ -6,6 +6,23 @@ export const reportServiceTypes = new Set([
   "Tarry Night",
 ]);
 
+export function reportChurchName(value: unknown) {
+  const name = typeof value === "string" ? value.trim() : "";
+  return name.length >= 2 && name.length <= 120 ? name : "Flock Church";
+}
+
+export function reportFilenameStem(churchName: string) {
+  const stem = churchName
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 60)
+    .replace(/-+$/g, "");
+  return stem || "flock-church";
+}
+
 function isoDate(date: Date) {
   return date.toISOString().slice(0, 10);
 }

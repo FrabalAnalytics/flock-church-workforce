@@ -111,12 +111,12 @@ export default async function WorkersPage({ searchParams }: { searchParams: Prom
                   const department = worker.departments as unknown as { name: string } | null;
                   return (
                     <tr key={worker.id} className="transition hover:bg-[#fafbfe]">
-                      <td className="px-6 py-4"><p className="text-sm font-semibold text-[#253252]">{worker.full_name}</p><p className="mt-1 text-xs text-[var(--color-text-muted)]">{worker.phone_number ?? "No phone number"}</p></td>
+                      <td className="px-6 py-4"><Link href={`/app/workers/${worker.id}`} className="text-sm font-semibold text-[#253252] hover:text-[var(--color-primary)]">{worker.full_name}</Link><p className="mt-1 text-xs text-[var(--color-text-muted)]">{worker.phone_number ?? "No phone number"}</p></td>
                       <td className="px-4 py-4 text-sm text-[var(--color-text-secondary)]">{worker.sex ?? "Not recorded"}</td>
                       <td className="px-4 py-4 text-sm text-[var(--color-text-secondary)]">{department?.name ?? "Not assigned"}</td>
                       <td className="px-4 py-4"><span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${statusStyle(worker.status)}`}>{worker.status}</span></td>
                       <td className="px-4 py-4"><span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${worker.whatsapp_opt_in ? "bg-[#edf7f1] text-[#347457]" : "bg-[#f3f4f7] text-[#7b8495]"}`}>{worker.whatsapp_opt_in ? "Enabled" : "Off"}</span></td>
-                      <td className="px-6 py-4 text-right"><Link href={`/app/workers/${worker.id}/edit`} aria-label={`Edit ${worker.full_name}`} className="inline-flex min-h-11 items-center rounded-xl px-4 text-sm font-semibold text-[var(--color-primary-strong)] hover:bg-[var(--color-primary-soft)]">Edit</Link></td>
+                      <td className="px-6 py-4 text-right"><div className="flex justify-end gap-1"><Link href={`/app/workers/${worker.id}`} aria-label={`View ${worker.full_name}'s profile`} className="inline-flex min-h-11 items-center rounded-xl px-3 text-sm font-semibold text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-subtle)]">View</Link><Link href={`/app/workers/${worker.id}/edit`} aria-label={`Edit ${worker.full_name}`} className="inline-flex min-h-11 items-center rounded-xl px-3 text-sm font-semibold text-[var(--color-primary-strong)] hover:bg-[var(--color-primary-soft)]">Edit</Link></div></td>
                     </tr>
                   );
                 })}
@@ -129,13 +129,13 @@ export default async function WorkersPage({ searchParams }: { searchParams: Prom
               const department = worker.departments as unknown as { name: string } | null;
               return (
                 <article key={worker.id} className="rounded-2xl border border-[var(--color-border)] bg-white p-5 shadow-[var(--shadow-sm)]">
-                  <div className="flex items-start justify-between gap-3"><div className="min-w-0"><h2 className="truncate text-base font-semibold text-[#253252]">{worker.full_name}</h2><p className="mt-1 text-sm text-[var(--color-text-muted)]">{worker.phone_number ?? "No phone number"}</p></div><span className={`shrink-0 rounded-full px-3 py-1 text-xs font-semibold ${statusStyle(worker.status)}`}>{worker.status}</span></div>
+                  <div className="flex items-start justify-between gap-3"><div className="min-w-0"><h2 className="truncate text-base font-semibold text-[#253252]"><Link href={`/app/workers/${worker.id}`} className="hover:text-[var(--color-primary)]">{worker.full_name}</Link></h2><p className="mt-1 text-sm text-[var(--color-text-muted)]">{worker.phone_number ?? "No phone number"}</p></div><span className={`shrink-0 rounded-full px-3 py-1 text-xs font-semibold ${statusStyle(worker.status)}`}>{worker.status}</span></div>
                   <dl className="mt-5 grid grid-cols-2 gap-4 border-y border-[#edf0f6] py-4">
                     <div><dt className="text-xs font-semibold uppercase tracking-[0.08em] text-[var(--color-text-muted)]">Sex</dt><dd className="mt-1 text-sm font-medium text-[var(--color-text-secondary)]">{worker.sex ?? "Not recorded"}</dd></div>
                     <div><dt className="text-xs font-semibold uppercase tracking-[0.08em] text-[var(--color-text-muted)]">Department</dt><dd className="mt-1 text-sm font-medium text-[var(--color-text-secondary)]">{department?.name ?? "Not assigned"}</dd></div>
                     <div><dt className="text-xs font-semibold uppercase tracking-[0.08em] text-[var(--color-text-muted)]">WhatsApp care</dt><dd className="mt-1 text-sm font-medium text-[var(--color-text-secondary)]">{worker.whatsapp_opt_in ? "Enabled" : "Off"}</dd></div>
                   </dl>
-                  <Link href={`/app/workers/${worker.id}/edit`} className="mt-4 flex min-h-12 w-full items-center justify-center rounded-xl bg-[var(--color-primary-soft)] text-sm font-semibold text-[var(--color-primary-strong)]">Edit worker</Link>
+                  <div className="mt-4 grid grid-cols-2 gap-2"><Link href={`/app/workers/${worker.id}`} className="flex min-h-12 items-center justify-center rounded-xl border border-[var(--color-border)] text-sm font-semibold text-[var(--color-text-secondary)]">View profile</Link><Link href={`/app/workers/${worker.id}/edit`} className="flex min-h-12 items-center justify-center rounded-xl bg-[var(--color-primary-soft)] text-sm font-semibold text-[var(--color-primary-strong)]">Edit worker</Link></div>
                 </article>
               );
             })}
