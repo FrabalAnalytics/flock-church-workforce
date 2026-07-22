@@ -1,19 +1,20 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { FlockBrand } from "@/components/flock-brand";
+import { HomeDashboardPreview, HomeReportPreview } from "@/components/home-product-previews";
 
 export const metadata: Metadata = {
-  title: { absolute: "Flock — Church operations, attendance and evidence-based care" },
+  title: { absolute: "Flock — Simple church operations, attendance and pastoral care" },
   description:
-    "Replace fragmented spreadsheets and paper records with a unified workspace for church administrators, pastoral teams, and department heads.",
+    "Plan services, record attendance, coordinate ministry teams, and care for your congregation—all in one simple, secure workspace.",
 };
 
 const features = [
   {
     number: "01",
-    title: "Streamline service day operations",
+    title: "Run smooth service days",
     description:
-      "Schedule expected departments, monitor real-time submissions from department heads, and close service logs only when records are verified.",
+      "Set expected departments, track attendance submissions in real time, and make sure every service record is complete before closing out the day.",
     icon: (
       <svg viewBox="0 0 24 24" className="h-6 w-6 stroke-current fill-none" strokeWidth="1.8">
         <path d="M9 11.75 11.1 14 15.5 9.5M7 3v3m10-3v3M5.5 5h13A1.5 1.5 0 0 1 20 6.5v12a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 18.5v-12A1.5 1.5 0 0 1 5.5 5Z" />
@@ -22,9 +23,9 @@ const features = [
   },
   {
     number: "02",
-    title: "Mobile attendance in seconds",
+    title: "Installable phone attendance",
     description:
-      "Department heads record active worker attendance directly from their phones. Save recoverable drafts and eliminate duplicate or missing entries.",
+      "Install Flock on a phone, take attendance in seconds, and keep recoverable drafts when a connection drops during service.",
     icon: (
       <svg viewBox="0 0 24 24" className="h-6 w-6 stroke-current fill-none" strokeWidth="1.8">
         <path d="M4 19V9m6 10V5m6 14v-7m4 7H2" />
@@ -33,9 +34,9 @@ const features = [
   },
   {
     number: "03",
-    title: "Centralized Action Centre",
+    title: "One place for weekly tasks",
     description:
-      "A role-aware command dashboard that surfaces overdue attendance, access requests, unresolved care alerts, and message delivery status.",
+      "A simple action centre that keeps overdue attendance, new care alerts, and team requests together so nothing falls through the cracks.",
     icon: (
       <svg viewBox="0 0 24 24" className="h-6 w-6 stroke-current fill-none" strokeWidth="1.8">
         <path d="M20 11.5a8 8 0 0 1-11.7 7.1L4 20l1.4-4.1A8 8 0 1 1 20 11.5Z" />
@@ -45,9 +46,9 @@ const features = [
   },
   {
     number: "04",
-    title: "Workforce & roster management",
+    title: "Complete worker profiles",
     description:
-      "Maintain department rosters individually or batch-import validated CSV files with automatic deduplication, consent controls, and roster verification.",
+      "Add or bulk-import rosters, then bring each worker's contact details, attendance rate, service history, and pastoral follow-ups into one secure profile.",
     icon: (
       <svg viewBox="0 0 24 24" className="h-6 w-6 stroke-current fill-none" strokeWidth="1.8">
         <path d="M16 20v-1.5a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4V20m7-9a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm8-1v6m3-3h-6" />
@@ -56,9 +57,9 @@ const features = [
   },
   {
     number: "05",
-    title: "Data-informed pastoral care",
+    title: "Care before people slip away",
     description:
-      "Identify attendance drops early. Generate accountable care alerts, track escalation history, and send consent-aware follow-up via WhatsApp.",
+      "Spot repeated absences early. Automatically remind leaders to reach out, track follow-ups, and send friendly WhatsApp messages.",
     icon: (
       <svg viewBox="0 0 24 24" className="h-6 w-6 stroke-current fill-none" strokeWidth="1.8">
         <path d="M12 21s-7-4.35-7-11a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 6.65-7 11-7 11Z" />
@@ -67,9 +68,9 @@ const features = [
   },
   {
     number: "06",
-    title: "Congregation growth & milestones",
+    title: "Track growth & first-time visitors",
     description:
-      "Track demographics, first-time visitors, new members, and converts cleanly—giving executive leadership clear metrics without double-counting.",
+      "Keep clear numbers on men, women, children, new members, and converts—giving leaders accurate pictures of church growth.",
     icon: (
       <svg viewBox="0 0 24 24" className="h-6 w-6 stroke-current fill-none" strokeWidth="1.8">
         <path d="M4 19V5m0 14h16M7 15l4-4 3 2 5-7" />
@@ -78,20 +79,20 @@ const features = [
   },
   {
     number: "07",
-    title: "Service order coordination",
+    title: "Organize the service programme",
     description:
-      "Maintain a centralized minister directory, build reusable service order templates, and publish digital or printable runs of show for your team.",
+      "Create reusable orders of service, publish clear run-sheets, and share revocable public links or QR codes with the team.",
     icon: (
       <svg viewBox="0 0 24 24" className="h-6 w-6 stroke-current fill-none" strokeWidth="1.8">
-        <path d="M7 3v3m10-3v3M5.5 5h13A1.5 1.5 0 0 1 20 6.5v12a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 18.5v-12A1.5 1.5 0 0 1 4 5Zm2.5 5h8m-8 4h5" />
+        <path d="M7 3v3m10-3v3M5.5 5h13A1.5 1.5 0 0 1 20 6.5v12a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 18.5v-12A1.5 1.5 0 0 1 5 5Zm2.5 5h8m-8 4h5" />
       </svg>
     ),
   },
   {
     number: "08",
-    title: "Executive reporting & analytics",
+    title: "Leadership-ready reports",
     description:
-      "Compare participation trends across dates, services, and ministries with interactive charts, historical logs, and structured CSV exports.",
+      "Compare attendance trends and download church-branded PDF or CSV reports with the exact date, service, and department filters you need.",
     icon: (
       <svg viewBox="0 0 24 24" className="h-6 w-6 stroke-current fill-none" strokeWidth="1.8">
         <path d="M4 19V5m0 14h16M7 15l4-4 3 2 5-7" />
@@ -100,9 +101,9 @@ const features = [
   },
   {
     number: "09",
-    title: "Governance & audit controls",
+    title: "Safe and secure access",
     description:
-      "Protect sensitive records with strict role-based access, automated admin audit trails, and secure invite workflows for authorized leaders.",
+      "Invite leaders safely, give department heads access only to what they need, and keep your church records protected.",
     icon: (
       <svg viewBox="0 0 24 24" className="h-6 w-6 stroke-current fill-none" strokeWidth="1.8">
         <path d="M12 3 5 6v5c0 4.6 2.9 8.1 7 10 4.1-1.9 7-5.4 7-10V6l-7-3Zm-3 9 2 2 4-4" />
@@ -112,37 +113,37 @@ const features = [
 ];
 
 const steps = [
-  ["Set up team structure & access", "Super Admins invite pastoral staff and department heads, set role permissions, and import baseline worker rosters."],
-  ["Plan & publish the service", "Configure the service day, assign required reporting departments, and share the published programme order."],
-  ["Capture live operational data", "Department heads verify worker attendance on mobile while administrators capture aggregate congregation totals."],
-  ["Gain complete visibility", "Leadership dashboards consolidate workforce participation, visitor retention, and growth metrics into one reliable view."],
-  ["Execute data-driven care", "The Action Centre flags care alerts for repeated absences, ensuring timely pastoral intervention and complete accountability."],
+  ["Invite your leadership team", "Super Admins invite pastors and department heads, set up departments, and upload worker rosters."],
+  ["Prepare the service", "Set up the service day, assign required departments, and share the published order of service with your team."],
+  ["Take fast attendance", "Department heads mark worker attendance from their phones during service, while admins record visitor and congregation numbers."],
+  ["See the big picture", "Leaders get one clean dashboard showing attendance, growth, and team participation across services."],
+  ["Follow up with care", "Care alerts highlight members who have missed services, helping pastoral teams reach out warmly and personally."],
 ];
 
 const operatingPillars = [
   {
     phase: "Prepare",
-    title: "Structured service prep",
-    description: "Align departments, ministers, expected rosters, and service orders before doors open.",
-    items: ["Centralized worker directory", "Department reporting rules", "Service programme schedules"],
+    title: "Plan before Sunday",
+    description: "Organize teams, ministers, service rosters, and programme orders before doors open.",
+    items: ["Department rosters", "Service expectations", "Order of service planning"],
   },
   {
     phase: "Record",
-    title: "Frictionless data capture",
-    description: "Empower department heads with fast mobile rosters and protected data-entry validation.",
-    items: ["Offline-safe attendance drafts", "Visitor & convert milestone logging", "Controlled record edits"],
+    title: "Simple attendance",
+    description: "Let department heads take attendance on their phones without paper forms or messy group chats.",
+    items: ["Mobile attendance drafts", "Visitor & convert counts", "Safe record updates"],
   },
   {
     phase: "Respond",
-    title: "Proactive pastoral care",
-    description: "Turn attendance patterns into actionable care tasks before members disengage.",
-    items: ["Automated absence alerts", "Pastoral escalation history", "Consent-aware messaging"],
+    title: "Personal pastoral care",
+    description: "Turn attendance records into genuine care by knowing who needs a check-in or visit.",
+    items: ["Automatic care alerts", "Follow-up history", "Friendly WhatsApp updates"],
   },
   {
     phase: "Govern",
-    title: "Enterprise governance",
-    description: "Maintain institutional integrity with robust access controls and comprehensive audit logs.",
-    items: ["Role-based access security", "Audited administrative actions", "Automated roster verification"],
+    title: "Safe & trusted",
+    description: "Keep member data private and ensure every leader sees only what they need to manage.",
+    items: ["Secure leader invites", "Role permissions", "Activity logs"],
   },
 ];
 
@@ -178,7 +179,7 @@ export default function Home() {
               Full workflow
             </a>
             <a className="transition hover:text-[#4f7df3]" href="#insights">
-              Insights
+              Reports
             </a>
             <a className="transition hover:text-[#4f7df3]" href="#how-it-works">
               How it works
@@ -206,7 +207,7 @@ export default function Home() {
               ["Why Flock", "#why-flock"],
               ["Features", "#features"],
               ["Full workflow", "#operations"],
-              ["Insights", "#insights"],
+              ["Reports", "#insights"],
               ["How it works", "#how-it-works"],
             ].map(([label, href]) => (
               <a key={href} href={href} className="flex min-h-10 shrink-0 items-center rounded-full border border-[#dfe6f3] bg-white px-4 text-sm font-semibold text-[#5e6880] transition active:bg-[#edf2ff] active:text-[#365fc7]">
@@ -232,14 +233,14 @@ export default function Home() {
                 <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#4f7df3] opacity-75"></span>
                 <span className="relative inline-flex h-2 w-2 rounded-full bg-[#4f7df3]"></span>
               </span>
-              Built for Church Leaders & Administrators
+              Installable, secure software for ministry teams
             </div>
             <h1 className="max-w-3xl text-balance text-4xl font-bold leading-[1.05] tracking-[-0.04em] text-[#101c3d] sm:text-6xl lg:text-[4.75rem]">
-              Bring clarity to church operations.
-              <span className="mt-1 block text-[#4f7df3]">Enable proactive care.</span>
+              See your church clearly.
+              <span className="mt-1 block text-[#4f7df3]">Care for your people easily.</span>
             </h1>
             <p className="mt-6 max-w-xl text-base leading-7 text-[#5e6880] sm:text-xl sm:leading-8">
-              Replace fragmented spreadsheets and paper records with a centralized, mobile-friendly workspace. Manage workforce attendance, track congregation growth, and enable data-informed pastoral care.
+              Replace messy spreadsheets, paper registers, and scattered WhatsApp chats with one installable workspace for attendance, leadership reports, worker care, and service coordination.
             </p>
             <div className="mt-8 flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4">
               <Link
@@ -262,90 +263,16 @@ export default function Home() {
               <svg viewBox="0 0 20 20" className="h-4 w-4 shrink-0 stroke-[#4f7df3]" fill="none" strokeWidth="2">
                 <path d="m4.5 10 3.25 3.25 7.75-7.5" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
-              Evidence-based oversight for senior pastors, admins, and department heads.
+              Built specifically for pastors, church administrators, and department leaders.
             </p>
-          </div>
-
-          {/* DASHBOARD PREVIEW CARD */}
-          <div className="relative mx-auto w-full max-w-[540px] lg:ml-auto">
-            <div className="absolute -inset-4 -z-10 rounded-[2.5rem] bg-gradient-to-tr from-[#4f7df3]/20 to-indigo-100 blur-2xl" />
-            <div className="relative rounded-[2rem] border border-white/80 bg-white/95 p-5 shadow-[0_25px_60px_rgba(34,56,112,0.12)] backdrop-blur sm:p-7">
-              <div className="flex items-center justify-between border-b border-[#e8edf8] pb-4">
-                <div>
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#8993a8]">
-                    Executive Operations Overview
-                  </p>
-                  <p className="mt-0.5 text-base font-bold text-[#172344]">
-                    Sunday Service Log — Verified
-                  </p>
-                </div>
-                <div className="rounded-full border border-[#d3e0ff] bg-[#edf2ff] px-3 py-1 text-[11px] font-semibold text-[#4f7df3]">
-                  Leadership View
-                </div>
-              </div>
-
-              <div className="grid grid-cols-3 gap-2.5 py-4 sm:gap-3">
-                {[
-                  ["8/8", "Reporting Depts", "text-[#4f7df3]"],
-                  ["92%", "Worker Att.", "text-[#172344]"],
-                  ["3", "Care Alerts", "text-[#d26a4d]"],
-                ].map(([value, label, color]) => (
-                  <div key={label} className="rounded-xl bg-[#f6f8fd] p-3 text-center sm:text-left sm:p-3.5">
-                    <p className={`text-xl font-bold sm:text-2xl ${color}`}>
-                      {value}
-                    </p>
-                    <p className="mt-0.5 text-[11px] font-medium text-[#7a8499]">{label}</p>
-                  </div>
-                ))}
-              </div>
-
-              <div className="rounded-xl border border-[#e6ebf7] bg-white p-4">
-                <div className="flex items-center justify-between border-b border-[#f0f4fc] pb-2.5">
-                  <p className="text-xs font-semibold text-[#253252]">
-                    Service Reporting Status
-                  </p>
-                  <p className="text-[11px] font-medium text-[#8a94a8]">Real-time</p>
-                </div>
-                <div className="mt-3 space-y-3">
-                  {[
-                    ["Department Roster Submissions", "100%", "100%"],
-                    ["Congregation & Visitor Counts", "100%", "100%"],
-                    ["Follow-up Escalations Completed", "72%", "72%"],
-                  ].map(([name, value, width]) => (
-                    <div key={name}>
-                      <div className="mb-1 flex justify-between text-[11px]">
-                        <span className="font-medium text-[#4d5871]">{name}</span>
-                        <span className="font-semibold text-[#78839a]">{value}</span>
-                      </div>
-                      <div className="h-2 overflow-hidden rounded-full bg-[#e9eef9]">
-                        <div
-                          className="h-full rounded-full bg-[#4f7df3] transition-all duration-500"
-                          style={{ width }}
-                        />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            <div className="mt-4 flex items-center gap-3 rounded-2xl border border-[#e0e7f6] bg-white/90 p-3.5 shadow-lg backdrop-blur sm:absolute sm:-bottom-6 sm:-left-6 sm:mt-0 sm:max-w-[240px]">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#edf2ff] text-[#4f7df3]">
-                <svg viewBox="0 0 24 24" className="h-5 w-5 fill-none stroke-current" strokeWidth="2">
-                  <path d="M20 11.5a8 8 0 0 1-11.7 7.1L4 20l1.4-4.1A8 8 0 1 1 20 11.5Z" />
-                  <path d="M9 12.5 11 14l4-4" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              </div>
-              <div>
-                <p className="text-xs font-bold text-[#253252]">
-                  Action Centre Active
-                </p>
-                <p className="mt-0.5 text-[11px] leading-tight text-[#7e889d]">
-                  Pending approvals & care tasks queued
-                </p>
-              </div>
+            <div className="mt-5 flex flex-wrap gap-2 text-[11px] font-semibold text-[#52617d]">
+              {["Installable on phones", "Recoverable attendance drafts", "Church-branded reports"].map((item) => (
+                <span key={item} className="rounded-full border border-[#dce4f3] bg-white/80 px-3 py-1.5 shadow-sm">{item}</span>
+              ))}
             </div>
           </div>
+
+          <HomeDashboardPreview />
         </div>
       </section>
 
@@ -354,27 +281,27 @@ export default function Home() {
         <div className="mx-auto grid max-w-7xl gap-8 lg:grid-cols-[0.8fr_1.2fr] lg:gap-20">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#89a8ff]">
-              The Operational Challenge
+              Why Churches Use Flock
             </p>
             <h2 className="mt-3 text-3xl font-bold leading-tight tracking-[-0.03em] sm:text-4xl lg:text-5xl">
-              Disengagement happens quietly in administrative blind spots.
+              People quietly slip away when no one notices.
             </h2>
           </div>
           <div className="flex flex-col justify-center">
             <p className="text-base leading-7 text-[#c7d0e5] sm:text-xl sm:leading-9">
-              When attendance is trapped on paper sheets or scattered across WhatsApp groups, patterns go unnoticed. A worker misses two services, visitor follow-ups cool down, and pastoral teams only realize after someone has completely disconnected.
+              It usually starts small: a devoted worker misses one Sunday, then two. When attendance lives on paper sheets or gets buried in WhatsApp group chats, leaders only realize someone is missing after months have passed.
             </p>
             <div className="mt-8 grid gap-6 border-t border-white/15 pt-6 sm:grid-cols-2">
               <div className="rounded-xl border border-white/5 bg-white/[0.03] p-4">
-                <p className="text-2xl font-bold text-white sm:text-3xl">Single Workspace</p>
+                <p className="text-2xl font-bold text-white sm:text-3xl">Notice Sooner</p>
                 <p className="mt-1 text-xs leading-5 text-[#9faccc] sm:text-sm">
-                  Replace fragmented channels with one verifiable record system.
+                  Spot missed services right away before weeks quietly slip by.
                 </p>
               </div>
               <div className="rounded-xl border border-white/5 bg-white/[0.03] p-4">
-                <p className="text-2xl font-bold text-white sm:text-3xl">Proactive Care</p>
+                <p className="text-2xl font-bold text-white sm:text-3xl">Stay Connected</p>
                 <p className="mt-1 text-xs leading-5 text-[#9faccc] sm:text-sm">
-                  Catch early absence trends and empower leaders to follow up immediately.
+                  Give every department head and pastor the same simple picture.
                 </p>
               </div>
             </div>
@@ -387,13 +314,13 @@ export default function Home() {
         <div className="mx-auto max-w-7xl">
           <div className="max-w-2xl">
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#4f7df3]">
-              Purpose-Built Ministry Infrastructure
+              Designed For Ministry
             </p>
             <h2 className="mt-3 text-3xl font-bold tracking-[-0.03em] text-[#101c3d] sm:text-4xl lg:text-5xl">
-              Everything church leadership needs for complete operational oversight.
+              Everything your church needs around every service.
             </h2>
             <p className="mt-4 text-base leading-7 text-[#667188] sm:text-lg">
-              Designed specifically for pastoral teams, administrators, and department heads to manage rosters, track growth, and streamline care workflows.
+              Prepare with ease, take attendance in seconds, care for members personally, and keep your church records safe.
             </p>
           </div>
 
@@ -434,14 +361,14 @@ export default function Home() {
           <div className="grid gap-6 lg:grid-cols-[0.8fr_1.2fr] lg:items-end">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#89a8ff]">
-                Operational Architecture
+                Weekly Church Rhythm
               </p>
               <h2 className="mt-3 text-3xl font-bold tracking-[-0.03em] sm:text-4xl lg:text-5xl">
-                A structured system from prep to pastoral follow-up.
+                From pre-service prep to loving follow-up.
               </h2>
             </div>
             <p className="text-base leading-7 text-[#b9c5df] sm:text-lg lg:ml-auto lg:max-w-xl">
-              Flock connects the entire weekly operational rhythm. Senior leaders gain high-level oversight, administrators eliminate manual entry overhead, and department heads get an effortless mobile experience.
+              Flock connects the work usually scattered across paper, messaging apps, and memory. Each leader sees their exact role clearly so the church runs smoothly.
             </p>
           </div>
 
@@ -474,19 +401,19 @@ export default function Home() {
       <section id="insights" className="border-b border-[#e4e9f5] bg-white px-5 py-16 sm:px-8 sm:py-24 lg:px-12">
         <div className="mx-auto grid max-w-7xl items-center gap-10 lg:grid-cols-[0.9fr_1.1fr] lg:gap-16">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#4f7df3]">Growth Analytics & Milestones</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#4f7df3]">Leadership reports</p>
             <h2 className="mt-3 text-3xl font-bold tracking-[-0.03em] text-[#101c3d] sm:text-4xl lg:text-5xl">
-              Evidence-based oversight for ministry decisions.
+              Understand attendance, visitors, and care at a glance.
             </h2>
             <p className="mt-4 text-base leading-7 text-[#667188] sm:text-lg">
-              Move beyond subjective impressions. Flock gives executive leadership precise metrics on congregation growth, workforce participation, and milestone tracking for new converts and members.
+              Move from live dashboard insight to a meeting-ready document without rebuilding figures in a spreadsheet. Every export keeps the active filters and carries the church name configured in Settings.
             </p>
             <div className="mt-6 grid gap-2.5 sm:grid-cols-2">
               {[
-                "Male, female & child demographic metrics",
-                "New member & convert milestone pipelines",
-                "Multi-service comparative trends",
-                "Exportable executive report logs",
+                "Worker and congregation trends",
+                "Department attendance comparisons",
+                "Filtered service-by-service logs",
+                "Church-branded PDF and CSV downloads",
               ].map((item) => (
                 <div key={item} className="flex items-center gap-2.5 rounded-xl border border-[#e2e8f5] bg-[#f8faff] px-3.5 py-2.5 text-xs font-semibold text-[#42506d]">
                   <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#e8efff] text-[11px] font-bold text-[#4f7df3]">✓</span>
@@ -496,36 +423,7 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="rounded-2xl bg-[#101c3d] p-5 text-white shadow-xl sm:p-7">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#8da9f6]">Attendance & Growth Trends</p>
-                <p className="mt-1 text-lg font-bold">Executive Summary</p>
-              </div>
-              <span className="rounded-full bg-[#20335f] px-3 py-1 text-[11px] font-medium text-[#b9caf8]">Last 6 Services</span>
-            </div>
-
-            <div className="mt-6 flex h-40 items-end gap-2.5 border-b border-l border-white/15 px-2 pb-2 sm:gap-4 sm:px-3">
-              {[48, 58, 54, 70, 76, 88].map((height, index) => (
-                <div key={height + index} className="flex h-full flex-1 items-end">
-                  <div className="w-full rounded-t bg-gradient-to-t from-[#4f7df3] to-[#90abf7] transition-all hover:brightness-110" style={{ height: `${height}%` }} />
-                </div>
-              ))}
-            </div>
-
-            <div className="mt-5 grid grid-cols-3 gap-2.5">
-              {[
-                ["426", "Total Attendance"],
-                ["8", "New Members"],
-                ["6", "New Converts"],
-              ].map(([value, label]) => (
-                <div key={label} className="rounded-xl bg-white/5 p-3 text-center sm:text-left">
-                  <p className="text-xl font-bold sm:text-2xl">{value}</p>
-                  <p className="mt-0.5 text-[11px] text-[#aab8da]">{label}</p>
-                </div>
-              ))}
-            </div>
-          </div>
+          <HomeReportPreview />
         </div>
       </section>
 
@@ -535,10 +433,10 @@ export default function Home() {
           <div className="grid gap-10 lg:grid-cols-[0.75fr_1.25fr] lg:gap-16">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#4f7df3]">
-                Implementation & Execution
+                How It Works
               </p>
               <h2 className="mt-3 text-3xl font-bold tracking-[-0.03em] text-[#101c3d] sm:text-4xl">
-                A seamless operational workflow for every service.
+                A simple weekly routine for your whole team.
               </h2>
             </div>
             <ol className="space-y-6 sm:space-y-8">
@@ -570,10 +468,10 @@ export default function Home() {
           <div className="absolute -bottom-40 -right-20 h-80 w-80 rounded-full border border-white/15" />
           <div className="relative mx-auto max-w-2xl">
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/80">
-              Transform Your Church Operations
+              Get Started with Flock
             </p>
             <h2 className="mt-4 text-3xl font-bold leading-tight tracking-[-0.03em] sm:text-4xl lg:text-5xl">
-              Equip your leadership team with evidence-based ministry oversight.
+              Bring your service operations, attendance, and care together today.
             </h2>
             <div className="mt-8 flex flex-col sm:flex-row justify-center gap-3">
               <Link
@@ -603,21 +501,21 @@ export default function Home() {
             <div>
               <FlockBrand compact />
               <p className="mt-1 max-w-xs text-sm leading-6 text-[#7a8499]">
-                Helping church leadership teams manage workforce attendance, track congregation growth, and deliver data-informed pastoral care.
+                Helping churches prepare services, record attendance, track growth, and care well for every member.
               </p>
             </div>
             <nav aria-label="Footer navigation" className="flex flex-wrap gap-x-7 gap-y-3 text-sm font-medium text-[#68738a]">
               <a className="hover:text-[#4f7df3]" href="#why-flock">Why Flock</a>
               <a className="hover:text-[#4f7df3]" href="#features">Features</a>
               <a className="hover:text-[#4f7df3]" href="#operations">Full workflow</a>
-              <a className="hover:text-[#4f7df3]" href="#insights">Insights</a>
+              <a className="hover:text-[#4f7df3]" href="#insights">Reports</a>
               <a className="hover:text-[#4f7df3]" href="#how-it-works">How it works</a>
               <Link className="hover:text-[#4f7df3]" href="/privacy">Privacy</Link>
             </nav>
           </div>
           <div className="mt-10 flex flex-col gap-3 border-t border-[#e7ebf4] pt-6 text-xs text-[#9099ac] sm:flex-row sm:items-center sm:justify-between">
             <p>© {new Date().getFullYear()} Flock. All rights reserved.</p>
-            <p>Church operations, participation and care in one place.</p>
+            <p>Church operations, attendance and care in one place.</p>
           </div>
         </div>
       </footer>
