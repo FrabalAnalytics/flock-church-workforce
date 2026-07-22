@@ -27,7 +27,7 @@ export async function sendWhatsAppTemplate(input: {
   to: string;
   contentSid: string;
   variables: Record<string, string>;
-  statusCallback: string;
+  statusCallback?: string;
 }) {
   const config = twilioConfig();
   const body = new URLSearchParams({
@@ -35,8 +35,8 @@ export async function sendWhatsAppTemplate(input: {
     From: config.from.startsWith("whatsapp:") ? config.from : `whatsapp:${config.from}`,
     ContentSid: input.contentSid,
     ContentVariables: JSON.stringify(input.variables),
-    StatusCallback: input.statusCallback,
   });
+  if (input.statusCallback) body.set("StatusCallback", input.statusCallback);
   const response = await fetch(
     `https://api.twilio.com/2010-04-01/Accounts/${config.accountSid}/Messages.json`,
     {

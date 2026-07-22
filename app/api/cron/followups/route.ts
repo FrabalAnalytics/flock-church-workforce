@@ -20,22 +20,31 @@ async function processQueuedFollowups(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  let admin: ReturnType<typeof createAdminClient> | null = null;
+  let runId: string | null = null;
   try {
-    const admin = createAdminClient();
+    const adminClient = createAdminClient();
+    admin = adminClient;
+    const { data: run } = await adminClient
+      .from("system_job_runs")
+      .insert({ job_name: "followup_dispatcher", status: "running" })
+      .select("id")
+      .maybeSingle();
+    runId = run?.id ?? null;
     const config = twilioConfig();
-    const { data: claimed, error: claimError } = await admin.rpc("claim_queued_followup_events", { p_limit: 25 });
+    const { data: claimed, error: claimError } = await adminClient.rpc("claim_queued_followup_events", { p_limit: 25 });
     if (claimError) throw claimError;
 
     const events = (claimed ?? []) as ClaimedEvent[];
     const results = await Promise.all(events.map(async (event) => {
-      const { data: worker, error: workerError } = await admin
+      const { data: worker, error: workerError } = await adminClient
         .from("workers")
         .select("full_name, phone_number, whatsapp_opt_in, departments(name)")
         .eq("id", event.worker_id)
         .single();
 
       if (workerError || !worker?.phone_number || !worker.whatsapp_opt_in) {
-        await admin.from("followup_events").update({
+        await adminClient.from("followup_events").update({
           delivery_status: "cancelled",
           error_message: workerError?.message ?? "Worker has no eligible opted-in WhatsApp number.",
         }).eq("id", event.id);
@@ -55,7 +64,7 @@ async function processQueuedFollowups(request: NextRequest) {
           variables,
           statusCallback: `${config.appUrl}/api/twilio/status?event_id=${encodeURIComponent(event.id)}`,
         });
-        await admin.from("followup_events").update({
+        await adminClient.from("followup_events").update({
           delivery_status: "sent",
           provider_message_id: providerMessageId,
           sent_at: new Date().toISOString(),
@@ -64,14 +73,28 @@ async function processQueuedFollowups(request: NextRequest) {
         return { id: event.id, status: "sent" };
       } catch (error) {
         const message = error instanceof Error ? error.message : "Unknown Twilio delivery error";
-        await admin.from("followup_events").update({ delivery_status: "failed", error_message: message }).eq("id", event.id);
+        await adminClient.from("followup_events").update({ delivery_status: "failed", error_message: message }).eq("id", event.id);
         return { id: event.id, status: "failed" };
       }
     }));
 
+    if (runId) {
+      await adminClient.from("system_job_runs").update({
+        status: "succeeded",
+        processed_count: results.length,
+        completed_at: new Date().toISOString(),
+      }).eq("id", runId);
+    }
     return NextResponse.json({ processed: results.length, results });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Delivery worker failed";
+    if (admin && runId) {
+      await admin.from("system_job_runs").update({
+        status: "failed",
+        error_message: message.slice(0, 1000),
+        completed_at: new Date().toISOString(),
+      }).eq("id", runId);
+    }
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }
