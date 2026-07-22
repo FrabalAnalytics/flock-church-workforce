@@ -24,7 +24,7 @@ export default async function WorkspaceLayout({ children }: { children: React.Re
 
   const navigation: Record<string, WorkspaceGroup[]> = {
     super_admin: [
-      { label: "Workspace", links: [{ label: "Overview", href: "/app/reports", icon: "overview" }, { label: "Action Centre", href: "/app/action-centre", icon: "actions" }] },
+      { label: "Workspace", links: [{ label: "Overview", href: "/app/reports", icon: "overview" }, { label: "Action Centre", href: "/app/action-centre", icon: "actions" }, { label: "Getting started", href: "/app/getting-started", icon: "setup" }] },
       { label: "People", links: [
         { label: "Worker directory", href: "/app/workers", icon: "people" },
         { label: "Users", href: "/app/users", icon: "users" },

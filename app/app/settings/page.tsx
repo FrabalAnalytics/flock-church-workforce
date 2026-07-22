@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { FormSubmitButton } from "@/components/form-submit-button";
 import { WorkspaceNotice } from "@/components/workspace-notice";
 import { PageHeader, StatusBadge } from "@/components/workspace-ui";
@@ -182,6 +183,13 @@ export default async function SettingsPage({
         <div className="flex flex-wrap items-end justify-between gap-3"><div><p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--color-primary)]">Delivery review</p><h2 className="mt-2 text-xl font-semibold text-[var(--color-text)]">Recent WhatsApp failures</h2></div><StatusBadge tone={failedEvents.length ? "danger" : "success"}>{failedEvents.length ? `${failedEvents.length} recent` : "No recent failures"}</StatusBadge></div>
         {failedEvents.length ? <div className="mt-5 divide-y divide-[var(--color-border)]">{failedEvents.map((event) => <article key={event.id} className="grid gap-2 py-4 sm:grid-cols-[minmax(180px,0.7fr)_minmax(0,1.3fr)_auto] sm:items-center"><div><p className="text-sm font-semibold text-[var(--color-text)]">{event.workers?.full_name ?? "Unknown worker"}</p><p className="mt-1 text-xs capitalize text-[var(--color-text-muted)]">{event.event_type.replaceAll("_", " ")}</p></div><p className="break-words text-xs leading-5 text-[var(--color-danger)]">{event.error_message ?? "Twilio did not provide an error message."}</p><time className="text-xs text-[var(--color-text-muted)]">{displayTime(event.created_at)}</time></article>)}</div> : <p className="mt-5 rounded-2xl bg-[#edf7f1] px-4 py-4 text-sm text-[#347457]">No failed delivery events are currently recorded.</p>}
         {failuresResult.error && <p className="mt-4 text-xs text-[var(--color-danger)]">Delivery history could not be loaded: {failuresResult.error.message}</p>}
+      </section>
+
+      <section className="mt-6 rounded-3xl border border-[var(--color-border)] bg-white p-5 shadow-[var(--shadow-sm)] sm:p-7">
+        <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
+          <div><p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--color-primary)]">Data protection</p><h2 className="mt-2 text-xl font-semibold text-[var(--color-text)]">Download a full church backup</h2><p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--color-text-secondary)]">Export settings, people, attendance, programmes, follow-ups and audit history as one portable JSON file. The download contains personal information and must be stored securely.</p></div>
+          <div className="flex flex-col gap-2 sm:flex-row lg:flex-col xl:flex-row"><Link href="/app/getting-started" className="flex min-h-11 items-center justify-center rounded-xl border border-[var(--color-border)] px-5 text-sm font-semibold text-[var(--color-text-secondary)]">View setup guide</Link><a href="/api/admin/backup" download className="flex min-h-11 items-center justify-center rounded-xl bg-[var(--color-primary)] px-5 text-sm font-semibold text-white">Download backup</a></div>
+        </div>
       </section>
     </div>
   );
