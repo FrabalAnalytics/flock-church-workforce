@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import QRCode from "qrcode";
 import { addProgrammeItem, createProgramme, deleteProgramme, publishProgramme, removeProgrammeItem, updateProgrammeItem, updateTemplateItem } from "@/app/app/programmes/actions";
@@ -9,6 +10,7 @@ import { ProgrammeSharePanel } from "@/components/programme-share-panel";
 export const metadata = { title: "Service programmes", description: "Create, publish and review dated service programmes." };
 import { WorkspaceNotice } from "@/components/workspace-notice";
 import { EmptyState, MetricPill, PageHeader, StatusBadge } from "@/components/workspace-ui";
+import { resolveAppOrigin } from "@/lib/app-origin";
 import { requireProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 
@@ -61,8 +63,15 @@ export default async function ProgrammesPage({ searchParams }: { searchParams: P
   const totalDuration = items.reduce((total, item) => total + item.duration_minutes, 0);
   const programmeStart = items[0] ? shortTime(items[0].start_time) : null;
   const programmeEnd = items.at(-1) ? shortTime(items.at(-1)!.end_time) : null;
-  const appOrigin = process.env.NEXT_PUBLIC_APP_URL?.trim().replace(/\/$/, "") || "http://localhost:3000";
-  const publicShareUrl = selectedShare?.enabled && selectedShare.token
+  const requestHeaders = await headers();
+  const appOrigin = resolveAppOrigin({
+    configuredOrigin: process.env.NEXT_PUBLIC_APP_URL,
+    forwardedHost: requestHeaders.get("x-forwarded-host"),
+    forwardedProto: requestHeaders.get("x-forwarded-proto"),
+    host: requestHeaders.get("host"),
+    production: process.env.NODE_ENV === "production",
+  });
+  const publicShareUrl = appOrigin && selectedShare?.enabled && selectedShare.token
     ? `${appOrigin}/programme/${selectedShare.token}`
     : null;
   const publicShareQr = publicShareUrl

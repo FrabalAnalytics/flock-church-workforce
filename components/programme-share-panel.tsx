@@ -39,6 +39,15 @@ export function ProgrammeSharePanel({
     }
   }
 
+  if (enabled && (!shareUrl || !qrDataUrl)) {
+    return (
+      <section className="print:hidden border-t border-[#f0d7d4] bg-[#fff9f8] px-5 py-5 sm:px-7">
+        <p className="text-sm font-semibold text-[#a94740]">Public app address unavailable</p>
+        <p className="mt-1 text-xs leading-5 text-[#7d5a57]">Set NEXT_PUBLIC_APP_URL to the deployed HTTPS address, then reload this page to regenerate the correct link and QR code.</p>
+      </section>
+    );
+  }
+
   if (!enabled || !shareUrl || !qrDataUrl) {
     return (
       <section className="print:hidden border-t border-[#e5e9f1] bg-[#f8faff] px-5 py-5 sm:px-7">
