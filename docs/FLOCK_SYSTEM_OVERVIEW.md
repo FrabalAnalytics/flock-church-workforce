@@ -284,7 +284,7 @@ Public sharing is off by default and can be enabled only by a Super Admin after 
 
 ### 5.10 Data export
 
-Authorised users can export worker-attendance and church-attendance reports as CSV files. These files can be opened in Microsoft Excel, Google Sheets, or similar tools for approved analysis and record keeping.
+Authorised users can export worker-attendance and church-attendance reports as CSV files for approved analysis in spreadsheet tools. They can also download leadership-ready PDF reports containing the active date and service filters, summary metrics, comparison tables, paginated service logs, generation details, and a confidentiality notice. Row-level security continues to restrict Department Head worker reports to their own department, while congregation PDFs remain available only to Church Leaders and Super Admins.
 
 ### 5.11 Database migrations and recovery readiness
 
@@ -493,12 +493,11 @@ Before full organisational rollout, the church should confirm its legal name, pr
 
 ## 10. Current scope and future opportunities
 
-The current system includes authentication and password recovery, managed invitations, centrally managed user profiles, protected account deletion, role administration, immutable audit history, church settings and system health, guided onboarding, a role-aware Action Centre with personal seen and snooze controls, departments, a worker directory with validated CSV import, resilient attendance drafts, service-day scheduling and submission monitoring, worker attendance and corrections, leadership reporting, attendance trends, care alerts, optional WhatsApp delivery monitoring, congregation attendance and corrections, a Minister Directory, reusable programme templates, dated published service programmes, revocable QR-code programme sharing, privacy information, CSV exports, protected JSON data export, database migrations, and documented backup/recovery procedures.
+The current system includes authentication and password recovery, managed invitations, centrally managed user profiles, protected account deletion, role administration, immutable audit history, church settings and system health, guided onboarding, a role-aware Action Centre with personal seen and snooze controls, departments, a worker directory with validated CSV import, resilient attendance drafts, service-day scheduling and submission monitoring, worker attendance and corrections, leadership reporting, attendance trends, care alerts, optional WhatsApp delivery monitoring, congregation attendance and corrections, a Minister Directory, reusable programme templates, dated published service programmes, revocable QR-code programme sharing, privacy information, CSV and leadership-ready PDF reports, protected JSON data export, database migrations, and documented backup/recovery procedures.
 
 Possible future additions include:
 
 - Tenant isolation and church switching for a multi-church edition.
-- Approved PDF reports.
 - Offline-friendly service-day workflows.
 
 These are future opportunities and should be introduced only after the core attendance process is stable and adopted.

@@ -41,6 +41,8 @@ Use separate test accounts and non-sensitive test records.
 | View published programmes | Allow | Allow | Allow | Deny |
 | Create/revoke programme share links | Allow | Deny | Deny | Deny |
 | View a valid shared programme | Allow | Allow | Allow | Token only |
+| Export worker report PDF | All | All | Own department only | Deny |
+| Export congregation report PDF | Allow | Allow | Deny | Deny |
 | Resolve care alerts | Allow | Deny | Own department only | Deny |
 
 Anonymous programme access must remain limited to the
