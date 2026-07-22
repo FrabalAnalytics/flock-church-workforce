@@ -21,7 +21,7 @@ export const metadata: Metadata = {
     "Manage worker attendance, congregation insights, service programmes and ministry care from one secure church workspace.",
   applicationName: "Flock",
   manifest: "/manifest.webmanifest",
-  icons: { icon: "/favicon.ico" },
+  icons: { icon: "/icon.png", apple: "/icon.png" },
 };
 
 export const viewport: Viewport = { themeColor: "#101c3d", colorScheme: "light" };
