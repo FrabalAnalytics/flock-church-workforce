@@ -14,6 +14,11 @@ function rate(present: number, roster: number) {
   return roster ? Math.min(100, Math.round((present / roster) * 100)) : 0;
 }
 
+function chartDate(value: string) {
+  return new Intl.DateTimeFormat("en-NG", { day: "numeric", month: "short", timeZone: "UTC" })
+    .format(new Date(`${value}T00:00:00Z`));
+}
+
 export async function GET(request: Request) {
   const filters = parseReportFilters(request.url);
   if ("error" in filters) return new Response(filters.error, { status: 400 });
@@ -63,8 +68,22 @@ export async function GET(request: Request) {
     groups.set(name, current);
     return groups;
   }, new Map<string, { submissions: number; roster: number; present: number; absent: number }>())]
-    .map(([department, totals]) => ({ department, ...totals, rate: `${rate(totals.present, totals.roster)}%` }))
+    .map(([department, totals]) => {
+      const rateValue = rate(totals.present, totals.roster);
+      return { department, ...totals, rateValue, rate: `${rateValue}%` };
+    })
     .sort((a, b) => b.present - a.present);
+  const attendanceTrend = [...rows.reduce((groups, row) => {
+    if (!row.services) return groups;
+    const current = groups.get(row.services.id) ?? { date: row.services.service_date, type: row.services.service_type, present: 0, roster: 0 };
+    current.present += row.present_count;
+    current.roster += row.roster_count;
+    groups.set(row.services.id, current);
+    return groups;
+  }, new Map<string, { date: string; type: string; present: number; roster: number }>())]
+    .map(([, service]) => ({ label: chartDate(service.date), value: rate(service.present, service.roster), date: service.date, type: service.type }))
+    .sort((a, b) => a.date.localeCompare(b.date) || a.type.localeCompare(b.type))
+    .slice(-10);
 
   const scopeParts = [filters.service ?? "All service types"];
   if (filters.department) scopeParts.push(departments[0]?.department ?? "Selected department");
@@ -81,6 +100,24 @@ export async function GET(request: Request) {
       { label: "Submissions", value: rows.length },
       { label: "Workers present", value: present },
       { label: "Attendance rate", value: `${rate(present, roster)}%` },
+    ],
+    charts: [
+      {
+        title: "Worker attendance trend",
+        type: "line",
+        points: attendanceTrend,
+        suffix: "%",
+        maximum: 100,
+      },
+      {
+        title: "Attendance rate by department",
+        type: "bar",
+        points: [...departments]
+          .sort((a, b) => b.rateValue - a.rateValue)
+          .map((department) => ({ label: department.department, value: department.rateValue })),
+        suffix: "%",
+        maximum: 100,
+      },
     ],
     tables: [
       {

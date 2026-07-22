@@ -15,6 +15,11 @@ type ChurchRow = {
   services: { service_date: string; service_type: string } | null;
 };
 
+function chartDate(value: string) {
+  return new Intl.DateTimeFormat("en-NG", { day: "numeric", month: "short", timeZone: "UTC" })
+    .format(new Date(`${value}T00:00:00Z`));
+}
+
 export async function GET(request: Request) {
   const filters = parseReportFilters(request.url);
   if ("error" in filters) return new Response(filters.error, { status: 400 });
@@ -64,6 +69,11 @@ export async function GET(request: Request) {
   }, new Map<string, { services: number; attendance: number; newMembers: number; newConverts: number }>())]
     .map(([service, totals]) => ({ service, ...totals, average: totals.services ? Math.round(totals.attendance / totals.services) : 0 }))
     .sort((a, b) => b.attendance - a.attendance);
+  const congregationTrend = rows
+    .filter((row) => Boolean(row.services?.service_date))
+    .map((row) => ({ label: chartDate(row.services!.service_date), value: row.total_count, date: row.services!.service_date }))
+    .sort((a, b) => a.date.localeCompare(b.date))
+    .slice(-10);
 
   const churchName = reportChurchName(churchNameValue);
   const pdf = await createPdfReport({
@@ -77,6 +87,20 @@ export async function GET(request: Request) {
       { label: "Total attendance", value: total },
       { label: "Average per service", value: rows.length ? Math.round(total / rows.length) : 0 },
       { label: "First steps", value: newMembers + newConverts },
+    ],
+    charts: [
+      {
+        title: "Congregation attendance trend",
+        type: "line",
+        points: congregationTrend,
+      },
+      {
+        title: "Average attendance by service type",
+        type: "bar",
+        points: [...byServiceType]
+          .sort((a, b) => b.average - a.average)
+          .map((service) => ({ label: service.service, value: service.average })),
+      },
     ],
     tables: [
       {

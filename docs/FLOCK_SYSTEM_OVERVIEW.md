@@ -302,7 +302,7 @@ Public sharing is off by default and can be enabled only by a Super Admin after 
 
 ### 5.10 Data export
 
-Authorised users can export worker-attendance and church-attendance reports as CSV files for approved analysis in spreadsheet tools. They can also download leadership-ready PDF reports containing the active date and service filters, summary metrics, comparison tables, paginated service logs, generation details, and a confidentiality notice. Every CSV and PDF includes the church name configured in Settings, and its download filename uses a safe version of that name. Row-level security continues to restrict Department Head worker reports to their own department, while congregation PDFs remain available only to Church Leaders and Super Admins.
+Authorised users can export worker-attendance and church-attendance reports as CSV files for approved analysis in spreadsheet tools. They can also download leadership-ready PDF reports containing the active date and service filters, summary metrics, vector trend and comparison charts, comparison tables, paginated service logs, generation details, and a confidentiality notice. Every CSV and PDF includes the church name configured in Settings, and its download filename uses a safe version of that name. Row-level security continues to restrict Department Head worker reports to their own department, while congregation PDFs remain available only to Church Leaders and Super Admins.
 
 ### 5.11 Database migrations and recovery readiness
 

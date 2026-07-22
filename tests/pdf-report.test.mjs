@@ -45,6 +45,26 @@ test("PDF report builder creates a valid paginated document", async () => {
       { label: "Absent", value: 100 },
       { label: "Rate", value: "98%" },
     ],
+    charts: [
+      {
+        title: "Attendance trend",
+        type: "line",
+        points: rows.slice(0, 8).map((row, index) => ({ label: row.date.slice(5), value: 72 + index * 3 })),
+        suffix: "%",
+        maximum: 100,
+      },
+      {
+        title: "Department comparison",
+        type: "bar",
+        points: [
+          { label: "Media", value: 96 },
+          { label: "Ushering", value: 91 },
+          { label: "Music", value: 87 },
+        ],
+        suffix: "%",
+        maximum: 100,
+      },
+    ],
     tables: [{
       title: "Service log",
       columns: [

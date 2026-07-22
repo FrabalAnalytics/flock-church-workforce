@@ -14,6 +14,15 @@ export type PdfReportTable = {
   emptyMessage?: string;
 };
 
+export type PdfReportChart = {
+  title: string;
+  type: "line" | "bar";
+  points: Array<{ label: string; value: number }>;
+  suffix?: string;
+  maximum?: number;
+  emptyMessage?: string;
+};
+
 export type PdfReportOptions = {
   churchName: string;
   title: string;
@@ -21,6 +30,7 @@ export type PdfReportOptions = {
   scope: string;
   generatedBy: string;
   summary: Array<{ label: string; value: string | number }>;
+  charts?: PdfReportChart[];
   tables: PdfReportTable[];
 };
 
@@ -31,6 +41,8 @@ const NAVY = rgb(16 / 255, 28 / 255, 61 / 255);
 const MUTED = rgb(104 / 255, 115 / 255, 138 / 255);
 const BORDER = rgb(224 / 255, 230 / 255, 242 / 255);
 const SUBTLE = rgb(247 / 255, 249 / 255, 253 / 255);
+const ACCENT = rgb(79 / 255, 125 / 255, 243 / 255);
+const SUCCESS = rgb(52 / 255, 116 / 255, 87 / 255);
 
 export function safePdfText(value: unknown) {
   return Array.from(String(value ?? ""), (character) => {
@@ -79,6 +91,78 @@ function drawTableHeader(page: PDFPage, columns: PdfReportColumn[], y: number, f
   return y - 20;
 }
 
+function chartValue(value: number, suffix = "") {
+  return `${new Intl.NumberFormat("en-NG", { maximumFractionDigits: 1 }).format(value)}${suffix}`;
+}
+
+function drawLineChart(page: PDFPage, chart: PdfReportChart, x: number, top: number, width: number, height: number, font: PDFFont, bold: PDFFont) {
+  page.drawRectangle({ x, y: top - height, width, height, color: rgb(1, 1, 1), borderColor: BORDER, borderWidth: 0.7 });
+  page.drawText(fitText(chart.title, bold, 10, width - 20), { x: x + 10, y: top - 18, size: 10, font: bold, color: NAVY });
+  const points = chart.points.slice(-10);
+  if (!points.length) {
+    page.drawText(fitText(chart.emptyMessage ?? "No chart data for this period.", font, 8.5, width - 20), { x: x + 10, y: top - 48, size: 8.5, font, color: MUTED });
+    return;
+  }
+
+  const plotLeft = x + 34;
+  const plotRight = x + width - 12;
+  const plotTop = top - 38;
+  const plotBottom = top - height + 27;
+  const plotHeight = plotTop - plotBottom;
+  const maximum = Math.max(chart.maximum ?? 0, ...points.map((point) => point.value), 1);
+  for (let index = 0; index <= 3; index += 1) {
+    const lineY = plotBottom + (plotHeight * index) / 3;
+    page.drawLine({ start: { x: plotLeft, y: lineY }, end: { x: plotRight, y: lineY }, thickness: 0.45, color: BORDER });
+  }
+  const maxLabel = chartValue(maximum, chart.suffix);
+  page.drawText(maxLabel, { x: plotLeft - font.widthOfTextAtSize(maxLabel, 6.5) - 4, y: plotTop - 2, size: 6.5, font, color: MUTED });
+  page.drawText("0", { x: plotLeft - font.widthOfTextAtSize("0", 6.5) - 4, y: plotBottom - 2, size: 6.5, font, color: MUTED });
+
+  const coordinates = points.map((point, index) => ({
+    x: points.length === 1 ? (plotLeft + plotRight) / 2 : plotLeft + ((plotRight - plotLeft) * index) / (points.length - 1),
+    y: plotBottom + (Math.max(0, point.value) / maximum) * plotHeight,
+  }));
+  coordinates.slice(1).forEach((coordinate, index) => {
+    page.drawLine({ start: coordinates[index], end: coordinate, thickness: 2, color: ACCENT });
+  });
+  coordinates.forEach((coordinate) => {
+    page.drawCircle({ x: coordinate.x, y: coordinate.y, size: 2.5, color: rgb(1, 1, 1), borderColor: ACCENT, borderWidth: 1.4 });
+  });
+
+  const labelEvery = Math.max(1, Math.ceil(points.length / 5));
+  points.forEach((point, index) => {
+    if (index % labelEvery !== 0 && index !== points.length - 1) return;
+    const label = fitText(point.label, font, 6.5, 46);
+    const labelWidth = font.widthOfTextAtSize(label, 6.5);
+    page.drawText(label, { x: Math.max(x + 5, Math.min(coordinates[index].x - labelWidth / 2, x + width - labelWidth - 5)), y: plotBottom - 14, size: 6.5, font, color: MUTED });
+  });
+}
+
+function drawBarChart(page: PDFPage, chart: PdfReportChart, x: number, top: number, width: number, height: number, font: PDFFont, bold: PDFFont) {
+  page.drawRectangle({ x, y: top - height, width, height, color: rgb(1, 1, 1), borderColor: BORDER, borderWidth: 0.7 });
+  page.drawText(fitText(chart.title, bold, 10, width - 20), { x: x + 10, y: top - 18, size: 10, font: bold, color: NAVY });
+  const points = chart.points.slice(0, 6);
+  if (!points.length) {
+    page.drawText(fitText(chart.emptyMessage ?? "No chart data for this period.", font, 8.5, width - 20), { x: x + 10, y: top - 48, size: 8.5, font, color: MUTED });
+    return;
+  }
+
+  const maximum = Math.max(chart.maximum ?? 0, ...points.map((point) => point.value), 1);
+  const labelWidth = Math.min(104, width * 0.31);
+  const valueWidth = 42;
+  const barLeft = x + 10 + labelWidth;
+  const barWidth = width - labelWidth - valueWidth - 24;
+  const rowHeight = Math.min(20, (height - 42) / points.length);
+  points.forEach((point, index) => {
+    const rowY = top - 41 - index * rowHeight;
+    page.drawText(fitText(point.label, font, 7.5, labelWidth - 8), { x: x + 10, y: rowY - 2, size: 7.5, font, color: NAVY });
+    page.drawRectangle({ x: barLeft, y: rowY - 3, width: barWidth, height: 7, color: SUBTLE });
+    page.drawRectangle({ x: barLeft, y: rowY - 3, width: Math.max(2, barWidth * (Math.max(0, point.value) / maximum)), height: 7, color: index === 0 ? SUCCESS : ACCENT });
+    const value = chartValue(point.value, chart.suffix);
+    page.drawText(value, { x: x + width - 10 - font.widthOfTextAtSize(value, 7.5), y: rowY - 2, size: 7.5, font: bold, color: NAVY });
+  });
+}
+
 export async function createPdfReport(options: PdfReportOptions) {
   const document = await PDFDocument.create();
   const font = await document.embedFont(StandardFonts.Helvetica);
@@ -110,6 +194,20 @@ export async function createPdfReport(options: PdfReportOptions) {
     page = document.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
     drawPageHeader(page, options.churchName, options.title, options.period, font, bold);
     y = PAGE_HEIGHT - 112;
+  }
+
+  const charts = options.charts?.slice(0, 2) ?? [];
+  if (charts.length) {
+    const chartGap = 12;
+    const chartWidth = (PAGE_WIDTH - MARGIN * 2 - chartGap) / 2;
+    const chartHeight = 166;
+    charts.forEach((chart, index) => {
+      const chartX = MARGIN + index * (chartWidth + chartGap);
+      if (chart.type === "line") drawLineChart(page, chart, chartX, y, chartWidth, chartHeight, font, bold);
+      else drawBarChart(page, chart, chartX, y, chartWidth, chartHeight, font, bold);
+    });
+    y -= chartHeight + 24;
+    newPage();
   }
 
   for (const table of options.tables) {
