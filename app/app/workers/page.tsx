@@ -54,7 +54,7 @@ export default async function WorkersPage({ searchParams }: { searchParams: Prom
           <h1 className="mt-2 text-3xl font-semibold tracking-[-0.035em] sm:text-4xl">Worker directory</h1>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--color-text-secondary)]">Manage worker information and the people included in department attendance.</p>
         </div>
-        <Link href="/app/workers/new" className="inline-flex min-h-12 w-full items-center justify-center rounded-xl bg-[var(--color-primary)] px-5 text-sm font-semibold text-white shadow-[0_10px_24px_rgba(79,125,243,0.2)] transition hover:bg-[var(--color-primary-strong)] sm:w-auto">Add worker</Link>
+        <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row"><Link href="/app/workers/import" className="inline-flex min-h-12 items-center justify-center rounded-xl border border-[var(--color-border)] bg-white px-5 text-sm font-semibold text-[var(--color-text-secondary)] shadow-[var(--shadow-sm)]">Import CSV</Link><Link href="/app/workers/new" className="inline-flex min-h-12 items-center justify-center rounded-xl bg-[var(--color-primary)] px-5 text-sm font-semibold text-white shadow-[0_10px_24px_rgba(79,125,243,0.2)] transition hover:bg-[var(--color-primary-strong)]">Add worker</Link></div>
       </div>
 
       <div className="mt-6 flex flex-wrap gap-2" aria-label="Workforce status summary">

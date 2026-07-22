@@ -135,6 +135,13 @@ Worker statuses include Active, Inactive, and On Leave. Only active workers are 
 
 The sex field is optional so existing records remain valid. It is centrally managed by a Super Admin and can be used to filter the worker directory without affecting attendance calculations.
 
+Super Admins can also import up to 500 workers from a CSV file. The import
+screen validates headings, department names, dates, roster values, sex values,
+and WhatsApp consent before submission. It previews errors and repeated file
+rows, then revalidates the accepted records inside one database transaction.
+Existing workers with the same normalized name and department are skipped, and
+every inserted worker is included in the immutable audit history.
+
 ### 5.4 Departmental worker attendance
 
 On a service day, a Department Head selects the service type and marks the active workers who are present. The system then:
@@ -421,11 +428,10 @@ Before full organisational rollout, the church should confirm its legal name, pr
 
 ## 10. Current scope and future opportunities
 
-The current system includes authentication, centrally managed user profiles, role administration, immutable audit history, departments, a worker directory, service-day scheduling and submission monitoring, worker attendance and corrections, leadership reporting, attendance trends, care alerts, congregation attendance and corrections, a Minister Directory, reusable programme templates, dated published service programmes, privacy information, CSV exports, database migrations, and backup/recovery procedures.
+The current system includes authentication, centrally managed user profiles, role administration, immutable audit history, departments, a worker directory with validated CSV import, service-day scheduling and submission monitoring, worker attendance and corrections, leadership reporting, attendance trends, care alerts, congregation attendance and corrections, a Minister Directory, reusable programme templates, dated published service programmes, privacy information, CSV exports, database migrations, and backup/recovery procedures.
 
 Possible future additions include:
 
-- Validated bulk worker import within the application.
 - QR-code access to published service information.
 - Approved PDF reports.
 - Optional paid WhatsApp care messaging.
