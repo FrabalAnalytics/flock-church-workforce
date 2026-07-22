@@ -39,7 +39,14 @@ Use separate test accounts and non-sensitive test records.
 | View congregation attendance | Allow | Allow | Deny | Deny |
 | Edit programmes/templates | Allow | Deny | Deny | Deny |
 | View published programmes | Allow | Allow | Allow | Deny |
+| Create/revoke programme share links | Allow | Deny | Deny | Deny |
+| View a valid shared programme | Allow | Allow | Allow | Token only |
 | Resolve care alerts | Allow | Deny | Own department only | Deny |
+
+Anonymous programme access must remain limited to the
+`get_shared_service_programme` function. Keep direct anonymous table grants
+revoked. Verify that disabled, replaced, expired, malformed, draft, and unknown
+tokens all return no programme data.
 
 For department-head testing, create heads in two departments and confirm that
 changing IDs or query-string filters never exposes or modifies the other

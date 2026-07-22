@@ -20,6 +20,7 @@ const entityLabels: Record<string, string> = {
   ministers: "Minister",
   service_programmes: "Service programme",
   service_programme_items: "Programme item",
+  service_programme_shares: "Programme sharing",
 };
 
 const actions = ["inserted", "updated", "deleted"] as const;

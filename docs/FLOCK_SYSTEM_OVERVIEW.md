@@ -275,9 +275,12 @@ The programme workflow supports:
 - Validation against invalid or overlapping times before publication.
 - Republishing approved updates.
 - Read-only viewing by Church Leaders and Department Heads after publication.
+- Optional public sharing through a revocable, expiring link and downloadable QR code.
 - Super-admin-only permanent deletion with exact-title confirmation.
 
 Deleting a programme also deletes its copied programme items and immediately removes it from Church Leader and Department Head views. The reusable source template remains available.
+
+Public sharing is off by default and can be enabled only by a Super Admin after publication. The public page exposes only the programme title, date, service type, schedule activities, responsible names, durations, and notes. It does not grant anonymous table access or expose account, worker, attendance, care, creator, internal ID, or link-token data. A Super Admin can change the expiry, disable the link immediately, or replace it so that the previous URL and QR code stop working.
 
 ### 5.10 Data export
 
@@ -287,7 +290,7 @@ Authorised users can export worker-attendance and church-attendance reports as C
 
 The database uses ordered, timestamped migration files in `supabase/migrations`. The readable `supabase/schema.sql` file remains the current-state snapshot, while migrations provide a controlled history of changes for deployment and review.
 
-Backup and recovery procedures, verification scripts, and a backup register template are documented in the repository. Super Admins can also download a protected JSON export of the church's durable application data from Settings. The exported file contains personal and ministry information and must be kept only in an encrypted, access-controlled location. This application export supplements, rather than replaces, Supabase platform and database backups.
+Backup and recovery procedures, verification scripts, and a backup register template are documented in the repository. Super Admins can also download a protected JSON export of the church's durable application data from Settings. The exported file contains personal and ministry information, including active programme-share secrets, and must be kept only in an encrypted, access-controlled location. This application export supplements, rather than replaces, Supabase platform and database backups.
 
 ### 5.12 Action Centre and personal notifications
 
@@ -362,7 +365,8 @@ The Getting Started page gives the Super Admin a live setup checklist. Progress 
 2. Activities, times, responsible people, and notes are reviewed and adjusted.
 3. The programme is published after validation.
 4. Church Leaders and Department Heads can view the published programme.
-5. Approved changes can be republished; an erroneous programme can be permanently deleted only by the Super Admin after exact-title confirmation.
+5. If public access is required, the Super Admin creates a time-limited link, copies it or downloads its QR code, and can later disable or replace it.
+6. Approved changes can be republished; an erroneous programme can be permanently deleted only by the Super Admin after exact-title confirmation.
 
 ### Reviewing performance and care needs
 
@@ -489,12 +493,11 @@ Before full organisational rollout, the church should confirm its legal name, pr
 
 ## 10. Current scope and future opportunities
 
-The current system includes authentication and password recovery, managed invitations, centrally managed user profiles, protected account deletion, role administration, immutable audit history, church settings and system health, guided onboarding, a role-aware Action Centre with personal seen and snooze controls, departments, a worker directory with validated CSV import, resilient attendance drafts, service-day scheduling and submission monitoring, worker attendance and corrections, leadership reporting, attendance trends, care alerts, optional WhatsApp delivery monitoring, congregation attendance and corrections, a Minister Directory, reusable programme templates, dated published service programmes, privacy information, CSV exports, protected JSON data export, database migrations, and documented backup/recovery procedures.
+The current system includes authentication and password recovery, managed invitations, centrally managed user profiles, protected account deletion, role administration, immutable audit history, church settings and system health, guided onboarding, a role-aware Action Centre with personal seen and snooze controls, departments, a worker directory with validated CSV import, resilient attendance drafts, service-day scheduling and submission monitoring, worker attendance and corrections, leadership reporting, attendance trends, care alerts, optional WhatsApp delivery monitoring, congregation attendance and corrections, a Minister Directory, reusable programme templates, dated published service programmes, revocable QR-code programme sharing, privacy information, CSV exports, protected JSON data export, database migrations, and documented backup/recovery procedures.
 
 Possible future additions include:
 
 - Tenant isolation and church switching for a multi-church edition.
-- QR-code access to published service information.
 - Approved PDF reports.
 - Offline-friendly service-day workflows.
 

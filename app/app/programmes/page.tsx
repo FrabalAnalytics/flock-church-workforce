@@ -1,8 +1,10 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import QRCode from "qrcode";
 import { addProgrammeItem, createProgramme, deleteProgramme, publishProgramme, removeProgrammeItem, updateProgrammeItem, updateTemplateItem } from "@/app/app/programmes/actions";
 import { PrintProgrammeButton } from "@/components/print-programme-button";
 import { FormSubmitButton } from "@/components/form-submit-button";
+import { ProgrammeSharePanel } from "@/components/programme-share-panel";
 
 export const metadata = { title: "Service programmes", description: "Create, publish and review dated service programmes." };
 import { WorkspaceNotice } from "@/components/workspace-notice";
@@ -16,6 +18,7 @@ type Programme = { id: string; title: string; service_date: string; service_type
 type ProgrammeItem = { id: string; programme_id: string; position: number; start_time: string; end_time: string; event_name: string; responsible_name: string; duration_minutes: number; notes: string | null };
 type Template = { id: string; name: string; active: boolean };
 type TemplateItem = { id: string; template_id: string; position: number; start_time: string; end_time: string; event_name: string; responsible_name: string; duration_minutes: number };
+type ProgrammeShare = { token: string; enabled: boolean; expires_at: string | null };
 
 function isoDate(date: Date) { return date.toISOString().slice(0, 10); }
 function shortTime(value: string) { return value.slice(0, 5); }
@@ -47,18 +50,32 @@ export default async function ProgrammesPage({ searchParams }: { searchParams: P
   );
   const selected = programmes.find((programme) => programme.id === params.programme) ?? upcomingProgrammes[0] ?? pastProgrammes[0] ?? null;
   const selectedTemplate = templates.find((template) => template.id === params.template) ?? templates[0] ?? null;
-  const [{ data: itemData }, { data: templateItemData }] = await Promise.all([
+  const [{ data: itemData }, { data: templateItemData }, { data: shareData, error: shareError }] = await Promise.all([
     selected ? supabase.from("service_programme_items").select("id, programme_id, position, start_time, end_time, event_name, responsible_name, duration_minutes, notes").eq("programme_id", selected.id).order("position") : Promise.resolve({ data: [] }),
     profile.role === "super_admin" && selectedTemplate ? supabase.from("service_programme_template_items").select("id, template_id, position, start_time, end_time, event_name, responsible_name, duration_minutes").eq("template_id", selectedTemplate.id).order("position") : Promise.resolve({ data: [] }),
+    profile.role === "super_admin" && selected ? supabase.from("service_programme_shares").select("token, enabled, expires_at").eq("programme_id", selected.id).maybeSingle() : Promise.resolve({ data: null, error: null }),
   ]);
   const items = (itemData ?? []) as ProgrammeItem[];
   const templateItems = (templateItemData ?? []) as TemplateItem[];
+  const selectedShare = (shareData ?? null) as ProgrammeShare | null;
   const totalDuration = items.reduce((total, item) => total + item.duration_minutes, 0);
   const programmeStart = items[0] ? shortTime(items[0].start_time) : null;
   const programmeEnd = items.at(-1) ? shortTime(items.at(-1)!.end_time) : null;
+  const appOrigin = process.env.NEXT_PUBLIC_APP_URL?.trim().replace(/\/$/, "") || "http://localhost:3000";
+  const publicShareUrl = selectedShare?.enabled && selectedShare.token
+    ? `${appOrigin}/programme/${selectedShare.token}`
+    : null;
+  const publicShareQr = publicShareUrl
+    ? await QRCode.toDataURL(publicShareUrl, {
+      errorCorrectionLevel: "H",
+      width: 420,
+      margin: 2,
+      color: { dark: "#101c3d", light: "#ffffff" },
+    })
+    : null;
 
   return <div className="mx-auto max-w-7xl print:max-w-none">
-    <WorkspaceNotice message={params.message} error={params.error ?? error?.message} />
+    <WorkspaceNotice message={params.message} error={params.error ?? error?.message ?? shareError?.message} />
     <div className="print:hidden"><PageHeader eyebrow="Service coordination" title="Service programme" description="Plan, publish and share a dated service schedule with leaders and department heads." actions={selected ? <PrintProgrammeButton /> : undefined} /><div className="mt-6 flex flex-wrap gap-2"><MetricPill value={upcomingProgrammes.length} label="upcoming" /><MetricPill value={pastProgrammes.length} label="archived" /><MetricPill value={programmes.filter((programme) => programme.status === "draft").length} label="drafts" tone={programmes.some((programme) => programme.status === "draft") ? "warning" : "neutral"} /></div></div>
 
     {profile.role === "super_admin" && <>
@@ -81,6 +98,7 @@ export default async function ProgrammesPage({ searchParams }: { searchParams: P
       <div className="divide-y divide-[#edf0f6]">{items.map((item) => profile.role === "super_admin" ? <div key={item.id} className="print:block px-5 py-4"><form action={updateProgrammeItem} className="grid gap-3 md:grid-cols-[60px_100px_100px_1.2fr_1fr_80px_auto] md:items-end"><input type="hidden" name="id" value={item.id} /><input type="hidden" name="programme_id" value={selected.id} /><span className="hidden self-center text-xs font-semibold text-[#8993a7] md:block">#{item.position}</span><label className="text-[11px] font-semibold text-[#68738a] print:hidden">Start<input name="start_time" type="time" defaultValue={shortTime(item.start_time)} required className="mt-1 h-10 w-full rounded-lg border border-[#dce3f1] px-2 text-xs" /></label><label className="text-[11px] font-semibold text-[#68738a] print:hidden">End<input name="end_time" type="time" defaultValue={shortTime(item.end_time)} required className="mt-1 h-10 w-full rounded-lg border border-[#dce3f1] px-2 text-xs" /></label><label className="text-[11px] font-semibold text-[#68738a] print:hidden">Activity<input name="event_name" defaultValue={item.event_name} required className="mt-1 h-10 w-full rounded-lg border border-[#dce3f1] px-2 text-xs" /></label><label className="text-[11px] font-semibold text-[#68738a] print:hidden">Responsible<input name="responsible_name" defaultValue={item.responsible_name} required className="mt-1 h-10 w-full rounded-lg border border-[#dce3f1] px-2 text-xs" /></label><span className="hidden self-center text-xs text-[#68738a] md:block print:hidden">{item.duration_minutes} min</span><button className="h-10 rounded-lg bg-[#edf2ff] px-3 text-xs font-semibold text-[#4168cd] print:hidden">Save</button></form><form action={removeProgrammeItem} className="mt-2 text-right print:hidden"><input type="hidden" name="id" value={item.id} /><input type="hidden" name="programme_id" value={selected.id} /><button className="text-[11px] font-semibold text-[#b5524b]">Remove item</button></form><div className="hidden print:grid print:grid-cols-[120px_1.2fr_1fr_90px] print:gap-4 print:text-sm"><span>{shortTime(item.start_time)}–{shortTime(item.end_time)}</span><span>{item.event_name}</span><span>{item.responsible_name}</span><span>{item.duration_minutes} min</span></div></div> : <article key={item.id} className="grid gap-2 px-5 py-4 md:grid-cols-[120px_1.2fr_1fr_90px] md:gap-4 md:px-6"><p className="text-sm font-semibold text-[#4f7df3]">{shortTime(item.start_time)}–{shortTime(item.end_time)}</p><div><p className="text-sm font-semibold text-[#34415f]">{item.event_name}</p>{item.notes && <p className="mt-1 text-xs text-[#8993a7]">{item.notes}</p>}</div><p className="text-sm text-[#5f6b82]">{item.responsible_name}</p><p className="text-xs font-semibold text-[#8993a7] md:text-sm">{item.duration_minutes} min</p></article>)}</div>
       {!items.length && <div className="print:hidden p-5"><EmptyState title="No schedule items yet" description={profile.role === "super_admin" ? "Add the first programme item before publishing this schedule." : "The schedule details have not been added yet."} /></div>}
       {profile.role === "super_admin" && <details className="print:hidden border-t border-[#e5e9f1] px-5 py-4"><summary className="cursor-pointer text-sm font-semibold text-[#536078]">Add another programme item</summary><form action={addProgrammeItem} className="mt-4 grid gap-3 sm:grid-cols-[110px_110px_1fr_1fr_auto] sm:items-end"><input type="hidden" name="programme_id" value={selected.id} /><label className="text-xs font-semibold text-[#68738a]">Start<input name="start_time" type="time" required className="mt-1 h-11 w-full rounded-lg border border-[#dce3f1] px-2 text-sm" /></label><label className="text-xs font-semibold text-[#68738a]">End<input name="end_time" type="time" required className="mt-1 h-11 w-full rounded-lg border border-[#dce3f1] px-2 text-sm" /></label><label className="text-xs font-semibold text-[#68738a]">Activity<input name="event_name" required className="mt-1 h-11 w-full rounded-lg border border-[#dce3f1] px-3 text-sm" /></label><label className="text-xs font-semibold text-[#68738a]">Responsible<input name="responsible_name" required className="mt-1 h-11 w-full rounded-lg border border-[#dce3f1] px-3 text-sm" /></label><FormSubmitButton pendingLabel="Adding..." className="min-h-11 rounded-lg bg-[var(--color-primary-soft)] px-4 text-sm font-semibold text-[var(--color-primary-strong)] disabled:cursor-wait disabled:opacity-60">Add item</FormSubmitButton></form></details>}
+      {profile.role === "super_admin" && selected.status === "published" && <ProgrammeSharePanel programmeId={selected.id} enabled={Boolean(selectedShare?.enabled)} shareUrl={publicShareUrl} qrDataUrl={publicShareQr} expiresAt={selectedShare?.expires_at ?? null} />}
       {profile.role === "super_admin" && <div className="print:hidden sticky bottom-0 z-10 flex flex-col gap-4 border-t border-[#d8e1f3] bg-white/95 px-5 py-4 shadow-[0_-12px_30px_rgba(16,28,61,0.08)] backdrop-blur sm:flex-row sm:items-center sm:justify-between"><div><p className="text-sm font-semibold text-[var(--color-text)]">{selected.status === "published" ? "Publish your latest changes" : "Ready to share this programme?"}</p><p className="mt-1 text-xs text-[var(--color-text-secondary)]">Review all times first. Publishing makes this schedule visible to leaders and department heads.</p></div><form action={publishProgramme}><input type="hidden" name="programme_id" value={selected.id} /><FormSubmitButton pendingLabel="Publishing..." className="min-h-12 w-full rounded-xl bg-[var(--color-primary)] px-5 text-sm font-semibold text-white hover:bg-[var(--color-primary-strong)] disabled:cursor-wait disabled:opacity-60 sm:w-auto">{selected.status === "published" ? "Republish updates" : "Publish programme"}</FormSubmitButton></form></div>}
       {profile.role === "super_admin" && <details className="print:hidden border-t border-[#f0d7d4] bg-[#fff9f8] px-5 py-4"><summary className="cursor-pointer text-sm font-semibold text-[#a94740]">Delete this programme</summary><div className="mt-3 rounded-xl border border-[#efd4d1] bg-white p-4"><p className="text-xs leading-5 text-[#7d5a57]">This permanently deletes the programme and all its schedule items. It will immediately disappear for church leaders and department heads. This cannot be undone.</p><form action={deleteProgramme} className="mt-4 grid gap-3 sm:grid-cols-[1fr_auto] sm:items-end"><input type="hidden" name="programme_id" value={selected.id} /><label className="text-xs font-semibold text-[#7d5a57]">Enter the exact title to confirm<input name="confirmation" required autoComplete="off" placeholder={selected.title} className="mt-2 h-11 w-full rounded-xl border border-[#dfbbb7] bg-white px-3 text-sm font-normal text-[#34415f]" /></label><FormSubmitButton pendingLabel="Deleting..." className="h-11 rounded-xl bg-[#b5524b] px-5 text-sm font-semibold text-white disabled:cursor-wait disabled:opacity-60">Permanently delete</FormSubmitButton></form></div></details>}
     </section> : <div className="mt-8"><EmptyState title="No service programme available" description={profile.role === "super_admin" ? "Create your first dated programme from the reusable Sunday template." : "A published service programme will appear here when it is ready."} /></div>}

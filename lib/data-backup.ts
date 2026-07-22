@@ -16,6 +16,7 @@ export const BACKUP_TABLES = [
   "service_programme_template_items",
   "service_programmes",
   "service_programme_items",
+  "service_programme_shares",
   "absence_followups",
   "followup_events",
   "audit_events",

@@ -1,5 +1,6 @@
 "use server";
 
+import { randomBytes } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireSuperAdmin } from "@/lib/admin";
@@ -184,4 +185,133 @@ export async function publishProgramme(formData: FormData) {
   if (!publishedProgramme) redirect(destination("error", "The programme was not published. Refresh the page and try again.", programmeId));
   revalidatePath("/app/programmes");
   redirect(destination("message", "Programme published to leaders and department heads.", programmeId));
+}
+
+export async function enableProgrammeShare(formData: FormData) {
+  const { user } = await requireSuperAdmin();
+  const programmeId = value(formData, "programme_id");
+  const expiryDays = value(formData, "expiry_days");
+  if (!programmeId || !new Set(["7", "30", "90", "never"]).has(expiryDays)) {
+    redirect(destination("error", "Choose a valid sharing period.", programmeId));
+  }
+
+  const supabase = await createClient();
+  const { data: programme, error: lookupError } = await supabase
+    .from("service_programmes")
+    .select("id, status")
+    .eq("id", programmeId)
+    .maybeSingle();
+  if (lookupError) redirect(destination("error", lookupError.message, programmeId));
+  if (!programme) redirect(destination("error", "Programme was not found.", programmeId));
+  if (programme.status !== "published") {
+    redirect(destination("error", "Publish the programme before creating a public link.", programmeId));
+  }
+
+  const { data: existingShare, error: shareLookupError } = await supabase
+    .from("service_programme_shares")
+    .select("token, created_at, created_by")
+    .eq("programme_id", programmeId)
+    .maybeSingle();
+  if (shareLookupError) redirect(destination("error", shareLookupError.message, programmeId));
+
+  const now = new Date();
+  const token = existingShare?.token ?? randomBytes(24).toString("hex");
+  const createdAt = existingShare?.created_at ?? now.toISOString();
+  const expiresAt = expiryDays === "never"
+    ? null
+    : new Date(now.getTime() + Number(expiryDays) * 24 * 60 * 60 * 1000).toISOString();
+  const { data: sharedProgramme, error } = await supabase
+    .from("service_programme_shares")
+    .upsert({
+      programme_id: programmeId,
+      token,
+      enabled: true,
+      expires_at: expiresAt,
+      created_at: createdAt,
+      created_by: existingShare?.created_by ?? user.id,
+    }, { onConflict: "programme_id" })
+    .select("id")
+    .maybeSingle();
+  if (error) redirect(destination("error", error.message, programmeId));
+  if (!sharedProgramme) redirect(destination("error", "The public link was not enabled.", programmeId));
+
+  revalidatePath("/app/programmes");
+  revalidatePath(`/programme/${token}`);
+  redirect(destination("message", "Public programme link enabled.", programmeId));
+}
+
+export async function disableProgrammeShare(formData: FormData) {
+  await requireSuperAdmin();
+  const programmeId = value(formData, "programme_id");
+  if (!programmeId) redirect(destination("error", "Programme was not found."));
+  const supabase = await createClient();
+  const { data: share, error: lookupError } = await supabase
+    .from("service_programme_shares")
+    .select("token")
+    .eq("programme_id", programmeId)
+    .maybeSingle();
+  if (lookupError) redirect(destination("error", lookupError.message, programmeId));
+  const { data: disabledProgramme, error } = await supabase
+    .from("service_programme_shares")
+    .update({ enabled: false })
+    .eq("programme_id", programmeId)
+    .select("id")
+    .maybeSingle();
+  if (error) redirect(destination("error", error.message, programmeId));
+  if (!disabledProgramme) redirect(destination("error", "The public link was not disabled.", programmeId));
+
+  revalidatePath("/app/programmes");
+  if (share?.token) revalidatePath(`/programme/${share.token}`);
+  redirect(destination("message", "Public programme link disabled.", programmeId));
+}
+
+export async function rotateProgrammeShare(formData: FormData) {
+  const { user } = await requireSuperAdmin();
+  const programmeId = value(formData, "programme_id");
+  if (!programmeId || value(formData, "confirmation") !== "rotate") {
+    redirect(destination("error", "Confirm before replacing the public link.", programmeId));
+  }
+  const supabase = await createClient();
+  const { data: programme, error: lookupError } = await supabase
+    .from("service_programmes")
+    .select("status")
+    .eq("id", programmeId)
+    .maybeSingle();
+  if (lookupError) redirect(destination("error", lookupError.message, programmeId));
+  const { data: share, error: shareLookupError } = await supabase
+    .from("service_programme_shares")
+    .select("token, enabled, expires_at")
+    .eq("programme_id", programmeId)
+    .maybeSingle();
+  if (shareLookupError) redirect(destination("error", shareLookupError.message, programmeId));
+  if (!programme || programme.status !== "published" || !share?.enabled) {
+    redirect(destination("error", "Enable sharing before replacing the link.", programmeId));
+  }
+
+  const token = randomBytes(24).toString("hex");
+  const now = new Date();
+  const expiresAt = share.expires_at
+    && new Date(share.expires_at) > now
+    ? share.expires_at
+    : share.expires_at
+      ? new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString()
+      : null;
+  const { data: rotatedProgramme, error } = await supabase
+    .from("service_programme_shares")
+    .update({
+      token,
+      created_at: now.toISOString(),
+      created_by: user.id,
+      expires_at: expiresAt,
+    })
+    .eq("programme_id", programmeId)
+    .select("id")
+    .maybeSingle();
+  if (error) redirect(destination("error", error.message, programmeId));
+  if (!rotatedProgramme) redirect(destination("error", "The public link was not replaced.", programmeId));
+
+  revalidatePath("/app/programmes");
+  revalidatePath(`/programme/${share.token}`);
+  revalidatePath(`/programme/${token}`);
+  redirect(destination("message", "A new public link was created. The previous link no longer works.", programmeId));
 }
