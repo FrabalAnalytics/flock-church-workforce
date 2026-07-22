@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { DeleteUserAccountForm } from "@/components/delete-user-account-form";
 import { UserAccessForm } from "@/components/user-access-form";
 import { WorkspaceNotice } from "@/components/workspace-notice";
 import { EmptyState, MetricPill, PageHeader, StatusBadge } from "@/components/workspace-ui";
@@ -93,7 +94,12 @@ export default async function UsersPage({ searchParams }: { searchParams: Promis
                 </div>
               </div>
 
-              <UserAccessForm id={user.id} fullName={user.full_name} initialRole={user.role as keyof typeof labels} initialDepartmentId={user.department_id} departments={departments ?? []} isCurrentUser={user.id === currentUser.id} returnTo={returnTo} />
+              <div>
+                <UserAccessForm id={user.id} fullName={user.full_name} initialRole={user.role as keyof typeof labels} initialDepartmentId={user.department_id} departments={departments ?? []} isCurrentUser={user.id === currentUser.id} returnTo={returnTo} />
+                {user.id !== currentUser.id && (user.role === "church_leader" || user.role === "super_admin") && (
+                  <DeleteUserAccountForm id={user.id} fullName={user.full_name} roleLabel={labels[user.role as keyof typeof labels]} returnTo={returnTo} />
+                )}
+              </div>
             </div>
           </article>
         )) : <EmptyState title="No users found" description="No user accounts match the selected search and filters." action={hasFilters ? <Link href="/app/users" className="inline-flex min-h-11 items-center rounded-xl bg-[var(--color-primary-soft)] px-5 text-sm font-semibold text-[var(--color-primary-strong)]">Clear filters</Link> : undefined} />}

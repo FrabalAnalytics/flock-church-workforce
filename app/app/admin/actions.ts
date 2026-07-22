@@ -152,3 +152,32 @@ export async function updateUserAccess(formData: FormData) {
   revalidatePath("/app", "layout");
   redirect(usersDestination(returnTo, "message", "User access updated."));
 }
+
+export async function deleteManagedUser(formData: FormData) {
+  const returnTo = safeUsersReturnPath(value(formData, "return_to"));
+  const { user } = await requireSuperAdmin();
+  const id = value(formData, "id");
+  const confirmation = value(formData, "confirmation");
+
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id)) {
+    redirect(usersDestination(returnTo, "error", "Select a valid account."));
+  }
+  if (id === user.id) {
+    redirect(usersDestination(returnTo, "error", "You cannot delete your own account."));
+  }
+  if (confirmation.length < 2 || confirmation.length > 120) {
+    redirect(usersDestination(returnTo, "error", "Enter the account holder's exact full name."));
+  }
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("delete_managed_user", {
+    p_user_id: id,
+    p_confirmation: confirmation,
+  });
+  if (error) redirect(usersDestination(returnTo, "error", error.message));
+
+  revalidatePath("/app", "layout");
+  revalidatePath("/app/audit");
+  const deletedName = typeof data === "string" && data ? data : "The account";
+  redirect(usersDestination(returnTo, "message", `${deletedName} was permanently deleted.`));
+}

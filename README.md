@@ -42,6 +42,20 @@ Database changes are versioned in `supabase/migrations`. Read
 the production schema. The existing production database must have the initial
 baseline marked as applied once; it must not be replayed blindly.
 
+## Automated checks
+
+Run the fast validation tests before linting and building:
+
+```bash
+npm test
+npm run lint
+npm run build
+```
+
+The test suite currently covers the worker CSV parser and validation rules.
+Add new `*.test.mjs` files under `tests` as more critical workflows are made
+independently testable.
+
 ## Backup and recovery
 
 The non-destructive logical backup procedure is documented in
