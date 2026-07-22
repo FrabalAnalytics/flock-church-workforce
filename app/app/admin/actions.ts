@@ -1,9 +1,12 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { requireSuperAdmin } from "@/lib/admin";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import { validateInvitationInput } from "@/lib/user-invitation";
 
 function value(formData: FormData, key: string) {
   return String(formData.get(key) ?? "").trim();
@@ -32,6 +35,23 @@ function safeUsersReturnPath(value: string) {
 
 function usersDestination(returnTo: string, type: "message" | "error", text: string) {
   return `${returnTo}${returnTo.includes("?") ? "&" : "?"}${type}=${encodeURIComponent(text)}`;
+}
+
+async function applicationOrigin() {
+  const configuredOrigin = process.env.NEXT_PUBLIC_APP_URL?.trim().replace(/\/$/, "");
+  if (configuredOrigin) {
+    const configuredUrl = new URL(configuredOrigin);
+    if (configuredUrl.protocol !== "https:" && configuredUrl.hostname !== "localhost") {
+      throw new Error("NEXT_PUBLIC_APP_URL must use HTTPS in production.");
+    }
+    return configuredUrl.origin;
+  }
+
+  const vercelHost = (process.env.VERCEL_PROJECT_PRODUCTION_URL ?? process.env.VERCEL_URL)?.trim();
+  if (vercelHost) return `https://${vercelHost}`;
+  const requestOrigin = (await headers()).get("origin");
+  if (requestOrigin) return new URL(requestOrigin).origin;
+  throw new Error("The public application URL is not configured.");
 }
 
 export async function createDepartment(formData: FormData) {
@@ -151,6 +171,61 @@ export async function updateUserAccess(formData: FormData) {
   if (error) redirect(usersDestination(returnTo, "error", error.message));
   revalidatePath("/app", "layout");
   redirect(usersDestination(returnTo, "message", "User access updated."));
+}
+
+export async function inviteManagedUser(formData: FormData) {
+  await requireSuperAdmin();
+  const validated = validateInvitationInput({
+    fullName: value(formData, "full_name"),
+    email: value(formData, "email"),
+    phoneNumber: value(formData, "phone_number"),
+    role: value(formData, "role"),
+    departmentId: value(formData, "department_id"),
+  });
+  if (!validated.value) redirect(withMessage("/app/users", "error", validated.error));
+  const invitation = validated.value;
+
+  let admin;
+  let inviteResult;
+  try {
+    admin = createAdminClient();
+    inviteResult = await admin.auth.admin.inviteUserByEmail(invitation.email, {
+      redirectTo: `${await applicationOrigin()}/auth/invite`,
+      data: {
+        full_name: invitation.fullName,
+        phone_number: invitation.phoneNumber,
+      },
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "The invitation service could not be reached.";
+    redirect(withMessage("/app/users", "error", message));
+  }
+
+  if (inviteResult.error || !inviteResult.data.user) {
+    redirect(withMessage("/app/users", "error", inviteResult.error?.message ?? "The invitation account was not created."));
+  }
+
+  const invitedUserId = inviteResult.data.user.id;
+  const supabase = await createClient();
+  const { error: profileError } = await supabase
+    .from("profiles")
+    .update({
+      role: invitation.role,
+      department_id: invitation.departmentId,
+      full_name: invitation.fullName,
+      phone_number: invitation.phoneNumber,
+      email: invitation.email,
+    })
+    .eq("id", invitedUserId);
+
+  if (profileError) {
+    await admin.auth.admin.deleteUser(invitedUserId);
+    redirect(withMessage("/app/users", "error", `Invitation cancelled because access assignment failed: ${profileError.message}`));
+  }
+
+  revalidatePath("/app", "layout");
+  revalidatePath("/app/action-centre");
+  redirect(withMessage("/app/users", "message", `Invitation sent to ${invitation.email}.`));
 }
 
 export async function deleteManagedUser(formData: FormData) {

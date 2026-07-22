@@ -56,6 +56,16 @@ The test suite currently covers the worker CSV parser and validation rules.
 Add new `*.test.mjs` files under `tests` as more critical workflows are made
 independently testable.
 
+## User invitations
+
+Super Admins can invite Church Leaders, Department Heads and other Super
+Admins from **Workspace → Users**. Invitations require the server-only
+`SUPABASE_SECRET_KEY` and `NEXT_PUBLIC_APP_URL` values. Add both
+`NEXT_PUBLIC_APP_URL` and `${NEXT_PUBLIC_APP_URL}/auth/invite` to the allowed
+redirect URLs in the Supabase Auth URL configuration before sending production
+invitations—for example, `https://your-domain.example/auth/invite`. The recipient verifies the emailed link and chooses a password;
+their assigned role is already active when they enter the workspace.
+
 ## Backup and recovery
 
 The non-destructive logical backup procedure is documented in

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { DeleteUserAccountForm } from "@/components/delete-user-account-form";
+import { InviteUserForm } from "@/components/invite-user-form";
 import { UserAccessForm } from "@/components/user-access-form";
 import { WorkspaceNotice } from "@/components/workspace-notice";
 import { EmptyState, MetricPill, PageHeader, StatusBadge } from "@/components/workspace-ui";
@@ -63,6 +64,8 @@ export default async function UsersPage({ searchParams }: { searchParams: Promis
       <div className="mt-7 rounded-2xl border border-[#d9e3fb] bg-[#f4f7ff] px-4 py-3.5 text-sm leading-6 text-[#49608f]">
         <strong className="font-semibold text-[#304d91]">Protected identity records.</strong> Church Leaders and Department Heads cannot change their own profile details; changes made here apply to their next authenticated request.
       </div>
+
+      <InviteUserForm departments={departments ?? []} />
 
       <form className="mt-5 rounded-2xl border border-[var(--color-border)] bg-white p-4 shadow-[var(--shadow-sm)]">
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-[minmax(240px,1fr)_200px_220px_auto_auto] xl:items-end">
