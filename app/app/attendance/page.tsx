@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { AttendanceCorrectionForm } from "@/components/attendance-correction-form";
+import { AttendanceDraftCleanup } from "@/components/attendance-draft-cleanup";
 import { WorkspaceNotice } from "@/components/workspace-notice";
 import { EmptyState, MetricPill, PageHeader, StatusBadge } from "@/components/workspace-ui";
 
@@ -30,6 +31,17 @@ function formatDate(value: string) {
   }).format(new Date(`${value}T00:00:00Z`));
 }
 
+function lagosDate() {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "Africa/Lagos",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(new Date());
+  const value = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+  return `${value.year}-${value.month}-${value.day}`;
+}
+
 export default async function AttendanceHistoryPage({
   searchParams,
 }: {
@@ -40,10 +52,15 @@ export default async function AttendanceHistoryPage({
     to?: string;
     service?: string;
     department?: string;
+    clear_attendance_draft?: string;
   }>;
 }) {
   const { profile } = await requireProfile();
   const params = await searchParams;
+  const expectedDraftKey = profile.role === "department_head" && profile.department_id
+    ? `flock:attendance-draft:v1:${profile.department_id}:${lagosDate()}`
+    : "";
+  const draftToClear = params.clear_attendance_draft === expectedDraftKey ? expectedDraftKey : "";
   const supabase = await createClient();
   const canFilterDepartments = profile.role === "super_admin" || profile.role === "church_leader";
   const service = serviceTypes.includes(params.service ?? "") ? params.service : "";
@@ -84,6 +101,7 @@ export default async function AttendanceHistoryPage({
 
   return (
     <div className="mx-auto max-w-7xl">
+      {draftToClear && <AttendanceDraftCleanup draftKey={draftToClear} />}
       <WorkspaceNotice message={params.message} error={params.error ?? error?.message ?? departmentsError?.message} />
       <PageHeader eyebrow="Worker service records" title="Worker attendance history" description="Review department submissions and each worker's attendance status." actions={profile.role === "department_head" ? <Link href="/app/attendance/new" className="flex min-h-12 w-full items-center justify-center rounded-xl bg-[var(--color-primary)] px-5 text-sm font-semibold text-white shadow-[0_10px_24px_rgba(79,125,243,0.2)] hover:bg-[var(--color-primary-strong)] sm:w-auto">Log worker attendance</Link> : undefined} />
       <div className="mt-6 flex flex-wrap gap-2">

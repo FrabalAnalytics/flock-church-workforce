@@ -1,8 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useFormStatus } from "react-dom";
 import { submitAttendance } from "@/app/app/attendance/actions";
+import {
+  createAttendanceDraft,
+  parseAttendanceDraft,
+} from "@/lib/attendance-draft";
 
 type Worker = { id: string; full_name: string; phone_number: string | null };
 
@@ -16,18 +20,28 @@ function SubmitButton({ disabled }: { disabled: boolean }) {
 export function AttendanceForm({
   workers,
   submittedServiceTypes = [],
+  latestSubmissionByService = {},
   availableServiceTypes = defaultServiceTypes,
   scheduleMessage,
+  draftKey,
 }: {
   workers: Worker[];
   submittedServiceTypes?: string[];
+  latestSubmissionByService?: Record<string, string>;
   availableServiceTypes?: string[];
   scheduleMessage?: string;
+  draftKey: string;
 }) {
   const [presentIds, setPresentIds] = useState(() => new Set<string>());
   const [query, setQuery] = useState("");
   const [view, setView] = useState<"all" | "present" | "absent">("all");
   const [selectedService, setSelectedService] = useState("");
+  const [draftReady, setDraftReady] = useState(false);
+  const [draftRestored, setDraftRestored] = useState(false);
+  const [draftSavedAt, setDraftSavedAt] = useState("");
+  const [draftStorageAvailable, setDraftStorageAvailable] = useState(true);
+  const [online, setOnline] = useState(true);
+  const lastSavedSignature = useRef("");
   const submittedServices = new Set(submittedServiceTypes);
   const replacesSubmission = submittedServices.has(selectedService);
   const allPresent = workers.length > 0 && presentIds.size === workers.length;
@@ -37,6 +51,86 @@ export function AttendanceForm({
     const matchesView = view === "all" || (view === "present" ? presentIds.has(worker.id) : !presentIds.has(worker.id));
     return matchesQuery && matchesView;
   });
+
+  useEffect(() => {
+    function updateConnectionStatus() {
+      setOnline(window.navigator.onLine);
+    }
+    updateConnectionStatus();
+    window.addEventListener("online", updateConnectionStatus);
+    window.addEventListener("offline", updateConnectionStatus);
+    return () => {
+      window.removeEventListener("online", updateConnectionStatus);
+      window.removeEventListener("offline", updateConnectionStatus);
+    };
+  }, []);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      try {
+        const rawDraft = window.localStorage.getItem(draftKey);
+        const draft = rawDraft ? parseAttendanceDraft(rawDraft, {
+          allowedWorkerIds: new Set(workers.map((worker) => worker.id)),
+          allowedServiceTypes: new Set(availableServiceTypes),
+          latestSubmissionByService,
+        }) : null;
+        if (rawDraft && !draft) window.localStorage.removeItem(draftKey);
+        if (draft) {
+          setSelectedService(draft.serviceType);
+          setPresentIds(new Set(draft.presentWorkerIds));
+          setDraftSavedAt(draft.updatedAt);
+          setDraftRestored(true);
+          lastSavedSignature.current = `${draft.serviceType}|${draft.presentWorkerIds.join(",")}`;
+        } else {
+          lastSavedSignature.current = "|";
+        }
+      } catch {
+        setDraftStorageAvailable(false);
+      } finally {
+        setDraftReady(true);
+      }
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [availableServiceTypes, draftKey, latestSubmissionByService, workers]);
+
+  useEffect(() => {
+    if (!draftReady || !draftStorageAvailable) return;
+    const sortedIds = [...presentIds].sort();
+    const signature = `${selectedService}|${sortedIds.join(",")}`;
+    if (signature === lastSavedSignature.current) return;
+
+    const timer = window.setTimeout(() => {
+      try {
+        if (!selectedService && !sortedIds.length) {
+          window.localStorage.removeItem(draftKey);
+          setDraftSavedAt("");
+        } else {
+          const draft = createAttendanceDraft(selectedService, sortedIds);
+          window.localStorage.setItem(draftKey, JSON.stringify(draft));
+          setDraftSavedAt(draft.updatedAt);
+        }
+        lastSavedSignature.current = signature;
+        setDraftRestored(false);
+      } catch {
+        setDraftStorageAvailable(false);
+      }
+    }, 350);
+
+    return () => window.clearTimeout(timer);
+  }, [draftKey, draftReady, draftStorageAvailable, presentIds, selectedService]);
+
+  function discardDraft() {
+    try {
+      window.localStorage.removeItem(draftKey);
+    } catch {
+      setDraftStorageAvailable(false);
+    }
+    lastSavedSignature.current = "|";
+    setSelectedService("");
+    setPresentIds(new Set());
+    setDraftSavedAt("");
+    setDraftRestored(false);
+  }
 
   function toggleWorker(id: string) {
     setPresentIds((current) => {
@@ -51,6 +145,11 @@ export function AttendanceForm({
   }
 
   function confirmSubmission(event: React.FormEvent<HTMLFormElement>) {
+    if (!online) {
+      event.preventDefault();
+      window.alert("Your attendance draft is safe on this device. Reconnect to the internet before submitting.");
+      return;
+    }
     const absentCount = workers.length - presentIds.size;
     const confirmation: string[] = [];
     if (replacesSubmission) confirmation.push(`${selectedService} was already submitted today. Saving will replace its current worker attendance.`);
@@ -63,6 +162,23 @@ export function AttendanceForm({
   return (
     <form action={submitAttendance} onSubmit={confirmSubmission} className="mt-8 space-y-6">
       {Array.from(presentIds).map((id) => <input key={id} type="hidden" name="present_worker_ids" value={id} />)}
+      <section className={`flex flex-col gap-3 rounded-2xl border px-4 py-3 sm:flex-row sm:items-center sm:justify-between ${online ? "border-[#d9e3fb] bg-[#f4f7ff]" : "border-[#f0dfbd] bg-[#fffaf0]"}`} aria-live="polite">
+        <div>
+          <p className={`text-sm font-semibold ${online ? "text-[#304d91]" : "text-[#80662f]"}`}>{online ? "Draft protection active" : "You are offline"}</p>
+          <p className="mt-1 text-xs leading-5 text-[var(--color-text-secondary)]">
+            {!draftStorageAvailable
+              ? "This browser blocked local draft storage. Keep this page open until you submit."
+              : !online
+                ? "Your selections remain saved on this device. Reconnect before submitting."
+                : draftRestored
+                  ? "Your unfinished attendance draft was restored from this device."
+                  : draftSavedAt
+                    ? `Saved on this device at ${new Intl.DateTimeFormat("en-NG", { hour: "2-digit", minute: "2-digit" }).format(new Date(draftSavedAt))}.`
+                    : "Selections are saved automatically on this device as you work."}
+          </p>
+        </div>
+        {(selectedService || presentIds.size > 0) && <button type="button" onClick={discardDraft} className="min-h-10 shrink-0 rounded-xl border border-[var(--color-border)] bg-white px-4 text-xs font-semibold text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-subtle)]">Discard draft</button>}
+      </section>
       <section className="rounded-3xl border border-[var(--color-border)] bg-white p-5 shadow-[var(--shadow-sm)] sm:p-7">
         <label className="block text-sm font-semibold text-[var(--color-text-secondary)]">Service type<select name="service_type" required disabled={!availableServiceTypes.length} value={selectedService} onChange={(event) => setSelectedService(event.target.value)} className="mt-2 h-12 w-full rounded-xl border border-[var(--color-border)] bg-white px-4 text-sm font-normal outline-none focus:border-[var(--color-primary)] disabled:cursor-not-allowed disabled:bg-[var(--color-surface-subtle)] sm:max-w-md"><option value="" disabled>{availableServiceTypes.length ? "Select the service" : "No open service available"}</option>{availableServiceTypes.map((service) => <option key={service} value={service}>{service}{submittedServices.has(service) ? " · already submitted" : ""}</option>)}</select></label>
         {scheduleMessage && <p className="mt-3 text-xs leading-5 text-[var(--color-text-muted)]">{scheduleMessage}</p>}
@@ -104,7 +220,7 @@ export function AttendanceForm({
       </section>
       <div className="sticky bottom-3 z-10 flex flex-col gap-4 rounded-2xl border border-[#dbe5ff] bg-[#edf2ff]/95 px-5 py-4 shadow-[0_16px_35px_rgba(31,48,88,0.14)] backdrop-blur sm:flex-row sm:items-center sm:justify-between">
         <div aria-live="polite" className="flex gap-6 text-sm"><p><span className="font-semibold text-[var(--color-text)]">{presentIds.size}</span> <span className="text-[var(--color-text-secondary)]">present</span></p><p><span className="font-semibold text-[var(--color-text)]">{workers.length - presentIds.size}</span> <span className="text-[var(--color-text-secondary)]">absent</span></p></div>
-        <SubmitButton disabled={!workers.length || !availableServiceTypes.length} />
+        <SubmitButton disabled={!online || !workers.length || !availableServiceTypes.length} />
       </div>
     </form>
   );

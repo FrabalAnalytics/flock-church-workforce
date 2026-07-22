@@ -17,6 +17,17 @@ function destination(type: "message" | "error", text: string) {
   return `/app/attendance${type === "error" ? "/new" : ""}?${type}=${encodeURIComponent(text)}`;
 }
 
+function lagosDate() {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "Africa/Lagos",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(new Date());
+  const value = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+  return `${value.year}-${value.month}-${value.day}`;
+}
+
 function safeAttendanceReturnPath(value: string) {
   try {
     const url = new URL(value, "https://flock.local");
@@ -69,7 +80,11 @@ export async function submitAttendance(formData: FormData) {
 
   revalidatePath("/app/attendance");
   revalidatePath("/app");
-  redirect(destination("message", `${serviceType} worker attendance was submitted.`));
+  const successParams = new URLSearchParams({
+    message: `${serviceType} worker attendance was submitted.`,
+    clear_attendance_draft: `flock:attendance-draft:v1:${profile.department_id}:${lagosDate()}`,
+  });
+  redirect(`/app/attendance?${successParams}`);
 }
 
 export async function correctSubmittedAttendance(formData: FormData) {

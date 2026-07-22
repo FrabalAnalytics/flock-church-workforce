@@ -28,7 +28,7 @@ export default async function NewAttendancePage({ searchParams }: { searchParams
   const [departmentResult, workersResult, submissionsResult, servicesResult] = await Promise.all([
     supabase.from("departments").select("name").eq("id", profile.department_id).single(),
     supabase.from("workers").select("id, full_name, phone_number").eq("department_id", profile.department_id).eq("status", "Active").order("full_name"),
-    supabase.from("attendance_submissions").select("id, services!inner(service_date, service_type)").eq("services.service_date", today),
+    supabase.from("attendance_submissions").select("id, submitted_at, services!inner(service_date, service_type)").eq("services.service_date", today),
     supabase.from("services").select("id, service_type, attendance_status, attendance_managed").eq("service_date", today),
   ]);
   const department = departmentResult.data;
@@ -37,6 +37,15 @@ export default async function NewAttendancePage({ searchParams }: { searchParams
     const service = submission.services as unknown as { service_type: string } | null;
     return service?.service_type;
   }).filter((service): service is string => Boolean(service)))];
+  const latestSubmissionByService: Record<string, string> = {};
+  for (const submission of submissionsResult.data ?? []) {
+    const service = submission.services as unknown as { service_type: string } | null;
+    if (!service?.service_type) continue;
+    const current = latestSubmissionByService[service.service_type];
+    if (!current || submission.submitted_at > current) {
+      latestSubmissionByService[service.service_type] = submission.submitted_at;
+    }
+  }
   const managedServices = (servicesResult.data ?? []).filter((service) => service.attendance_managed);
   const managedServiceIds = managedServices.map((service) => service.id);
   const expectationsResult = managedServiceIds.length
@@ -64,7 +73,14 @@ export default async function NewAttendancePage({ searchParams }: { searchParams
       <PageHeader eyebrow="Department workers" title="Log worker attendance" description={`${department?.name ?? "Your department"} · Today's active workforce roster`} />
       <div className="mt-5 flex flex-wrap gap-2"><MetricPill label="Active workers" value={workers?.length ?? 0} /><MetricPill label="Submitted today" value={submittedServiceTypes.length} /></div>
       {submittedServiceTypes.length > 0 && <section className="mt-6 rounded-2xl border border-[#cfe3d5] bg-[#f4faf6] px-4 py-4 sm:px-5" aria-label="Today's completed attendance"><p className="text-sm font-semibold text-[#347457]">Already submitted today</p><div className="mt-3 flex flex-wrap gap-2">{submittedServiceTypes.map((service) => <span key={service} className="rounded-full bg-white px-3 py-1.5 text-xs font-semibold text-[#347457] shadow-[var(--shadow-sm)]">✓ {service}</span>)}</div><p className="mt-3 text-xs leading-5 text-[#668071]">You can select one of these services to make a correction, but saving will replace its current worker statuses.</p></section>}
-      <AttendanceForm workers={workers ?? []} submittedServiceTypes={submittedServiceTypes} availableServiceTypes={availableServiceTypes} scheduleMessage={scheduleMessage} />
+      <AttendanceForm
+        workers={workers ?? []}
+        submittedServiceTypes={submittedServiceTypes}
+        latestSubmissionByService={latestSubmissionByService}
+        availableServiceTypes={availableServiceTypes}
+        scheduleMessage={scheduleMessage}
+        draftKey={`flock:attendance-draft:v1:${profile.department_id}:${today}`}
+      />
     </div>
   );
 }
