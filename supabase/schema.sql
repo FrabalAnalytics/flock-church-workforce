@@ -199,6 +199,20 @@ create table if not exists public.system_job_runs (
 create index if not exists system_job_runs_latest_idx
   on public.system_job_runs (job_name, started_at desc);
 
+create table if not exists public.notification_states (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references public.profiles(id) on delete cascade,
+  notification_key text not null
+    check (char_length(notification_key) between 8 and 200),
+  read_at timestamptz,
+  snoozed_until timestamptz,
+  updated_at timestamptz not null default now(),
+  unique (user_id, notification_key)
+);
+
+create index if not exists notification_states_user_snoozed_idx
+  on public.notification_states (user_id, snoozed_until);
+
 alter table public.attendance_submissions
   add column if not exists corrected_by uuid
   references public.profiles(id) on delete set null;
@@ -2073,6 +2087,7 @@ alter table public.service_control_events enable row level security;
 alter table public.audit_events enable row level security;
 alter table public.church_settings enable row level security;
 alter table public.system_job_runs enable row level security;
+alter table public.notification_states enable row level security;
 alter table public.ministers enable row level security;
 alter table public.church_attendance enable row level security;
 alter table public.service_programme_templates enable row level security;
@@ -2107,6 +2122,7 @@ drop policy if exists "Leaders view service control events" on public.service_co
 drop policy if exists "Super admins view audit events" on public.audit_events;
 drop policy if exists "Super admins manage church settings" on public.church_settings;
 drop policy if exists "Super admins view system job runs" on public.system_job_runs;
+drop policy if exists "Users manage own notification state" on public.notification_states;
 drop policy if exists "Church leaders view ministers" on public.ministers;
 drop policy if exists "Super admins manage ministers" on public.ministers;
 drop policy if exists "Church leaders view church attendance" on public.church_attendance;
@@ -2223,6 +2239,11 @@ create policy "Super admins manage church settings"
 create policy "Super admins view system job runs"
   on public.system_job_runs for select to authenticated
   using (public.is_super_admin());
+
+create policy "Users manage own notification state"
+  on public.notification_states for all to authenticated
+  using ((select auth.uid()) = user_id)
+  with check ((select auth.uid()) = user_id);
 
 create policy "Church leaders view ministers"
   on public.ministers for select to authenticated
@@ -2410,6 +2431,7 @@ revoke all on table public.service_control_events from anon;
 revoke all on table public.audit_events from anon;
 revoke all on table public.church_settings from anon;
 revoke all on table public.system_job_runs from anon;
+revoke all on table public.notification_states from anon;
 revoke all on table public.ministers from anon;
 revoke all on table public.church_attendance from anon;
 revoke all on table public.service_programme_templates from anon;
@@ -2433,6 +2455,8 @@ grant select on table public.audit_events to authenticated;
 grant select, insert, update on table public.church_settings to authenticated;
 revoke all on table public.system_job_runs from authenticated;
 grant select on table public.system_job_runs to authenticated;
+grant select, insert, update, delete on table public.notification_states
+  to authenticated;
 grant select, insert, update on table public.ministers to authenticated;
 grant select on table public.church_attendance to authenticated;
 grant select, insert, update, delete on table public.service_programme_templates to authenticated;
