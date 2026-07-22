@@ -2,6 +2,8 @@
 
 ## Presentation and User Overview
 
+Updated for the July 2026 release.
+
 ### 1. Executive summary
 
 Flock is a secure, mobile-friendly church workforce and attendance management system. It helps church leadership maintain accurate worker records, record departmental attendance, monitor participation trends, identify workers who may need care or follow-up, and track overall congregation attendance.
@@ -54,13 +56,20 @@ The Super Admin can:
 - Add and update worker records.
 - Maintain the Minister Directory.
 - Review newly registered users.
+- Invite approved leaders directly by email.
 - Assign user roles and departments.
+- Delete leader or administrator accounts through a protected confirmation flow.
 - View church-wide worker attendance and reports.
 - Correct previously submitted worker-attendance records.
 - View care and absence alerts.
 - Record and correct congregation attendance.
 - Create, edit, publish, republish, and permanently delete service programmes.
 - Export attendance information to CSV.
+- Review operational priorities in the Action Centre.
+- Maintain church identity and contact settings.
+- Review system and integration health.
+- Follow the guided workspace setup checklist.
+- Download a protected full-data backup.
 
 Only trusted administrators should receive this role.
 
@@ -108,10 +117,12 @@ Every newly registered account starts as pending. A pending user cannot access o
 - Users sign in with an email address and password.
 - Password recovery is supported through verified email links.
 - New accounts remain pending until approved.
+- Super Admins can send managed invitation links to approved leaders.
 - Access is controlled by user role and department.
 - Database Row-Level Security provides protection beyond the visible interface.
 - Profile names, phone numbers, roles, and department assignments are managed only by a Super Admin.
 - Users can still reset or change their own passwords through Supabase Auth.
+- Privileged account deletion requires explicit confirmation and prevents an administrator from deleting their own active account accidentally.
 
 ### 5.2 Department management
 
@@ -219,7 +230,7 @@ Flock monitors consecutive worker absences. It can create escalating follow-up e
 
 Workers marked On Leave or Inactive are removed from the active care queue without deleting their attendance history.
 
-Automated WhatsApp delivery has been prepared for future use but is currently paused. No paid Twilio messaging is required for the system's present attendance and dashboard functions.
+Automated WhatsApp delivery is optional. When Twilio and the protected dispatcher are configured, approved care-message events can be processed and their queued, sent, delivered, failed, or cancelled states recorded. Workers must have opted in before automated care messages are queued, and a Super Admin can run a controlled test from Settings. Flock's attendance, dashboard, reporting, and manual care workflows continue to work without paid messaging.
 
 ### 5.8 Congregation attendance
 
@@ -276,7 +287,41 @@ Authorised users can export worker-attendance and church-attendance reports as C
 
 The database uses ordered, timestamped migration files in `supabase/migrations`. The readable `supabase/schema.sql` file remains the current-state snapshot, while migrations provide a controlled history of changes for deployment and review.
 
-Backup and recovery procedures, verification scripts, and a backup register template are documented in the repository. Routine backups are intentionally pending until full onboarding, but the process is ready to activate before genuine church-wide data becomes operational.
+Backup and recovery procedures, verification scripts, and a backup register template are documented in the repository. Super Admins can also download a protected JSON export of the church's durable application data from Settings. The exported file contains personal and ministry information and must be kept only in an encrypted, access-controlled location. This application export supplements, rather than replaces, Supabase platform and database backups.
+
+### 5.12 Action Centre and personal notifications
+
+The Action Centre brings urgent and incomplete operational work into one role-aware view. Depending on the user's permissions, it can show:
+
+- Expected departments with missing attendance submissions.
+- Unresolved worker-care follow-ups.
+- New accounts awaiting access approval.
+- Failed automated message deliveries.
+
+Each user can mark an item as seen, snooze it for 24 hours, or restore it early. Seen and snoozed states are personal to that user and do not change or resolve the underlying attendance, care, access, or delivery record. Completing the actual work removes the related action for everyone who is authorised to see it.
+
+### 5.13 Managed invitations and account administration
+
+A Super Admin can invite a Church Leader, Department Head, or another Super Admin by email. The invitation assigns the intended role and, where required, the department before the recipient completes account setup. This reduces the need to approve and reconfigure an account after self-registration.
+
+Super Admins can also delete leader and administrator accounts when access must be withdrawn. Deletion uses a protected server-side flow with deliberate confirmation. The system prevents unsafe self-deletion of the currently signed-in administrator, while database relationships preserve or safely detach historical operational records according to their defined retention rules.
+
+### 5.14 Church settings and system health
+
+The Super Admin Settings page provides one place to maintain:
+
+- Church name.
+- Operating timezone.
+- Care-message signature.
+- Official contact email and phone number.
+
+The same page reports whether essential integrations are ready without displaying secret values. It checks database readiness, managed invitations, WhatsApp configuration, the public callback URL, deployment information, the latest protected dispatcher run, and recent message-delivery failures. A controlled WhatsApp test is available when messaging is configured.
+
+The current release is a single-church workspace. These settings describe the local church using that deployment; they are not yet separate tenant settings for multiple churches sharing one database.
+
+### 5.15 Guided onboarding
+
+The Getting Started page gives the Super Admin a live setup checklist. Progress is calculated automatically from existing records and covers the church profile, departments, administrator access, active workers, and the first attendance submission. It helps a new church move from an empty deployment to a usable weekly workflow without relying on a separate manual checklist.
 
 ---
 
@@ -284,11 +329,13 @@ Backup and recovery procedures, verification scripts, and a backup register temp
 
 ### Before regular use
 
-1. The Super Admin confirms the list of departments.
-2. Worker records are added and assigned to departments.
-3. Users register with their email addresses.
-4. The Super Admin assigns each approved user a role.
-5. Department Heads are assigned to the correct departments.
+1. The Super Admin opens Getting Started and reviews workspace readiness.
+2. Church identity, timezone, message signature, and official contact details are completed in Settings.
+3. The Super Admin confirms the list of departments.
+4. Worker records are added individually or imported from a validated CSV file and assigned to departments.
+5. Approved leaders are invited, or registered accounts are reviewed from Access Management.
+6. The Super Admin assigns each approved user a role and assigns every Department Head to the correct department.
+7. System health is reviewed and a protected backup is downloaded before genuine operational data is collected.
 
 ### On a service day
 
@@ -319,11 +366,20 @@ Backup and recovery procedures, verification scripts, and a backup register temp
 
 ### Reviewing performance and care needs
 
-1. A leader opens the Overview.
-2. The relevant period, service type, or department is selected.
-3. KPIs, trend lines, department comparisons, and service logs are reviewed.
-4. Care alerts are checked for workers with repeated absences.
-5. Appropriate ministry follow-up happens outside or through the authorised workflow.
+1. A leader opens the Action Centre to review current attendance gaps and care priorities.
+2. Items already acknowledged can be marked seen; an item can be snoozed for 24 hours without altering the underlying record.
+3. The leader opens the Overview and selects the relevant period, service type, or department.
+4. KPIs, trend lines, department comparisons, and service logs are reviewed.
+5. Care alerts are checked for workers with repeated absences.
+6. Appropriate ministry follow-up happens outside or through the authorised workflow.
+
+### Weekly administration and backup
+
+1. The Super Admin reviews Settings and System Health for configuration or delivery warnings.
+2. Recent failed message events and the latest dispatcher result are reviewed when WhatsApp automation is enabled.
+3. A full church-data JSON backup is downloaded from Settings.
+4. The backup is moved to an encrypted, access-controlled location and recorded in the private backup register.
+5. The documented database backup and verification procedure is also followed according to the church's retention schedule.
 
 ---
 
@@ -375,8 +431,13 @@ Key safeguards include:
 - Pending approval for new accounts.
 - Server-side validation for privileged actions.
 - Audit fields showing who submitted or updated records.
+- Immutable audit events for sensitive operational changes.
 - Super-admin-only attendance correction functions.
 - Centrally managed profile identity and contact information.
+- Protected managed invitations and administrator account deletion.
+- Personal notification state isolated to the authenticated user.
+- Secret-safe system health checks.
+- Super-admin-only full-data export with private, no-store response headers.
 - Timestamped database migrations and a documented recovery process.
 - Aggregate-only congregation attendance.
 - A published privacy notice within the application.
@@ -428,13 +489,13 @@ Before full organisational rollout, the church should confirm its legal name, pr
 
 ## 10. Current scope and future opportunities
 
-The current system includes authentication, centrally managed user profiles, role administration, immutable audit history, departments, a worker directory with validated CSV import, service-day scheduling and submission monitoring, worker attendance and corrections, leadership reporting, attendance trends, care alerts, congregation attendance and corrections, a Minister Directory, reusable programme templates, dated published service programmes, privacy information, CSV exports, database migrations, and backup/recovery procedures.
+The current system includes authentication and password recovery, managed invitations, centrally managed user profiles, protected account deletion, role administration, immutable audit history, church settings and system health, guided onboarding, a role-aware Action Centre with personal seen and snooze controls, departments, a worker directory with validated CSV import, resilient attendance drafts, service-day scheduling and submission monitoring, worker attendance and corrections, leadership reporting, attendance trends, care alerts, optional WhatsApp delivery monitoring, congregation attendance and corrections, a Minister Directory, reusable programme templates, dated published service programmes, privacy information, CSV exports, protected JSON data export, database migrations, and documented backup/recovery procedures.
 
 Possible future additions include:
 
+- Tenant isolation and church switching for a multi-church edition.
 - QR-code access to published service information.
 - Approved PDF reports.
-- Optional paid WhatsApp care messaging.
 - Offline-friendly service-day workflows.
 
 These are future opportunities and should be introduced only after the core attendance process is stable and adopted.
@@ -456,8 +517,10 @@ These are future opportunities and should be introduced only after the core atte
 5. Show care alerts and explain their pastoral purpose.
 6. Show the Congregation Attendance overview.
 7. Sign in as a Super Admin.
-8. Demonstrate worker, department, user-access, attendance-correction, and service-programme management.
-9. Explain privacy, read-only leadership access, role restrictions, duplicate prevention, and migration controls.
+8. Demonstrate the Action Centre, Getting Started checklist, Settings, and system-health indicators.
+9. Demonstrate worker import, department management, managed invitations, user access, attendance correction, and service-programme management.
+10. Show the protected backup download and explain secure storage and recovery responsibilities.
+11. Explain privacy, read-only leadership access, role restrictions, duplicate prevention, personal notification states, audit history, and migration controls.
 
 ### Closing statement
 
@@ -495,17 +558,33 @@ No. Congregation attendance consists only of aggregate adult male, adult female,
 
 Only a Super Admin. Church Leaders and Department Heads cannot change their own profile identity or contact information, although every user can still change or reset their own password through Supabase Auth.
 
+### Can a Super Admin invite or remove another leader?
+
+Yes. A Super Admin can send an approved invitation with the intended role and department. A Super Admin can also delete a Church Leader, Department Head, or another Super Admin through the protected confirmation flow. The currently signed-in Super Admin cannot delete their own active account through that workflow.
+
+### What does marking or snoozing an Action Centre item do?
+
+Marking an item as seen records a personal acknowledgement. Snoozing hides it from that user's active list for 24 hours, and it can be restored sooner. Neither action resolves or edits the underlying ministry record. Completing the attendance, access, care, or delivery task is what removes the operational issue.
+
 ### Who can change or delete a service programme?
 
 Only a Super Admin can create, edit, publish, republish, or permanently delete a programme. Church Leaders and Department Heads can view published programmes only.
 
 ### Is WhatsApp required?
 
-No. The current system works without Twilio or paid WhatsApp messaging. That capability is paused and can be considered later.
+No. The system works without Twilio or paid WhatsApp messaging. When the church chooses to enable it, Settings shows configuration health, a controlled test is available, and delivery outcomes are recorded for review.
 
 ### Can reports be downloaded?
 
 Yes. Authorised users can export applicable attendance reports as CSV files.
+
+### Can the church's complete application data be backed up?
+
+Yes. A Super Admin can download a protected JSON export from Settings. It contains sensitive church and personal information and must be stored securely. The repository also contains a database backup, verification, retention, and recovery runbook. The application export does not replace Supabase platform backups, particularly for Auth users and sessions.
+
+### Is this version ready for several churches in one deployment?
+
+Not yet. The current release is a single-church workspace. A separate deployment can be configured for each pilot church, but true multi-tenancy requires tenant identifiers, tenant-aware access policies, isolated settings, and migration of existing data before churches safely share one database.
 
 ### Can the system work on a mobile phone?
 
