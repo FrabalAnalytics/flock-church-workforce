@@ -24,7 +24,7 @@ export default async function WorkspaceLayout({ children }: { children: React.Re
 
   const navigation: Record<string, WorkspaceGroup[]> = {
     super_admin: [
-      { label: "Workspace", links: [{ label: "Overview", href: "/app/reports", icon: "overview" }, { label: "Action Centre", href: "/app/action-centre", icon: "actions" }, { label: "Getting started", href: "/app/getting-started", icon: "setup" }] },
+      { label: "Workspace", links: [{ label: "Overview", href: "/app/reports", icon: "overview" }, { label: "First-timer report", href: "/app/reports/first-timers", icon: "newcomers" }, { label: "Action Centre", href: "/app/action-centre", icon: "actions" }, { label: "Getting started", href: "/app/getting-started", icon: "setup" }] },
       { label: "People", links: [
         { label: "Worker directory", href: "/app/workers", icon: "people" },
         { label: "First timers", href: "/app/first-timers", icon: "newcomers" },
@@ -43,7 +43,7 @@ export default async function WorkspaceLayout({ children }: { children: React.Re
       ] },
     ],
     church_leader: [
-      { label: "Workspace", links: [{ label: "Overview", href: "/app/reports", icon: "overview" }, { label: "Action Centre", href: "/app/action-centre", icon: "actions" }] },
+      { label: "Workspace", links: [{ label: "Overview", href: "/app/reports", icon: "overview" }, { label: "First-timer report", href: "/app/reports/first-timers", icon: "newcomers" }, { label: "Action Centre", href: "/app/action-centre", icon: "actions" }] },
       { label: "Ministry oversight", links: [
         { label: "Service-day control", href: "/app/service-days", icon: "control" },
         { label: "Worker attendance", href: "/app/attendance", icon: "attendance" },

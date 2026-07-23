@@ -88,6 +88,7 @@ Church Leaders can:
 - View published service programmes.
 - Export authorised reports.
 - Review, assign, and update first-timer follow-up journeys.
+- Analyse first-timer return, connection, training, and membership movement.
 
 Church Leaders cannot change profiles, workers, attendance, worker-care alerts, programmes, departments, ministers, roles, or permissions. First-timer care is their only operational write workflow.
 
@@ -295,6 +296,8 @@ The system checks normalized phone numbers before registration and opens the exi
 
 Contact shortcuts and scheduled follow-up are enabled only when consent is recorded. Withdrawing consent clears the scheduled action. Row-Level Security limits all identifiable newcomer records, interactions, and visits to Super Admins, Church Leaders, and First Timers Coordinators, and the audit history records changes for accountable administration.
 
+Every journey-stage change is also written to an immutable movement ledger. Church Leaders and Super Admins can open the First-Timer Movement report to select a first-visit cohort and coordinator, review the conversion funnel, monthly trend, current stage distribution, average movement time, coordinator outcomes, and journeys needing leadership attention. Existing journeys receive a current-stage baseline when the ledger is installed; the system does not invent transitions that happened before tracking began.
+
 ### 5.10 Service programmes
 
 The Super Admin can create a dated service programme from a reusable template. Template rows are copied into the dated programme so later template changes do not rewrite an already planned service.
@@ -316,7 +319,7 @@ Public sharing is off by default and can be enabled only by a Super Admin after 
 
 ### 5.11 Data export
 
-Authorised users can export worker-attendance and church-attendance reports as CSV files for approved analysis in spreadsheet tools. They can also download leadership-ready PDF reports containing the active date and service filters, summary metrics, vector trend and comparison charts, comparison tables, paginated service logs, generation details, and a confidentiality notice. Every CSV and PDF includes the church name configured in Settings, and its download filename uses a safe version of that name. Row-level security continues to restrict Department Head worker reports to their own department, while congregation PDFs remain available only to Church Leaders and Super Admins.
+Authorised users can export worker-attendance and church-attendance reports as CSV files for approved analysis in spreadsheet tools. Church Leaders and Super Admins can also export first-timer movement analysis as a protected CSV or leadership-ready PDF. PDF reports contain active filters, summary metrics, vector trend and comparison charts, comparison tables, paginated logs, generation details, and a confidentiality notice. Every CSV and PDF includes the church name configured in Settings, and its download filename uses a safe version of that name. Row-level security continues to restrict Department Head worker reports to their own department, while congregation and first-timer movement PDFs remain available only to Church Leaders and Super Admins.
 
 ### 5.12 Database migrations and recovery readiness
 

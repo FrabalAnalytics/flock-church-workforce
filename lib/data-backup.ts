@@ -20,6 +20,7 @@ export const BACKUP_TABLES = [
   "first_timers",
   "first_timer_interactions",
   "first_timer_visits",
+  "first_timer_stage_history",
   "absence_followups",
   "followup_events",
   "audit_events",

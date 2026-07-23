@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { requireProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { WorkspaceNotice } from "@/components/workspace-notice";
@@ -124,6 +125,8 @@ export default async function ReportsPage({
     <div className="mx-auto max-w-7xl">
       <WorkspaceNotice message={params.message} error={params.error ?? error?.message} />
       <PageHeader eyebrow="Church leadership" title={profile.role === "department_head" ? "Worker attendance reports" : "Worker attendance overview"} description="Track church workforce participation across services and departments." actions={<div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row"><a href={`/api/reports/attendance.csv?${exportParams}`} className="flex min-h-12 items-center justify-center rounded-xl border border-[var(--color-border)] bg-white px-5 text-sm font-semibold text-[var(--color-text-secondary)] shadow-[var(--shadow-sm)] hover:bg-[var(--color-surface-subtle)]">Export CSV</a><a href={`/api/reports/attendance.pdf?${exportParams}`} className="flex min-h-12 items-center justify-center rounded-xl bg-[var(--color-primary)] px-5 text-sm font-semibold text-white shadow-[0_10px_24px_rgba(79,125,243,0.2)] hover:bg-[var(--color-primary-strong)]">Download PDF</a></div>} />
+
+      {["super_admin", "church_leader"].includes(profile.role) && <Link href="/app/reports/first-timers" className="mt-6 flex items-center justify-between gap-4 rounded-2xl border border-[#d9e3fb] bg-[#f4f7ff] px-5 py-4 text-sm shadow-[var(--shadow-sm)] hover:border-[#b8caf5]"><span><strong className="block text-[#304d91]">First-timer movement analysis</strong><span className="mt-1 block text-xs leading-5 text-[#687ba4]">Review return, connection, training and membership conversion.</span></span><span className="shrink-0 font-semibold text-[var(--color-primary)]">Open report →</span></Link>}
 
       <nav aria-label="Report sections" className="mt-6 flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none]">
         <a href="#report-summary" className="flex min-h-11 shrink-0 items-center rounded-xl bg-[var(--color-primary)] px-4 text-sm font-semibold text-white">Summary</a>

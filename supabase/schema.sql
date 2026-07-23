@@ -511,6 +511,24 @@ create table if not exists public.first_timer_visits (
   unique (first_timer_id, visit_date, service_type)
 );
 
+create table if not exists public.first_timer_stage_history (
+  id uuid primary key default gen_random_uuid(),
+  first_timer_id uuid not null references public.first_timers(id)
+    on delete cascade,
+  from_stage text check (from_stage is null or from_stage in (
+    'new', 'assigned', 'contacted', 'follow_up', 'returned', 'connected',
+    'membership_training', 'member', 'closed'
+  )),
+  to_stage text not null check (to_stage in (
+    'new', 'assigned', 'contacted', 'follow_up', 'returned', 'connected',
+    'membership_training', 'member', 'closed'
+  )),
+  changed_by uuid references public.profiles(id) on delete set null
+    default auth.uid(),
+  changed_at timestamptz not null default now(),
+  check (from_stage is null or from_stage <> to_stage)
+);
+
 create index if not exists first_timers_phone_normalized_idx
   on public.first_timers (phone_number_normalized);
 create index if not exists first_timers_stage_idx
@@ -524,6 +542,12 @@ create index if not exists first_timer_interactions_person_idx
   on public.first_timer_interactions (first_timer_id, created_at desc);
 create index if not exists first_timer_visits_person_idx
   on public.first_timer_visits (first_timer_id, visit_date desc);
+create index if not exists first_timer_stage_history_person_idx
+  on public.first_timer_stage_history (first_timer_id, changed_at);
+create index if not exists first_timer_stage_history_changed_at_idx
+  on public.first_timer_stage_history (changed_at desc);
+create index if not exists first_timer_stage_history_to_stage_idx
+  on public.first_timer_stage_history (to_stage, changed_at desc);
 
 create table if not exists public.attendance_logs (
   id uuid primary key default gen_random_uuid(),
@@ -917,6 +941,37 @@ drop trigger if exists prepare_first_timer_visit on public.first_timer_visits;
 create trigger prepare_first_timer_visit
   before insert on public.first_timer_visits
   for each row execute function public.prepare_first_timer_child_record();
+
+create or replace function public.record_first_timer_stage_change()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  if tg_op = 'INSERT' then
+    insert into public.first_timer_stage_history (
+      first_timer_id, from_stage, to_stage, changed_by, changed_at
+    ) values (
+      new.id, null, new.journey_stage,
+      coalesce((select auth.uid()), new.registered_by), new.created_at
+    );
+  elsif old.journey_stage is distinct from new.journey_stage then
+    insert into public.first_timer_stage_history (
+      first_timer_id, from_stage, to_stage, changed_by
+    ) values (
+      new.id, old.journey_stage, new.journey_stage, (select auth.uid())
+    );
+  end if;
+  return new;
+end;
+$$;
+
+revoke all on function public.record_first_timer_stage_change() from public;
+drop trigger if exists record_first_timer_stage_change on public.first_timers;
+create trigger record_first_timer_stage_change
+  after insert or update of journey_stage on public.first_timers
+  for each row execute function public.record_first_timer_stage_change();
 
 -- Keep an auditable timestamp whenever a worker opts into or out of automated
 -- WhatsApp care messages.
@@ -2464,6 +2519,7 @@ alter table public.service_programme_shares enable row level security;
 alter table public.first_timers enable row level security;
 alter table public.first_timer_interactions enable row level security;
 alter table public.first_timer_visits enable row level security;
+alter table public.first_timer_stage_history enable row level security;
 alter table public.attendance_logs enable row level security;
 alter table public.absence_followups enable row level security;
 alter table public.followup_events enable row level security;
@@ -2514,6 +2570,8 @@ drop policy if exists "Super admins delete first timer interactions" on public.f
 drop policy if exists "First timer managers view visits" on public.first_timer_visits;
 drop policy if exists "First timer managers create visits" on public.first_timer_visits;
 drop policy if exists "Super admins delete first timer visits" on public.first_timer_visits;
+drop policy if exists "First timer managers view stage history"
+  on public.first_timer_stage_history;
 drop policy if exists "Dept heads view own dept logs" on public.attendance_logs;
 drop policy if exists "Dept heads submit attendance" on public.attendance_logs;
 drop policy if exists "Authorized users can update attendance" on public.attendance_logs;
@@ -2864,6 +2922,10 @@ create policy "Super admins delete first timer visits"
   on public.first_timer_visits for delete to authenticated
   using (public.is_super_admin());
 
+create policy "First timer managers view stage history"
+  on public.first_timer_stage_history for select to authenticated
+  using (public.is_first_timer_manager());
+
 -- Explicit API privileges. RLS still decides which rows are accessible.
 revoke all on table public.departments from anon;
 revoke all on table public.profiles from anon;
@@ -2886,6 +2948,7 @@ revoke all on table public.service_programme_shares from anon;
 revoke all on table public.first_timers from anon;
 revoke all on table public.first_timer_interactions from anon;
 revoke all on table public.first_timer_visits from anon;
+revoke all on table public.first_timer_stage_history from anon;
 revoke all on table public.attendance_logs from anon;
 revoke all on table public.absence_followups from anon;
 revoke all on table public.followup_events from anon;
@@ -2915,6 +2978,9 @@ grant select, insert, update, delete on table public.service_programme_shares to
 grant select, insert, update, delete on table public.first_timers to authenticated;
 grant select, insert, delete on table public.first_timer_interactions to authenticated;
 grant select, insert, delete on table public.first_timer_visits to authenticated;
+revoke insert, update, delete on table public.first_timer_stage_history
+  from authenticated;
+grant select on table public.first_timer_stage_history to authenticated;
 grant select on table public.attendance_logs to authenticated;
 grant select, update on table public.absence_followups to authenticated;
 grant select on table public.followup_events to authenticated;
