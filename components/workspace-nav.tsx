@@ -14,6 +14,7 @@ export type WorkspaceIcon =
   | "attendance"
   | "control"
   | "congregation"
+  | "newcomers"
   | "programme"
   | "care"
   | "audit"
@@ -42,6 +43,7 @@ function NavIcon({ name }: { name: WorkspaceIcon }) {
     attendance: <><rect x="4" y="5" width="16" height="15" rx="2" /><path d="M8 3v4m8-4v4M4 10h16m-12 4 2 2 4-4" /></>,
     control: <><rect x="3" y="4" width="18" height="16" rx="2" /><path d="M7 9h10M7 14h4m4 0h2M8 2v4m8-4v4" /></>,
     congregation: <><circle cx="9" cy="8" r="3.5" /><path d="M2.5 20a6.5 6.5 0 0 1 13 0M16 5.5a3 3 0 0 1 0 5.8M18 14a5.5 5.5 0 0 1 3.5 5" /></>,
+    newcomers: <><path d="M15 19a6 6 0 0 0-12 0" /><circle cx="9" cy="8" r="4" /><path d="M17 8h4m-2-2v4M16 14.5c2.7.4 4.5 2.1 5 4.5" /></>,
     programme: <><path d="M6 3h12a2 2 0 0 1 2 2v16H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z" /><path d="M8 8h8M8 12h8M8 16h5" /></>,
     care: <><path d="M12 21S4 16.5 4 9.5A4.5 4.5 0 0 1 12 6.7a4.5 4.5 0 0 1 8 2.8C20 16.5 12 21 12 21Z" /></>,
     audit: <><path d="M9 4H6a2 2 0 0 0-2 2v14h16V6a2 2 0 0 0-2-2h-3M9 3h6v4H9V3Z" /><path d="m8 13 2 2 5-5M8 18h8" /></>,

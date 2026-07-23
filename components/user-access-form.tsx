@@ -4,12 +4,13 @@ import { useState } from "react";
 import { updateUserAccess } from "@/app/app/admin/actions";
 import { FormSubmitButton } from "@/components/form-submit-button";
 
-type Role = "pending" | "super_admin" | "church_leader" | "department_head";
+type Role = "pending" | "super_admin" | "church_leader" | "department_head" | "first_timer_coordinator";
 type Department = { id: string; name: string };
 
 const roleHelp: Record<Role, string> = {
   pending: "Cannot enter the workspace until approved.",
   department_head: "Manages attendance and follow-up for one department.",
+  first_timer_coordinator: "Registers first timers and manages their follow-up journey.",
   church_leader: "Reviews church-wide attendance, programmes and care alerts.",
   super_admin: "Full access to people, structure and system administration.",
 };
@@ -17,6 +18,7 @@ const roleHelp: Record<Role, string> = {
 const roleLabels: Record<Role, string> = {
   pending: "Pending",
   department_head: "Department Head",
+  first_timer_coordinator: "First Timers Coordinator",
   church_leader: "Church Leader",
   super_admin: "Super Admin",
 };
@@ -75,6 +77,7 @@ export function UserAccessForm({
         <select name={isCurrentUser ? undefined : "role"} value={role} disabled={isCurrentUser} onChange={(event) => setRole(event.target.value as Role)} className="mt-2 h-12 w-full rounded-xl border border-[var(--color-border)] bg-white px-3 text-sm font-normal disabled:cursor-not-allowed disabled:bg-[#eef1f6]">
           <option value="pending">Pending</option>
           <option value="department_head">Department Head</option>
+          <option value="first_timer_coordinator">First Timers Coordinator</option>
           <option value="church_leader">Church Leader</option>
           <option value="super_admin">Super Admin</option>
         </select>

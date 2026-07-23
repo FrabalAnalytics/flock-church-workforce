@@ -39,6 +39,15 @@ type FailedEventRow = {
   workers: { full_name: string; departments: { name: string } | null } | null;
 };
 
+type FirstTimerActionRow = {
+  id: string;
+  full_name: string;
+  journey_stage: string;
+  assigned_to: string | null;
+  next_followup_at: string | null;
+  first_visit_date: string;
+};
+
 function lagosDate() {
   const parts = new Intl.DateTimeFormat("en-US", {
     timeZone: "Africa/Lagos",
@@ -71,8 +80,9 @@ export default async function ActionCentrePage() {
   const today = lagosDate();
   const serviceLookback = daysBefore(today, 14);
   const isLeadership = profile.role === "super_admin" || profile.role === "church_leader";
+  const managesFirstTimers = isLeadership || profile.role === "first_timer_coordinator";
 
-  const [servicesResult, followupsResult, failedEventsResult, pendingUsersResult, notificationStatesResult] = await Promise.all([
+  const [servicesResult, followupsResult, failedEventsResult, pendingUsersResult, notificationStatesResult, firstTimersResult] = await Promise.all([
     supabase
       .from("services")
       .select(`
@@ -115,6 +125,14 @@ export default async function ActionCentrePage() {
       .from("notification_states")
       .select("notification_key, read_at, snoozed_until")
       .eq("user_id", profile.id),
+    managesFirstTimers
+      ? supabase
+          .from("first_timers")
+          .select("id, full_name, journey_stage, assigned_to, next_followup_at, first_visit_date")
+          .not("journey_stage", "in", "(integrated,closed)")
+          .order("created_at", { ascending: true })
+          .limit(100)
+      : Promise.resolve({ data: [], error: null }),
   ]);
 
   const serviceSnapshots = ((servicesResult.data ?? []) as unknown as ServiceRow[]).map((service): ServiceActionSnapshot => ({
@@ -136,6 +154,7 @@ export default async function ActionCentrePage() {
   const followupsAll = (followupsResult.data ?? []) as unknown as FollowupRow[];
   const failedEventsAll = (failedEventsResult.data ?? []) as unknown as FailedEventRow[];
   const pendingUsersAll = pendingUsersResult.data ?? [];
+  const firstTimersAll = (firstTimersResult.data ?? []) as FirstTimerActionRow[];
   const notificationStates = (notificationStatesResult.data ?? []) as NotificationState[];
   const stateMap = new Map(notificationStates.map((state) => [state.notification_key, state]));
   const now = new Date();
@@ -143,27 +162,31 @@ export default async function ActionCentrePage() {
   const followupKey = (id: string) => `followup:${id}`;
   const failedEventKey = (id: string) => `failed:${id}`;
   const pendingUserKey = (id: string) => `pending:${id}`;
+  const firstTimerKey = (id: string) => `first-timer:${id}`;
   const snoozed = (key: string) => isNotificationSnoozed(stateMap.get(key), now);
   const read = (key: string) => Boolean(stateMap.get(key)?.read_at);
   const missingAttendance = missingAttendanceAll.filter((action) => !snoozed(attendanceKey(action.key)));
   const followups = followupsAll.filter((followup) => !snoozed(followupKey(followup.id)));
   const failedEvents = failedEventsAll.filter((event) => !snoozed(failedEventKey(event.id)));
   const pendingUsers = pendingUsersAll.filter((user) => !snoozed(pendingUserKey(user.id)));
+  const firstTimersNeedingActionAll = firstTimersAll.filter((person) => !person.assigned_to || (person.next_followup_at && new Date(person.next_followup_at) <= now));
+  const firstTimersNeedingAction = firstTimersNeedingActionAll.filter((person) => !snoozed(firstTimerKey(person.id)));
   const urgentFollowups = followups.filter((followup) => followup.consecutive_misses >= 4);
   const followupCount = followups.length;
   const failedEventCount = failedEvents.length;
   const pendingUserCount = pendingUsers.length;
-  const totalActions = missingAttendance.length + followupCount + failedEventCount + pendingUserCount;
+  const totalActions = missingAttendance.length + followupCount + failedEventCount + pendingUserCount + firstTimersNeedingAction.length;
   const notificationSummaries = new Map<string, { title: string; detail: string }>([
     ...missingAttendanceAll.map((action) => [attendanceKey(action.key), { title: `${action.department_name} attendance`, detail: `${action.service_type} · ${formatDate(action.service_date)}` }] as const),
     ...followupsAll.map((followup) => [followupKey(followup.id), { title: followup.workers?.full_name ?? "Care follow-up", detail: `${followup.consecutive_misses} consecutive misses` }] as const),
     ...failedEventsAll.map((event) => [failedEventKey(event.id), { title: event.workers?.full_name ?? "Message delivery", detail: "Failed WhatsApp delivery" }] as const),
     ...pendingUsersAll.map((user) => [pendingUserKey(user.id), { title: user.full_name, detail: "Pending access approval" }] as const),
+    ...firstTimersNeedingActionAll.map((person) => [firstTimerKey(person.id), { title: person.full_name, detail: person.assigned_to ? "First-timer follow-up due" : "First timer needs assignment" }] as const),
   ]);
   const snoozedNotifications = [...notificationSummaries.entries()]
     .filter(([key]) => snoozed(key))
     .map(([key, summary]) => ({ key, ...summary, until: stateMap.get(key)?.snoozed_until ?? null }));
-  const errors = [servicesResult.error, followupsResult.error, failedEventsResult.error, pendingUsersResult.error, notificationStatesResult.error].filter(Boolean);
+  const errors = [servicesResult.error, followupsResult.error, failedEventsResult.error, pendingUsersResult.error, notificationStatesResult.error, firstTimersResult.error].filter(Boolean);
 
   return (
     <div className="mx-auto max-w-7xl">
@@ -179,6 +202,7 @@ export default async function ActionCentrePage() {
       <div className="mt-7 flex flex-wrap gap-2" aria-label="Action summary">
         <MetricPill value={missingAttendance.length} label="attendance gaps" tone={missingAttendance.length ? "warning" : "neutral"} />
         <MetricPill value={followupCount} label="care follow-ups" tone={urgentFollowups.length ? "danger" : followupCount ? "warning" : "neutral"} />
+        {managesFirstTimers && <MetricPill value={firstTimersNeedingAction.length} label="first-timer actions" tone={firstTimersNeedingAction.length ? "warning" : "neutral"} />}
         {profile.role === "super_admin" && <MetricPill value={pendingUserCount} label="pending users" tone={pendingUserCount ? "warning" : "neutral"} />}
         {profile.role === "super_admin" && <MetricPill value={failedEventCount} label="failed messages" tone={failedEventCount ? "danger" : "neutral"} />}
         <MetricPill value={snoozedNotifications.length} label="snoozed" />
@@ -208,6 +232,11 @@ export default async function ActionCentrePage() {
                 return <article key={followup.id} className="p-5 sm:px-6"><div className="flex items-start justify-between gap-4"><div className="min-w-0"><p className="truncate text-sm font-semibold text-[var(--color-text)]">{followup.workers?.full_name ?? "Unknown worker"}</p><p className="mt-1 truncate text-xs text-[var(--color-text-muted)]">{followup.workers?.departments?.name ?? "Department"}</p></div><StatusBadge tone={followup.consecutive_misses >= 4 ? "danger" : "warning"}>{followup.consecutive_misses} misses</StatusBadge></div><div className="mt-4 flex flex-wrap items-center gap-3"><Link href="/app/follow-ups" aria-label={`Review follow-up for ${followup.workers?.full_name ?? "worker"}`} className="text-xs font-semibold text-[var(--color-primary)]">Review follow-up</Link><NotificationControls notificationKey={key} read={read(key)} /></div></article>;
               })}
             </div>
+          </section>}
+
+          {firstTimersNeedingAction.length > 0 && <section className="overflow-hidden rounded-3xl border border-[#d9e3fb] bg-white shadow-[var(--shadow-sm)]">
+            <div className="border-b border-[#d9e3fb] bg-[#f4f7ff] px-5 py-4 sm:px-6"><h2 className="font-semibold text-[#304d91]">First-timer care</h2><p className="mt-1 text-xs text-[#687ba4]">Newcomers awaiting assignment or a scheduled coordinator follow-up.</p></div>
+            <div className="divide-y divide-[var(--color-border)]">{firstTimersNeedingAction.map((person) => { const key = firstTimerKey(person.id); const unassigned = !person.assigned_to; return <article key={person.id} className="p-5 sm:px-6"><div className="flex items-start justify-between gap-4"><div className="min-w-0"><p className="truncate text-sm font-semibold text-[var(--color-text)]">{person.full_name}</p><p className="mt-1 text-xs text-[var(--color-text-muted)]">First visited {formatDate(person.first_visit_date)}{person.next_followup_at ? ` · follow-up ${new Intl.DateTimeFormat("en-NG", { dateStyle: "medium", timeStyle: "short", timeZone: "Africa/Lagos" }).format(new Date(person.next_followup_at))}` : ""}</p></div><StatusBadge tone={unassigned ? "warning" : "danger"}>{unassigned ? "Unassigned" : "Due"}</StatusBadge></div><div className="mt-4 flex flex-wrap items-center gap-3"><Link href={`/app/first-timers/${person.id}`} className="text-xs font-semibold text-[var(--color-primary)]">Open journey</Link><NotificationControls notificationKey={key} read={read(key)} /></div></article>; })}</div>
           </section>}
 
           {profile.role === "super_admin" && pendingUsers.length > 0 && <section className="overflow-hidden rounded-3xl border border-[#d9e3fb] bg-white shadow-[var(--shadow-sm)]">

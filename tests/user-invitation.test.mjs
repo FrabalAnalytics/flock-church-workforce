@@ -35,6 +35,19 @@ test("non-department roles cannot retain a department assignment", () => {
   assert.equal(result.value?.departmentId, null);
 });
 
+test("first-timer coordinators are accepted without department access", () => {
+  const result = validateInvitationInput({
+    fullName: "Mary Welcome",
+    email: "mary@example.com",
+    phoneNumber: "08030000000",
+    role: "first_timer_coordinator",
+    departmentId,
+  });
+  assert.equal(result.error, null);
+  assert.equal(result.value?.departmentId, null);
+  assert.equal(result.value?.role, "first_timer_coordinator");
+});
+
 test("department heads require a valid department", () => {
   const result = validateInvitationInput({
     fullName: "Grace Hopper",

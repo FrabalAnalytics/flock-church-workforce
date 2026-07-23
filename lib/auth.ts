@@ -6,7 +6,8 @@ export type ProfileRole =
   | "pending"
   | "super_admin"
   | "church_leader"
-  | "department_head";
+  | "department_head"
+  | "first_timer_coordinator";
 
 export type Profile = {
   id: string;

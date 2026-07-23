@@ -10,7 +10,7 @@ test("backup filename is safe and dated", () => {
 });
 
 test("backup manifest includes identity, people, attendance, care, and audit data", () => {
-  for (const table of ["church_settings", "profiles", "workers", "attendance_logs", "followup_events", "audit_events"]) {
+  for (const table of ["church_settings", "profiles", "workers", "attendance_logs", "followup_events", "first_timers", "first_timer_interactions", "first_timer_visits", "audit_events"]) {
     assert.equal(BACKUP_TABLES.includes(table), true);
   }
 });

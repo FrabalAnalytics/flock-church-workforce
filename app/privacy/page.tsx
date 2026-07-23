@@ -35,6 +35,7 @@ const sections = [
         <li>Consecutive absence counts, care alerts, and follow-up notes.</li>
         <li>WhatsApp consent preferences and, when messaging is enabled, delivery history.</li>
         <li>User account details for authorized church leaders and administrators.</li>
+        <li>First-timer contact details, consent, visits, assignments, journey stage, and coordinator follow-up outcomes.</li>
         <li>Technical and security records needed to operate and protect the service.</li>
       </ul>
     ),
@@ -48,6 +49,7 @@ const sections = [
         <li>To notice absence patterns and support timely pastoral care.</li>
         <li>To support agreed workforce check-ins if WhatsApp delivery is enabled.</li>
         <li>To maintain accurate records, prevent misuse, and secure the platform.</li>
+        <li>To coordinate consent-based welcome and newcomer follow-up.</li>
       </ul>
     ),
   },
@@ -93,6 +95,8 @@ const sections = [
           Access inside the church is role-based. Department heads see their own
           department, Church Leaders receive a read-only church-wide view, and
           Super Admins manage the platform and workforce records.
+          First Timers Coordinators can access newcomer records needed for
+          registration and follow-up, but not unrelated administrative records.
         </p>
         <p>
           Flock relies on service providers such as Supabase for database and
@@ -109,7 +113,7 @@ const sections = [
       <>
         <p>
           Information should be kept only for as long as it supports workforce
-          administration, care, safeguarding, reporting, or applicable legal
+          administration, newcomer care, safeguarding, reporting, or applicable legal
           obligations. Inactive worker records may be retained to preserve
           historical attendance, then deleted or anonymized under the church’s
           retention schedule.

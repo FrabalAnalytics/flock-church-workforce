@@ -7,7 +7,7 @@ import { WorkspaceNav, type WorkspaceGroup } from "@/components/workspace-nav";
 import { requireProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 
-const roleLabels = { super_admin: "Super Admin", church_leader: "Church Leader", department_head: "Department Head" };
+const roleLabels = { super_admin: "Super Admin", church_leader: "Church Leader", department_head: "Department Head", first_timer_coordinator: "First Timers Coordinator" };
 
 export const metadata: Metadata = { title: "Workspace", robots: { index: false, follow: false } };
 
@@ -27,6 +27,7 @@ export default async function WorkspaceLayout({ children }: { children: React.Re
       { label: "Workspace", links: [{ label: "Overview", href: "/app/reports", icon: "overview" }, { label: "Action Centre", href: "/app/action-centre", icon: "actions" }, { label: "Getting started", href: "/app/getting-started", icon: "setup" }] },
       { label: "People", links: [
         { label: "Worker directory", href: "/app/workers", icon: "people" },
+        { label: "First timers", href: "/app/first-timers", icon: "newcomers" },
         { label: "Users", href: "/app/users", icon: "users" },
         { label: "Ministers", href: "/app/ministers", icon: "ministers" },
         { label: "Departments", href: "/app/departments", icon: "departments" },
@@ -37,6 +38,7 @@ export default async function WorkspaceLayout({ children }: { children: React.Re
         { label: "Service-day control", href: "/app/service-days", icon: "control" },
         { label: "Worker attendance", href: "/app/attendance", icon: "attendance" },
         { label: "Congregation attendance", href: "/app/church-attendance", icon: "congregation" },
+        { label: "First timers", href: "/app/first-timers", icon: "newcomers" },
         { label: "Service programme", href: "/app/programmes", icon: "programme" },
         { label: "Care alerts", href: "/app/follow-ups", icon: "care" },
       ] },
@@ -59,6 +61,12 @@ export default async function WorkspaceLayout({ children }: { children: React.Re
         { label: "Worker reports", href: "/app/reports", icon: "overview" },
         { label: "Service programme", href: "/app/programmes", icon: "programme" },
         { label: "Follow-ups", href: "/app/follow-ups", icon: "care" },
+      ] },
+    ],
+    first_timer_coordinator: [
+      { label: "Newcomer care", links: [
+        { label: "First timers", href: "/app/first-timers", icon: "newcomers" },
+        { label: "Action Centre", href: "/app/action-centre", icon: "actions" },
       ] },
     ],
   };

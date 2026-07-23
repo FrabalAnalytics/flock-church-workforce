@@ -9,7 +9,7 @@ export const metadata = { title: "User access", description: "Manage Flock user 
 import { requireSuperAdmin } from "@/lib/admin";
 import { createClient } from "@/lib/supabase/server";
 
-const labels = { pending: "Pending", super_admin: "Super Admin", church_leader: "Church Leader", department_head: "Department Head" };
+const labels = { pending: "Pending", super_admin: "Super Admin", church_leader: "Church Leader", department_head: "Department Head", first_timer_coordinator: "First Timers Coordinator" };
 
 type UserSearchParams = { message?: string; error?: string; q?: string; role?: string; department?: string };
 
@@ -99,7 +99,7 @@ export default async function UsersPage({ searchParams }: { searchParams: Promis
 
               <div>
                 <UserAccessForm id={user.id} fullName={user.full_name} initialRole={user.role as keyof typeof labels} initialDepartmentId={user.department_id} departments={departments ?? []} isCurrentUser={user.id === currentUser.id} returnTo={returnTo} />
-                {user.id !== currentUser.id && (user.role === "church_leader" || user.role === "super_admin") && (
+                {user.id !== currentUser.id && (["church_leader", "first_timer_coordinator", "super_admin"].includes(user.role)) && (
                   <DeleteUserAccountForm id={user.id} fullName={user.full_name} roleLabel={labels[user.role as keyof typeof labels]} returnTo={returnTo} />
                 )}
               </div>

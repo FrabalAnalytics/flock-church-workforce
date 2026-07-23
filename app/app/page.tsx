@@ -38,6 +38,7 @@ const roleEyebrows: Record<ProfileRole, string> = {
   super_admin: "Administration",
   church_leader: "Church oversight",
   department_head: "Department operations",
+  first_timer_coordinator: "Newcomer care",
 };
 
 function formatDate(value: string) {
@@ -77,6 +78,9 @@ export default async function WorkspaceOverview({
     if (params.message) query.set("message", params.message);
     if (params.error) query.set("error", params.error);
     redirect(`/app/reports${query.size ? `?${query}` : ""}`);
+  }
+  if (profile.role === "first_timer_coordinator") {
+    redirect("/app/first-timers");
   }
   const supabase = await createClient();
   const today = lagosDate();

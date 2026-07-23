@@ -63,6 +63,7 @@ The Super Admin can:
 - Correct previously submitted worker-attendance records.
 - View care and absence alerts.
 - Record and correct congregation attendance.
+- Register first timers and oversee newcomer-care journeys.
 - Create, edit, publish, republish, and permanently delete service programmes.
 - Export attendance information to CSV.
 - Review operational priorities in the Action Centre.
@@ -75,7 +76,7 @@ Only trusted administrators should receive this role.
 
 ### Church Leader
 
-Church Leaders have church-wide, read-only oversight of attendance and care information.
+Church Leaders have church-wide, read-only oversight of attendance and worker-care information. They can also participate in the separately protected first-timer care workflow.
 
 Church Leaders can:
 
@@ -86,8 +87,13 @@ Church Leaders can:
 - View overall church attendance and demographic breakdowns.
 - View published service programmes.
 - Export authorised reports.
+- Review, assign, and update first-timer follow-up journeys.
 
-Church Leaders cannot change profiles, workers, attendance, care alerts, programmes, departments, ministers, roles, or permissions. Their operational access is read-only.
+Church Leaders cannot change profiles, workers, attendance, worker-care alerts, programmes, departments, ministers, roles, or permissions. First-timer care is their only operational write workflow.
+
+### First Timers Coordinator
+
+First Timers Coordinators are trusted members of the newcomer-care team. They can manually register visitors, check for an existing phone-number record, assign coordinator ownership, record contact outcomes and return visits, schedule next actions, and move a person through the newcomer journey. They cannot access worker administration, attendance management, system settings, programmes, or unrelated leadership records.
 
 ### Department Head
 
@@ -281,7 +287,15 @@ The Congregation Attendance overview includes:
 
 No names, phone numbers, or personal details of ordinary attendees are collected.
 
-### 5.9 Service programmes
+### 5.9 First-timer care
+
+First-timer care is separate from aggregate congregation attendance. An authorised coordinator can manually register a visitor with their name, phone number, first service, contact preference, and explicit contact-consent state. Optional context includes email, location, how the person heard about the church, and ministry interests.
+
+The system checks normalized phone numbers before registration and opens the existing journey instead of silently creating a duplicate. Each journey can be assigned to a First Timers Coordinator and progress through New, Assigned, Contacted, Follow-up, Returned, Connected, Integrated, or Closed stages. Coordinators record concise interaction outcomes, schedule next actions, and confirm return visits directly. Unassigned visitors and overdue follow-ups appear in the Action Centre.
+
+Contact shortcuts and scheduled follow-up are enabled only when consent is recorded. Withdrawing consent clears the scheduled action. Row-Level Security limits all identifiable newcomer records, interactions, and visits to Super Admins, Church Leaders, and First Timers Coordinators, and the audit history records changes for accountable administration.
+
+### 5.10 Service programmes
 
 The Super Admin can create a dated service programme from a reusable template. Template rows are copied into the dated programme so later template changes do not rewrite an already planned service.
 
@@ -300,17 +314,17 @@ Deleting a programme also deletes its copied programme items and immediately rem
 
 Public sharing is off by default and can be enabled only by a Super Admin after publication. The public page exposes only the programme title, date, service type, schedule activities, responsible names, durations, and notes. It does not grant anonymous table access or expose account, worker, attendance, care, creator, internal ID, or link-token data. A Super Admin can change the expiry, disable the link immediately, or replace it so that the previous URL and QR code stop working.
 
-### 5.10 Data export
+### 5.11 Data export
 
 Authorised users can export worker-attendance and church-attendance reports as CSV files for approved analysis in spreadsheet tools. They can also download leadership-ready PDF reports containing the active date and service filters, summary metrics, vector trend and comparison charts, comparison tables, paginated service logs, generation details, and a confidentiality notice. Every CSV and PDF includes the church name configured in Settings, and its download filename uses a safe version of that name. Row-level security continues to restrict Department Head worker reports to their own department, while congregation PDFs remain available only to Church Leaders and Super Admins.
 
-### 5.11 Database migrations and recovery readiness
+### 5.12 Database migrations and recovery readiness
 
 The database uses ordered, timestamped migration files in `supabase/migrations`. The readable `supabase/schema.sql` file remains the current-state snapshot, while migrations provide a controlled history of changes for deployment and review.
 
 Backup and recovery procedures, verification scripts, and a backup register template are documented in the repository. Super Admins can also download a protected JSON export of the church's durable application data from Settings. The exported file contains personal and ministry information, including active programme-share secrets, and must be kept only in an encrypted, access-controlled location. This application export supplements, rather than replaces, Supabase platform and database backups.
 
-### 5.12 Action Centre and personal notifications
+### 5.13 Action Centre and personal notifications
 
 The Action Centre brings urgent and incomplete operational work into one role-aware view. Depending on the user's permissions, it can show:
 
@@ -318,16 +332,17 @@ The Action Centre brings urgent and incomplete operational work into one role-aw
 - Unresolved worker-care follow-ups.
 - New accounts awaiting access approval.
 - Failed automated message deliveries.
+- First timers awaiting assignment or an overdue coordinator follow-up.
 
 Each user can mark an item as seen, snooze it for 24 hours, or restore it early. Seen and snoozed states are personal to that user and do not change or resolve the underlying attendance, care, access, or delivery record. Completing the actual work removes the related action for everyone who is authorised to see it.
 
-### 5.13 Managed invitations and account administration
+### 5.14 Managed invitations and account administration
 
-A Super Admin can invite a Church Leader, Department Head, or another Super Admin by email. The invitation assigns the intended role and, where required, the department before the recipient completes account setup. This reduces the need to approve and reconfigure an account after self-registration.
+A Super Admin can invite a Church Leader, Department Head, First Timers Coordinator, or another Super Admin by email. The invitation assigns the intended role and, where required, the department before the recipient completes account setup. This reduces the need to approve and reconfigure an account after self-registration.
 
 Super Admins can also delete leader and administrator accounts when access must be withdrawn. Deletion uses a protected server-side flow with deliberate confirmation. The system prevents unsafe self-deletion of the currently signed-in administrator, while database relationships preserve or safely detach historical operational records according to their defined retention rules.
 
-### 5.14 Church settings and system health
+### 5.15 Church settings and system health
 
 The Super Admin Settings page provides one place to maintain:
 
@@ -340,7 +355,7 @@ The same page reports whether essential integrations are ready without displayin
 
 The current release is a single-church workspace. These settings describe the local church using that deployment; they are not yet separate tenant settings for multiple churches sharing one database.
 
-### 5.15 Guided onboarding
+### 5.16 Guided onboarding
 
 The Getting Started page gives the Super Admin a live setup checklist. Progress is calculated automatically from existing records and covers the church profile, departments, administrator access, active workers, and the first attendance submission. It helps a new church move from an empty deployment to a usable weekly workflow without relying on a separate manual checklist.
 
@@ -376,6 +391,15 @@ The Getting Started page gives the Super Admin a live setup checklist. Progress 
 3. The minister, adult male, adult female, children, new-member, and new-convert figures are entered.
 4. Optional service notes are added and the system calculates the total.
 5. The record becomes visible as read-only information to authorised Church Leaders.
+
+### Coordinating first-timer care
+
+1. A First Timers Coordinator manually registers the visitor and confirms whether contact consent was given.
+2. Flock checks the normalized phone number and opens an existing journey instead of creating a duplicate.
+3. The visitor is assigned to a coordinator and a next action is scheduled.
+4. The coordinator records concise contact outcomes and any future follow-up date.
+5. When the person returns, the coordinator records the service visit on the existing journey.
+6. The journey progresses to Connected, Integrated, or an appropriately explained Closed outcome.
 
 ### Preparing a service programme
 

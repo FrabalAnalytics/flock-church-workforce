@@ -25,7 +25,7 @@ function safeUsersReturnPath(value: string) {
     const role = url.searchParams.get("role");
     const department = url.searchParams.get("department");
     if (query) params.set("q", query.slice(0, 120));
-    if (["pending", "church_leader", "department_head", "super_admin"].includes(role ?? "")) params.set("role", role!);
+    if (["pending", "church_leader", "department_head", "first_timer_coordinator", "super_admin"].includes(role ?? "")) params.set("role", role!);
     if (/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(department ?? "")) params.set("department", department!);
     return `/app/users${params.size ? `?${params}` : ""}`;
   } catch {
@@ -156,7 +156,7 @@ export async function updateUserAccess(formData: FormData) {
   const id = value(formData, "id");
   const role = value(formData, "role");
   const department_id = value(formData, "department_id") || null;
-  if (!id || !["pending", "church_leader", "department_head", "super_admin"].includes(role)) {
+  if (!id || !["pending", "church_leader", "department_head", "first_timer_coordinator", "super_admin"].includes(role)) {
     redirect(usersDestination(returnTo, "error", "Select a valid role."));
   }
   if (id === user.id && role !== "super_admin") {
