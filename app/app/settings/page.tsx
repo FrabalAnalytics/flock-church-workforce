@@ -74,7 +74,7 @@ export default async function SettingsPage({
   await requireSuperAdmin();
   const params = await searchParams;
   const supabase = await createClient();
-  const [settingsResult, jobResult, failuresResult] = await Promise.all([
+  const [settingsResult, jobResult, failuresResult, firstTimersResult, movementLedgerResult] = await Promise.all([
     supabase
       .from("church_settings")
       .select("church_name, timezone, care_message_signature, contact_email, contact_phone, updated_at")
@@ -93,12 +93,24 @@ export default async function SettingsPage({
       .eq("delivery_status", "failed")
       .order("created_at", { ascending: false })
       .limit(5),
+    supabase
+      .from("first_timers")
+      .select("id, membership_training_status", { count: "exact", head: true }),
+    supabase
+      .from("first_timer_stage_history")
+      .select("id", { count: "exact", head: true }),
   ]);
   const environment = evaluateEnvironment(process.env);
   const settings = settingsResult.data as ChurchSettings | null;
   const lastJob = jobResult.data as JobRun | null;
   const failedEvents = (failuresResult.data ?? []) as unknown as FailedEvent[];
   const databaseReady = !settingsResult.error && Boolean(settings);
+  const firstTimersReady = !firstTimersResult.error;
+  const movementReportsReady = !movementLedgerResult.error;
+  const coreSystemsReady = databaseReady
+    && firstTimersReady
+    && movementReportsReady
+    && environment.invitations.ready;
   const dispatcherHealthy = environment.dispatcher.ready
     && !jobResult.error
     && Boolean(lastJob)
@@ -113,7 +125,7 @@ export default async function SettingsPage({
         eyebrow="Administration"
         title="Settings and system health"
         description="Keep church identity details current and confirm that Flock's protected services are ready for ministry operations."
-        actions={<StatusBadge tone={databaseReady && environment.invitations.ready ? "success" : "warning"}>{databaseReady && environment.invitations.ready ? "Core systems ready" : "Review required"}</StatusBadge>}
+        actions={<StatusBadge tone={coreSystemsReady ? "success" : "warning"}>{coreSystemsReady ? "Core systems ready" : "Review required"}</StatusBadge>}
       />
 
       <div className="mt-7 grid gap-6 xl:grid-cols-[minmax(0,1.1fr)_minmax(360px,0.9fr)]">
@@ -141,7 +153,9 @@ export default async function SettingsPage({
           <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--color-primary)]">Configuration</p>
           <h2 className="mt-2 text-xl font-semibold text-[var(--color-text)]">Integration readiness</h2>
           <ul className="mt-3">
-            <HealthRow label="Database migration" ready={databaseReady} detail={databaseReady ? "Settings tables and access policies are available." : "The latest system-settings migration has not been detected."} />
+            <HealthRow label="Core database" ready={databaseReady} detail={databaseReady ? "Settings tables and access policies are available." : "The latest system-settings migration has not been detected."} />
+            <HealthRow label="First Timers journey" ready={firstTimersReady} detail={firstTimersReady ? "Registration, follow-up, return visits, and membership-training fields are available." : "Apply the latest First Timers and membership-training migrations."} />
+            <HealthRow label="Movement analysis" ready={movementReportsReady} detail={movementReportsReady ? "The immutable stage-history ledger is available for leadership reports." : "Apply the first-timer stage-history migration before using movement reports."} />
             <HealthRow label="Managed invitations" {...environment.invitations} />
             <HealthRow label="WhatsApp delivery" {...environment.twilio} />
             <HealthRow label="Public callback URL" {...environment.appUrl} />

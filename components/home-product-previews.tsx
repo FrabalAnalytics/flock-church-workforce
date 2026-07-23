@@ -32,7 +32,7 @@ export function HomeDashboardPreview() {
             {[
               ["91%", "Worker attendance", "+4.8%", "text-[#347457]"],
               ["426", "Congregation", "+38", "text-[#347457]"],
-              ["14", "First steps", "8 members", "text-[#4f7df3]"],
+              ["14", "First timers", "8 progressing", "text-[#4f7df3]"],
               ["3", "Open care alerts", "Needs review", "text-[#bd5d52]"],
             ].map(([value, label, detail, tone]) => (
               <div key={label} className="rounded-xl border border-[#e7ebf4] bg-[#fbfcff] p-3">
@@ -116,6 +116,59 @@ export function HomeReportPreview() {
       <div className="mt-4 flex flex-wrap items-center justify-between gap-3 text-white">
         <div><p className="text-xs font-bold">Ready for leadership review</p><p className="mt-1 text-[10px] text-[#aebbd6]">PDF and CSV use the church name from Settings.</p></div>
         <div className="flex gap-2"><span className="rounded-lg bg-white px-3 py-2 text-[9px] font-bold text-[#345fc9]">PDF report</span><span className="rounded-lg border border-white/20 px-3 py-2 text-[9px] font-bold text-white">CSV data</span></div>
+      </div>
+    </div>
+  );
+}
+
+const journeyStages = [
+  ["First visit", "32", "100%"],
+  ["Returned", "21", "66%"],
+  ["Connected", "15", "47%"],
+  ["Training", "11", "34%"],
+  ["Member", "8", "25%"],
+];
+
+export function HomeFirstTimerPreview() {
+  return (
+    <div className="overflow-hidden rounded-[1.75rem] border border-white bg-white shadow-[0_24px_70px_rgba(31,52,105,0.14)]" aria-label="Sample First Timers movement report">
+      <div className="flex items-center justify-between border-b border-[#e8edf7] bg-[#101c3d] px-5 py-4 text-white">
+        <div>
+          <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-[#9db7ff]">First-timer movement</p>
+          <h3 className="mt-1 text-base font-bold sm:text-lg">Newcomer care overview</h3>
+        </div>
+        <span className="rounded-full bg-white/10 px-3 py-1 text-[9px] font-bold uppercase tracking-[0.12em] text-[#cbd8fb]">Sample</span>
+      </div>
+      <div className="p-5 sm:p-6">
+        <div className="grid grid-cols-3 gap-2">
+          {[["32", "First visits"], ["66%", "Return rate"], ["3", "Need attention"]].map(([value, label]) => (
+            <div key={label} className="rounded-xl bg-[#f5f7fc] p-3">
+              <p className="text-lg font-bold text-[#172344]">{value}</p>
+              <p className="mt-1 text-[8px] font-semibold text-[#7d889d]">{label}</p>
+            </div>
+          ))}
+        </div>
+        <div className="mt-5">
+          <div className="mb-3 flex items-center justify-between">
+            <div><p className="text-xs font-bold text-[#34415f]">Journey funnel</p><p className="mt-0.5 text-[9px] text-[#8b95a8]">First-visit cohort progress</p></div>
+            <span className="rounded-full bg-[#edf2ff] px-2.5 py-1 text-[8px] font-bold text-[#4f7df3]">Last 90 days</span>
+          </div>
+          <div className="space-y-2.5">
+            {journeyStages.map(([stage, count, rate], index) => (
+              <div key={stage} className="grid grid-cols-[68px_1fr_32px] items-center gap-2 text-[9px]">
+                <span className="font-semibold text-[#53607a]">{stage}</span>
+                <div className="h-6 overflow-hidden rounded-md bg-[#edf1f8]">
+                  <div className="flex h-full items-center rounded-md bg-gradient-to-r from-[#4f7df3] to-[#86a5f7] px-2 text-[8px] font-bold text-white" style={{ width: `${100 - index * 15}%` }}>{count}</div>
+                </div>
+                <span className="text-right font-bold text-[#34415f]">{rate}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className="mt-5 flex items-center justify-between rounded-xl border border-[#e0e7f5] bg-[#fbfcff] px-3.5 py-3">
+          <div><p className="text-[10px] font-bold text-[#34415f]">Membership training</p><p className="mt-0.5 text-[8px] text-[#8791a5]">Required before Member status</p></div>
+          <span className="rounded-full bg-[#edf7f1] px-2.5 py-1 text-[8px] font-bold text-[#347457]">Gate active</span>
+        </div>
       </div>
     </div>
   );

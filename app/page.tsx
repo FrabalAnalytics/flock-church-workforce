@@ -1,12 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { FlockBrand } from "@/components/flock-brand";
-import { HomeDashboardPreview, HomeReportPreview } from "@/components/home-product-previews";
+import { HomeDashboardPreview, HomeFirstTimerPreview, HomeReportPreview } from "@/components/home-product-previews";
 
 export const metadata: Metadata = {
-  title: { absolute: "Flock — Simple church operations, attendance and pastoral care" },
+  title: { absolute: "Flock — Church operations, attendance and people care" },
   description:
-    "Plan services, record attendance, coordinate ministry teams, and care for your congregation—all in one simple, secure workspace.",
+    "Plan services, record attendance, guide first-time visitors, coordinate ministry teams, and care for your congregation—all in one secure workspace.",
 };
 
 const features = [
@@ -68,9 +68,9 @@ const features = [
   },
   {
     number: "06",
-    title: "Track growth & first-time visitors",
+    title: "Guide every first-timer",
     description:
-      "Keep clear numbers on men, women, children, new members, and converts—giving leaders accurate pictures of church growth.",
+      "Register visitors manually, assign a coordinator, record follow-ups and return visits, and require membership training before someone becomes a member.",
     icon: (
       <svg viewBox="0 0 24 24" className="h-6 w-6 stroke-current fill-none" strokeWidth="1.8">
         <path d="M4 19V5m0 14h16M7 15l4-4 3 2 5-7" />
@@ -101,6 +101,17 @@ const features = [
   },
   {
     number: "09",
+    title: "Analyse newcomer movement",
+    description:
+      "Give church leaders a clear funnel from first visit to return, connection, membership training, and membership—with coordinator outcomes and cases needing attention.",
+    icon: (
+      <svg viewBox="0 0 24 24" className="h-6 w-6 stroke-current fill-none" strokeWidth="1.8">
+        <path d="M4 5h16l-6 7v5l-4 2v-7L4 5Z" />
+      </svg>
+    ),
+  },
+  {
+    number: "10",
     title: "Safe and secure access",
     description:
       "Invite leaders safely, give department heads access only to what they need, and keep your church records protected.",
@@ -113,11 +124,11 @@ const features = [
 ];
 
 const steps = [
-  ["Invite your leadership team", "Super Admins invite pastors and department heads, set up departments, and upload worker rosters."],
+  ["Invite your leadership team", "Super Admins invite pastors, department heads, and First Timers Coordinators, then set up departments and worker rosters."],
   ["Prepare the service", "Set up the service day, assign required departments, and share the published order of service with your team."],
-  ["Take fast attendance", "Department heads mark worker attendance from their phones during service, while admins record visitor and congregation numbers."],
-  ["See the big picture", "Leaders get one clean dashboard showing attendance, growth, and team participation across services."],
-  ["Follow up with care", "Care alerts highlight members who have missed services, helping pastoral teams reach out warmly and personally."],
+  ["Record attendance and newcomers", "Department heads mark worker attendance from their phones while authorised teams record congregation totals and register first-time visitors."],
+  ["Coordinate every next step", "The Action Centre surfaces incomplete attendance, overdue care, unassigned first-timers, and follow-ups that need attention."],
+  ["Review movement and growth", "Leaders compare attendance and see how first-timers move through return visits, connection, training, and membership."],
 ];
 
 const operatingPillars = [
@@ -136,8 +147,8 @@ const operatingPillars = [
   {
     phase: "Respond",
     title: "Personal pastoral care",
-    description: "Turn attendance records into genuine care by knowing who needs a check-in or visit.",
-    items: ["Automatic care alerts", "Follow-up history", "Friendly WhatsApp updates"],
+    description: "Turn attendance and first visits into genuine care by making each next action visible.",
+    items: ["Automatic care alerts", "First-timer follow-ups", "Membership training gate"],
   },
   {
     phase: "Govern",
@@ -178,6 +189,9 @@ export default function Home() {
             <a className="transition hover:text-[#4f7df3]" href="#operations">
               Full workflow
             </a>
+            <a className="transition hover:text-[#4f7df3]" href="#first-timers">
+              First timers
+            </a>
             <a className="transition hover:text-[#4f7df3]" href="#insights">
               Reports
             </a>
@@ -207,6 +221,7 @@ export default function Home() {
               ["Why Flock", "#why-flock"],
               ["Features", "#features"],
               ["Full workflow", "#operations"],
+              ["First timers", "#first-timers"],
               ["Reports", "#insights"],
               ["How it works", "#how-it-works"],
             ].map(([label, href]) => (
@@ -240,7 +255,7 @@ export default function Home() {
               <span className="mt-1 block text-[#4f7df3]">Care for your people easily.</span>
             </h1>
             <p className="mt-6 max-w-xl text-base leading-7 text-[#5e6880] sm:text-xl sm:leading-8">
-              Replace messy spreadsheets, paper registers, and scattered WhatsApp chats with one installable workspace for attendance, leadership reports, worker care, and service coordination.
+              Replace messy spreadsheets, paper registers, and scattered WhatsApp chats with one installable workspace for attendance, first-timer follow-up, leadership reports, people care, and service coordination.
             </p>
             <div className="mt-8 flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4">
               <Link
@@ -397,6 +412,30 @@ export default function Home() {
         </div>
       </section>
 
+      {/* FIRST-TIMER JOURNEY */}
+      <section id="first-timers" className="border-b border-[#e4e9f5] bg-[#f4f7ff] px-5 py-16 sm:px-8 sm:py-24 lg:px-12">
+        <div className="mx-auto grid max-w-7xl items-center gap-10 lg:grid-cols-[0.9fr_1.1fr] lg:gap-16">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#4f7df3]">First-timer care</p>
+            <h2 className="mt-3 text-3xl font-bold tracking-[-0.03em] text-[#101c3d] sm:text-4xl lg:text-5xl">
+              Help every newcomer take a thoughtful next step.
+            </h2>
+            <p className="mt-4 text-base leading-7 text-[#667188] sm:text-lg">
+              A First Timers Coordinator can register someone manually, record contact outcomes and return visits, schedule the next follow-up, and guide the journey without expecting the visitor to use an app.
+            </p>
+            <div className="mt-6 flex flex-wrap gap-2">
+              {["Manual registration", "Coordinator ownership", "Return visits", "Membership training", "Leadership movement report"].map((item) => (
+                <span key={item} className="rounded-full border border-[#d9e3f8] bg-white px-3.5 py-2 text-xs font-semibold text-[#465573] shadow-sm">{item}</span>
+              ))}
+            </div>
+            <p className="mt-6 rounded-2xl border border-[#d8e2f8] bg-white px-4 py-3 text-sm leading-6 text-[#53617d]">
+              Membership is protected: a first-timer cannot be marked as a member until the required membership training is completed.
+            </p>
+          </div>
+          <HomeFirstTimerPreview />
+        </div>
+      </section>
+
       {/* INSIGHTS SECTION */}
       <section id="insights" className="border-b border-[#e4e9f5] bg-white px-5 py-16 sm:px-8 sm:py-24 lg:px-12">
         <div className="mx-auto grid max-w-7xl items-center gap-10 lg:grid-cols-[0.9fr_1.1fr] lg:gap-16">
@@ -412,7 +451,7 @@ export default function Home() {
               {[
                 "Worker and congregation trends",
                 "Department attendance comparisons",
-                "Filtered service-by-service logs",
+                "First-timer movement and training funnel",
                 "Church-branded PDF and CSV downloads",
               ].map((item) => (
                 <div key={item} className="flex items-center gap-2.5 rounded-xl border border-[#e2e8f5] bg-[#f8faff] px-3.5 py-2.5 text-xs font-semibold text-[#42506d]">
@@ -508,6 +547,7 @@ export default function Home() {
               <a className="hover:text-[#4f7df3]" href="#why-flock">Why Flock</a>
               <a className="hover:text-[#4f7df3]" href="#features">Features</a>
               <a className="hover:text-[#4f7df3]" href="#operations">Full workflow</a>
+              <a className="hover:text-[#4f7df3]" href="#first-timers">First timers</a>
               <a className="hover:text-[#4f7df3]" href="#insights">Reports</a>
               <a className="hover:text-[#4f7df3]" href="#how-it-works">How it works</a>
               <Link className="hover:text-[#4f7df3]" href="/privacy">Privacy</Link>

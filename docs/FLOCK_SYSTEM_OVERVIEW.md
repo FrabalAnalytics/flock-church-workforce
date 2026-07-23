@@ -354,7 +354,7 @@ The Super Admin Settings page provides one place to maintain:
 - Care-message signature.
 - Official contact email and phone number.
 
-The same page reports whether essential integrations are ready without displaying secret values. It checks database readiness, managed invitations, WhatsApp configuration, the public callback URL, deployment information, the latest protected dispatcher run, and recent message-delivery failures. A controlled WhatsApp test is available when messaging is configured.
+The same page reports whether essential integrations are ready without displaying secret values. It separately checks the core settings schema, First Timers journey and membership-training fields, the immutable movement-analysis ledger, managed invitations, WhatsApp configuration, the public callback URL, deployment information, the latest protected dispatcher run, and recent message-delivery failures. This makes a missed feature migration visible before ministry teams depend on that workflow. A controlled WhatsApp test is available when messaging is configured.
 
 The current release is a single-church workspace. These settings describe the local church using that deployment; they are not yet separate tenant settings for multiple churches sharing one database.
 
@@ -540,7 +540,7 @@ Before full organisational rollout, the church should confirm its legal name, pr
 
 ## 10. Current scope and future opportunities
 
-The current system includes authentication and password recovery, managed invitations, centrally managed user profiles, protected account deletion, role administration, immutable audit history, church settings and system health, guided onboarding, a role-aware Action Centre with personal seen and snooze controls, departments, a worker directory with validated CSV import, resilient attendance drafts, service-day scheduling and submission monitoring, worker attendance and corrections, leadership reporting, attendance trends, care alerts, optional WhatsApp delivery monitoring, congregation attendance and corrections, a Minister Directory, reusable programme templates, dated published service programmes, revocable QR-code programme sharing, installable offline-aware mobile access, privacy information, CSV and leadership-ready PDF reports, protected JSON data export, database migrations, and documented backup/recovery procedures.
+The current system includes authentication and password recovery, managed invitations, centrally managed user profiles, protected account deletion, role administration, immutable audit history, church settings and migration-aware system health, guided onboarding, a role-aware Action Centre with personal seen and snooze controls, departments, a worker directory with validated CSV import, resilient attendance drafts, service-day scheduling and submission monitoring, worker attendance and corrections, leadership reporting, attendance trends, care alerts, optional WhatsApp delivery monitoring, congregation attendance and corrections, manual first-timer registration, coordinator follow-ups and return visits, membership-training controls, first-timer movement analysis, a Minister Directory, reusable programme templates, dated published service programmes, revocable QR-code programme sharing, installable offline-aware mobile access, privacy information, church-branded CSV and leadership-ready PDF reports, protected JSON data export, database migrations, and documented backup/recovery procedures.
 
 Possible future additions include:
 
