@@ -434,8 +434,17 @@ create table if not exists public.first_timers (
   interests text check (interests is null or char_length(interests) <= 500),
   journey_stage text not null default 'new' check (journey_stage in (
     'new', 'assigned', 'contacted', 'follow_up', 'returned',
-    'connected', 'integrated', 'closed'
+    'connected', 'membership_training', 'member', 'closed'
   )),
+  membership_training_status text not null default 'not_started' check (
+    membership_training_status in ('not_started', 'in_progress', 'completed')
+  ),
+  membership_training_started_at date,
+  membership_training_completed_at date,
+  membership_training_notes text check (
+    membership_training_notes is null
+    or char_length(membership_training_notes) <= 500
+  ),
   assigned_to uuid references public.profiles(id) on delete set null,
   registered_by uuid references public.profiles(id) on delete set null
     default auth.uid(),
@@ -448,7 +457,29 @@ create table if not exists public.first_timers (
     (consent_to_contact = false and consent_recorded_at is null)
     or (consent_to_contact = true and consent_recorded_at is not null)
   ),
-  check (journey_stage <> 'closed' or closed_reason is not null)
+  check (journey_stage <> 'closed' or closed_reason is not null),
+  constraint first_timers_membership_training_state check (
+    (
+      membership_training_status = 'not_started'
+      and membership_training_started_at is null
+      and membership_training_completed_at is null
+    )
+    or (
+      membership_training_status = 'in_progress'
+      and membership_training_started_at is not null
+      and membership_training_completed_at is null
+    )
+    or (
+      membership_training_status = 'completed'
+      and membership_training_started_at is not null
+      and membership_training_completed_at is not null
+      and membership_training_completed_at >= membership_training_started_at
+    )
+  ),
+  constraint first_timers_member_requires_training check (
+    journey_stage <> 'member'
+    or membership_training_status = 'completed'
+  )
 );
 
 create table if not exists public.first_timer_interactions (
@@ -488,7 +519,7 @@ create index if not exists first_timers_assigned_to_idx
   on public.first_timers (assigned_to);
 create index if not exists first_timers_next_followup_idx
   on public.first_timers (next_followup_at)
-  where journey_stage not in ('integrated', 'closed');
+  where journey_stage not in ('member', 'closed');
 create index if not exists first_timer_interactions_person_idx
   on public.first_timer_interactions (first_timer_id, created_at desc);
 create index if not exists first_timer_visits_person_idx

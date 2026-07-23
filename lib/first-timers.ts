@@ -5,7 +5,8 @@ export const firstTimerStages = [
   "follow_up",
   "returned",
   "connected",
-  "integrated",
+  "membership_training",
+  "member",
   "closed",
 ] as const;
 
@@ -18,9 +19,45 @@ export const firstTimerStageLabels: Record<FirstTimerStage, string> = {
   follow_up: "Follow-up",
   returned: "Returned",
   connected: "Connected",
-  integrated: "Integrated",
+  membership_training: "Membership training",
+  member: "Member",
   closed: "Closed",
 };
+
+export const membershipTrainingStatuses = ["not_started", "in_progress", "completed"] as const;
+export type MembershipTrainingStatus = (typeof membershipTrainingStatuses)[number];
+
+export const membershipTrainingStatusLabels: Record<MembershipTrainingStatus, string> = {
+  not_started: "Not started",
+  in_progress: "In progress",
+  completed: "Completed",
+};
+
+export function validateMembershipTrainingUpdate(input: {
+  status: string;
+  startedAt: string;
+  completedAt: string;
+  notes: string;
+}) {
+  if (!membershipTrainingStatuses.includes(input.status as MembershipTrainingStatus)) {
+    return "Select a valid membership training status.";
+  }
+
+  const status = input.status as MembershipTrainingStatus;
+  const startedAt = input.startedAt || null;
+  const completedAt = input.completedAt || null;
+  const notes = input.notes.trim() || null;
+  const validDate = (date: string | null) => !date || /^\d{4}-\d{2}-\d{2}$/.test(date);
+
+  if (!validDate(startedAt) || !validDate(completedAt)) return "Enter valid membership training dates.";
+  if (notes && notes.length > 500) return "Membership training notes cannot exceed 500 characters.";
+  if (status === "not_started" && (startedAt || completedAt)) return "Clear the training dates when training has not started.";
+  if (status === "in_progress" && (!startedAt || completedAt)) return "Enter the training start date and leave the completion date blank.";
+  if (status === "completed" && (!startedAt || !completedAt)) return "Enter both the training start and completion dates.";
+  if (startedAt && completedAt && completedAt < startedAt) return "Training completion cannot be earlier than the start date.";
+
+  return { status, startedAt, completedAt, notes };
+}
 
 export const serviceTypes = [
   "Sunday Service",

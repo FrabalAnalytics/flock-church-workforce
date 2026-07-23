@@ -291,7 +291,7 @@ No names, phone numbers, or personal details of ordinary attendees are collected
 
 First-timer care is separate from aggregate congregation attendance. An authorised coordinator can manually register a visitor with their name, phone number, first service, contact preference, and explicit contact-consent state. Optional context includes email, location, how the person heard about the church, and ministry interests.
 
-The system checks normalized phone numbers before registration and opens the existing journey instead of silently creating a duplicate. Each journey can be assigned to a First Timers Coordinator and progress through New, Assigned, Contacted, Follow-up, Returned, Connected, Integrated, or Closed stages. Coordinators record concise interaction outcomes, schedule next actions, and confirm return visits directly. Unassigned visitors and overdue follow-ups appear in the Action Centre.
+The system checks normalized phone numbers before registration and opens the existing journey instead of silently creating a duplicate. Each journey can be assigned to a First Timers Coordinator and progress through New, Assigned, Contacted, Follow-up, Returned, Connected, Membership Training, Member, or Closed stages. Training is tracked as Not started, In progress, or Completed, with start and completion dates. Both the application and database prevent Member status until the required membership training is completed. Coordinators record concise interaction outcomes, schedule next actions, and confirm return visits directly. Unassigned visitors and overdue follow-ups appear in the Action Centre.
 
 Contact shortcuts and scheduled follow-up are enabled only when consent is recorded. Withdrawing consent clears the scheduled action. Row-Level Security limits all identifiable newcomer records, interactions, and visits to Super Admins, Church Leaders, and First Timers Coordinators, and the audit history records changes for accountable administration.
 
@@ -399,7 +399,9 @@ The Getting Started page gives the Super Admin a live setup checklist. Progress 
 3. The visitor is assigned to a coordinator and a next action is scheduled.
 4. The coordinator records concise contact outcomes and any future follow-up date.
 5. When the person returns, the coordinator records the service visit on the existing journey.
-6. The journey progresses to Connected, Integrated, or an appropriately explained Closed outcome.
+6. The journey progresses to Connected and then Membership Training.
+7. The coordinator records the training start and completion dates.
+8. Only after training is completed can the journey progress to Member; otherwise it may be closed with an appropriate explanation.
 
 ### Preparing a service programme
 

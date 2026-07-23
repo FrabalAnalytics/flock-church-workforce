@@ -10,6 +10,7 @@ import {
   preferredContactMethods,
   serviceTypes,
   validateFirstTimerRegistration,
+  validateMembershipTrainingUpdate,
 } from "@/lib/first-timers";
 import { createClient } from "@/lib/supabase/server";
 
@@ -156,9 +157,17 @@ export async function updateFirstTimerJourney(formData: FormData) {
   const assignedToInput = value(formData, "assigned_to") || null;
   const closedReason = value(formData, "closed_reason") || null;
   const nextFollowupAt = optionalDateTime(value(formData, "next_followup_at"));
+  const training = validateMembershipTrainingUpdate({
+    status: value(formData, "membership_training_status"),
+    startedAt: value(formData, "membership_training_started_at"),
+    completedAt: value(formData, "membership_training_completed_at"),
+    notes: value(formData, "membership_training_notes"),
+  });
   if (!uuidPattern.test(id) || !firstTimerStages.includes(stage as (typeof firstTimerStages)[number])) redirect(destination("/app/first-timers", "error", "Select a valid journey update."));
   if (stage === "closed" && (!closedReason || closedReason.length > 500)) redirect(destination(`/app/first-timers/${id}`, "error", "Enter a brief reason for closing this journey."));
   if (nextFollowupAt === undefined) redirect(destination(`/app/first-timers/${id}`, "error", "Select a valid next follow-up date."));
+  if (typeof training === "string") redirect(destination(`/app/first-timers/${id}`, "error", training));
+  if (stage === "member" && training.status !== "completed") redirect(destination(`/app/first-timers/${id}`, "error", "Membership training must be completed before this person can become a member."));
   const assignedTo = await validCoordinator(assignedToInput);
   if (assignedToInput && !assignedTo) redirect(destination(`/app/first-timers/${id}`, "error", "Select a valid First Timers Coordinator."));
 
@@ -166,12 +175,16 @@ export async function updateFirstTimerJourney(formData: FormData) {
   const { data: current, error: lookupError } = await supabase.from("first_timers").select("consent_to_contact").eq("id", id).maybeSingle();
   if (lookupError || !current) redirect(destination("/app/first-timers", "error", lookupError?.message ?? "First timer not found."));
   if (!current.consent_to_contact && nextFollowupAt) redirect(destination(`/app/first-timers/${id}`, "error", "Follow-up cannot be scheduled without contact consent."));
-  const terminal = stage === "integrated" || stage === "closed";
+  const terminal = stage === "member" || stage === "closed";
   const { error } = await supabase.from("first_timers").update({
     journey_stage: stage,
     assigned_to: assignedTo,
     next_followup_at: terminal ? null : nextFollowupAt,
     closed_reason: stage === "closed" ? closedReason : null,
+    membership_training_status: training.status,
+    membership_training_started_at: training.startedAt,
+    membership_training_completed_at: training.completedAt,
+    membership_training_notes: training.notes,
   }).eq("id", id);
   if (error) redirect(destination(`/app/first-timers/${id}`, "error", error.message));
   revalidatePath("/app/first-timers");
@@ -206,7 +219,7 @@ export async function recordFirstTimerInteraction(formData: FormData) {
   });
   if (error) redirect(destination(`/app/first-timers/${id}`, "error", error.message));
 
-  const activeStage = !["integrated", "closed"].includes(person.journey_stage);
+  const activeStage = !["membership_training", "member", "closed"].includes(person.journey_stage);
   const { error: updateError } = await supabase.from("first_timers").update({
     last_contacted_at: interactionType === "note" ? undefined : new Date().toISOString(),
     next_followup_at: nextFollowupAt,
@@ -232,7 +245,7 @@ export async function recordFirstTimerReturnVisit(formData: FormData) {
   if (error?.code === "23505") redirect(destination(`/app/first-timers/${id}`, "error", "That return visit has already been recorded."));
   if (error) redirect(destination(`/app/first-timers/${id}`, "error", error.message));
   const { data: person } = await supabase.from("first_timers").select("journey_stage").eq("id", id).maybeSingle();
-  if (person && !["connected", "integrated", "closed"].includes(person.journey_stage)) {
+  if (person && !["connected", "membership_training", "member", "closed"].includes(person.journey_stage)) {
     await supabase.from("first_timers").update({ journey_stage: "returned" }).eq("id", id);
   }
   revalidatePath("/app/first-timers");

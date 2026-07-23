@@ -5,7 +5,7 @@ import { FormSubmitButton } from "@/components/form-submit-button";
 import { WorkspaceNotice } from "@/components/workspace-notice";
 import { EmptyState, MetricPill, PageHeader, StatusBadge } from "@/components/workspace-ui";
 import { requireProfile } from "@/lib/auth";
-import { firstTimerStageLabels, firstTimerStages, serviceTypes, type FirstTimerStage } from "@/lib/first-timers";
+import { firstTimerStageLabels, firstTimerStages, membershipTrainingStatusLabels, serviceTypes, type FirstTimerStage, type MembershipTrainingStatus } from "@/lib/first-timers";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata = { title: "First timers", description: "Register first timers and coordinate their follow-up journey." };
@@ -19,6 +19,7 @@ type FirstTimerRow = {
   first_visit_date: string;
   first_service_type: string;
   journey_stage: FirstTimerStage;
+  membership_training_status: MembershipTrainingStatus;
   assigned_to: string | null;
   next_followup_at: string | null;
   last_contacted_at: string | null;
@@ -43,10 +44,10 @@ function displayDateTime(value: string) {
 }
 
 function stageTone(stage: FirstTimerStage): "neutral" | "info" | "success" | "warning" | "danger" {
-  if (stage === "integrated") return "success";
+  if (stage === "member") return "success";
   if (stage === "closed") return "neutral";
   if (stage === "new") return "warning";
-  if (stage === "connected" || stage === "returned") return "info";
+  if (["connected", "returned", "membership_training"].includes(stage)) return "info";
   return "neutral";
 }
 
@@ -62,7 +63,7 @@ export default async function FirstTimersPage({
   const [{ data, error }, { data: coordinators }] = await Promise.all([
     supabase
       .from("first_timers")
-      .select("id, full_name, phone_number, preferred_contact, consent_to_contact, first_visit_date, first_service_type, journey_stage, assigned_to, next_followup_at, last_contacted_at, created_at, first_timer_visits(id)")
+      .select("id, full_name, phone_number, preferred_contact, consent_to_contact, first_visit_date, first_service_type, journey_stage, membership_training_status, assigned_to, next_followup_at, last_contacted_at, created_at, first_timer_visits(id)")
       .order("created_at", { ascending: false })
       .limit(500),
     supabase.from("profiles").select("id, full_name").eq("role", "first_timer_coordinator").order("full_name"),
@@ -70,7 +71,7 @@ export default async function FirstTimersPage({
   const allRows = (data ?? []) as unknown as FirstTimerRow[];
   const coordinatorNames = new Map((coordinators ?? []).map((coordinator) => [coordinator.id, coordinator.full_name]));
   const now = new Date();
-  const activeRows = allRows.filter((row) => !["integrated", "closed"].includes(row.journey_stage));
+  const activeRows = allRows.filter((row) => !["member", "closed"].includes(row.journey_stage));
   const dueRows = activeRows.filter((row) => row.next_followup_at && new Date(row.next_followup_at) <= now);
   const normalizedSearch = params.q?.trim().toLowerCase();
   const rows = allRows.filter((row) => {
@@ -99,7 +100,8 @@ export default async function FirstTimersPage({
         <MetricPill value={activeRows.length} label="active journeys" />
         <MetricPill value={allRows.filter((row) => row.journey_stage === "new").length} label="new" tone="warning" />
         <MetricPill value={dueRows.length} label="follow-ups due" tone={dueRows.length ? "danger" : "neutral"} />
-        <MetricPill value={allRows.filter((row) => row.journey_stage === "integrated").length} label="integrated" />
+        <MetricPill value={allRows.filter((row) => row.journey_stage === "membership_training").length} label="in membership training" />
+        <MetricPill value={allRows.filter((row) => row.journey_stage === "member").length} label="members" />
       </div>
 
       <details id="register-first-timer" className="mt-7 scroll-mt-24 overflow-hidden rounded-3xl border border-[#d9e3fb] bg-white shadow-[var(--shadow-sm)]">
@@ -138,10 +140,10 @@ export default async function FirstTimersPage({
       <div className="mt-6 flex items-center justify-between gap-3"><p className="text-sm text-[var(--color-text-secondary)]"><strong className="text-[var(--color-text)]">{rows.length}</strong> first timer{rows.length === 1 ? "" : "s"}</p>{hasFilters && <StatusBadge tone="info">Filtered</StatusBadge>}</div>
       <div className="mt-3 grid gap-4 lg:grid-cols-2">
         {rows.length ? rows.map((row) => {
-          const overdue = row.next_followup_at && new Date(row.next_followup_at) <= now && !["integrated", "closed"].includes(row.journey_stage);
+          const overdue = row.next_followup_at && new Date(row.next_followup_at) <= now && !["member", "closed"].includes(row.journey_stage);
           return <Link key={row.id} href={`/app/first-timers/${row.id}`} className={`group rounded-3xl border bg-white p-5 shadow-[var(--shadow-sm)] transition hover:-translate-y-0.5 hover:shadow-[var(--shadow-md)] sm:p-6 ${overdue ? "border-[#efc1bd]" : "border-[var(--color-border)]"}`}>
             <div className="flex items-start justify-between gap-4"><div className="min-w-0"><h2 className="truncate text-lg font-semibold text-[var(--color-text)] group-hover:text-[var(--color-primary-strong)]">{row.full_name}</h2><p className="mt-1 text-sm text-[var(--color-text-secondary)]">{row.phone_number}</p></div><StatusBadge tone={overdue ? "danger" : stageTone(row.journey_stage)}>{overdue ? "Follow-up overdue" : firstTimerStageLabels[row.journey_stage]}</StatusBadge></div>
-            <div className="mt-5 grid gap-3 text-xs text-[var(--color-text-muted)] sm:grid-cols-2"><p><span className="font-semibold text-[var(--color-text-secondary)]">First visit:</span> {displayDate(row.first_visit_date)}</p><p><span className="font-semibold text-[var(--color-text-secondary)]">Visits:</span> {row.first_timer_visits.length}</p><p><span className="font-semibold text-[var(--color-text-secondary)]">Coordinator:</span> {row.assigned_to ? coordinatorNames.get(row.assigned_to) ?? "Assigned team member" : "Unassigned"}</p><p><span className="font-semibold text-[var(--color-text-secondary)]">Consent:</span> {row.consent_to_contact ? `${row.preferred_contact}` : "No contact consent"}</p></div>
+            <div className="mt-5 grid gap-3 text-xs text-[var(--color-text-muted)] sm:grid-cols-2"><p><span className="font-semibold text-[var(--color-text-secondary)]">First visit:</span> {displayDate(row.first_visit_date)}</p><p><span className="font-semibold text-[var(--color-text-secondary)]">Visits:</span> {row.first_timer_visits.length}</p><p><span className="font-semibold text-[var(--color-text-secondary)]">Coordinator:</span> {row.assigned_to ? coordinatorNames.get(row.assigned_to) ?? "Assigned team member" : "Unassigned"}</p><p><span className="font-semibold text-[var(--color-text-secondary)]">Training:</span> {membershipTrainingStatusLabels[row.membership_training_status]}</p><p><span className="font-semibold text-[var(--color-text-secondary)]">Consent:</span> {row.consent_to_contact ? `${row.preferred_contact}` : "No contact consent"}</p></div>
             {row.next_followup_at && <p className={`mt-4 rounded-xl px-3 py-2 text-xs font-semibold ${overdue ? "bg-[var(--color-danger-soft)] text-[var(--color-danger)]" : "bg-[var(--color-primary-soft)] text-[var(--color-primary-strong)]"}`}>Next follow-up: {displayDateTime(row.next_followup_at)}</p>}
           </Link>;
         }) : <div className="lg:col-span-2"><EmptyState title="No first timers found" description={hasFilters ? "No records match these filters." : "Register the first visitor to begin the newcomer-care journey."} /></div>}

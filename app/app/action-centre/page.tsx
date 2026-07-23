@@ -129,7 +129,7 @@ export default async function ActionCentrePage() {
       ? supabase
           .from("first_timers")
           .select("id, full_name, journey_stage, assigned_to, next_followup_at, first_visit_date")
-          .not("journey_stage", "in", "(integrated,closed)")
+          .not("journey_stage", "in", "(member,closed)")
           .order("created_at", { ascending: true })
           .limit(100)
       : Promise.resolve({ data: [], error: null }),

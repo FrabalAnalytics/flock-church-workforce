@@ -10,7 +10,15 @@ import { FormSubmitButton } from "@/components/form-submit-button";
 import { WorkspaceNotice } from "@/components/workspace-notice";
 import { PageHeader, StatusBadge } from "@/components/workspace-ui";
 import { requireProfile } from "@/lib/auth";
-import { firstTimerStageLabels, firstTimerStages, serviceTypes, type FirstTimerStage } from "@/lib/first-timers";
+import {
+  firstTimerStageLabels,
+  firstTimerStages,
+  membershipTrainingStatusLabels,
+  membershipTrainingStatuses,
+  serviceTypes,
+  type FirstTimerStage,
+  type MembershipTrainingStatus,
+} from "@/lib/first-timers";
 import { createClient } from "@/lib/supabase/server";
 
 type FirstTimerRecord = {
@@ -28,6 +36,10 @@ type FirstTimerRecord = {
   how_heard: string | null;
   interests: string | null;
   journey_stage: FirstTimerStage;
+  membership_training_status: MembershipTrainingStatus;
+  membership_training_started_at: string | null;
+  membership_training_completed_at: string | null;
+  membership_training_notes: string | null;
   assigned_to: string | null;
   registered_by: string | null;
   next_followup_at: string | null;
@@ -72,10 +84,10 @@ function lagosDate() {
 }
 
 function stageTone(stage: FirstTimerStage): "neutral" | "info" | "success" | "warning" | "danger" {
-  if (stage === "integrated") return "success";
+  if (stage === "member") return "success";
   if (stage === "closed") return "neutral";
   if (stage === "new") return "warning";
-  if (["returned", "connected"].includes(stage)) return "info";
+  if (["returned", "connected", "membership_training"].includes(stage)) return "info";
   return "neutral";
 }
 
@@ -91,7 +103,7 @@ export default async function FirstTimerDetailPage({
   const [{ id }, query] = await Promise.all([params, searchParams]);
   const supabase = await createClient();
   const [{ data: personData, error }, { data: interactionData }, { data: visitData }, { data: coordinators }] = await Promise.all([
-    supabase.from("first_timers").select("id, full_name, phone_number, phone_number_normalized, email, preferred_contact, consent_to_contact, consent_recorded_at, first_visit_date, first_service_type, location, how_heard, interests, journey_stage, assigned_to, registered_by, next_followup_at, last_contacted_at, closed_reason, created_at").eq("id", id).maybeSingle(),
+    supabase.from("first_timers").select("id, full_name, phone_number, phone_number_normalized, email, preferred_contact, consent_to_contact, consent_recorded_at, first_visit_date, first_service_type, location, how_heard, interests, journey_stage, membership_training_status, membership_training_started_at, membership_training_completed_at, membership_training_notes, assigned_to, registered_by, next_followup_at, last_contacted_at, closed_reason, created_at").eq("id", id).maybeSingle(),
     supabase.from("first_timer_interactions").select("id, interaction_type, outcome, notes, next_followup_at, created_by, created_at").eq("first_timer_id", id).order("created_at", { ascending: false }),
     supabase.from("first_timer_visits").select("id, visit_date, service_type, notes, recorded_by, created_at").eq("first_timer_id", id).order("visit_date", { ascending: false }),
     supabase.from("profiles").select("id, full_name").eq("role", "first_timer_coordinator").order("full_name"),
@@ -104,7 +116,7 @@ export default async function FirstTimerDetailPage({
   const { data: teamProfiles } = teamIds.length ? await supabase.from("profiles").select("id, full_name").in("id", teamIds) : { data: [] };
   const names = new Map((teamProfiles ?? []).map((teamMember) => [teamMember.id, teamMember.full_name]));
   for (const coordinator of coordinators ?? []) names.set(coordinator.id, coordinator.full_name);
-  const active = !["integrated", "closed"].includes(person.journey_stage);
+  const active = !["member", "closed"].includes(person.journey_stage);
   const overdue = active && person.next_followup_at && new Date(person.next_followup_at) <= new Date();
   const whatsappNumber = person.phone_number_normalized.startsWith("0") ? `234${person.phone_number_normalized.slice(1)}` : person.phone_number_normalized;
   const timeline = [
@@ -156,11 +168,21 @@ export default async function FirstTimerDetailPage({
 
           <section className="rounded-3xl border border-[var(--color-border)] bg-white p-5 shadow-[var(--shadow-sm)] sm:p-6">
             <h2 className="text-lg font-semibold">Journey management</h2>
-            <p className="mt-1 text-xs leading-5 text-[var(--color-text-muted)]">Assign an accountable coordinator, set the current stage and schedule the next action.</p>
+            <p className="mt-1 text-xs leading-5 text-[var(--color-text-muted)]">Assign a coordinator, track membership training and schedule the next action. Member status is available only after training is completed.</p>
             <form action={updateFirstTimerJourney} className="mt-5 space-y-4">
               <input type="hidden" name="first_timer_id" value={person.id} />
               <label className="block text-sm font-semibold text-[var(--color-text-secondary)]">Coordinator<select name="assigned_to" defaultValue={person.assigned_to ?? ""} className="mt-2 h-12 w-full rounded-xl border border-[var(--color-border)] bg-white px-3 text-sm font-normal"><option value="">Unassigned</option>{coordinators?.map((coordinator) => <option key={coordinator.id} value={coordinator.id}>{coordinator.full_name}</option>)}</select></label>
               <label className="block text-sm font-semibold text-[var(--color-text-secondary)]">Journey stage<select name="journey_stage" defaultValue={person.journey_stage} className="mt-2 h-12 w-full rounded-xl border border-[var(--color-border)] bg-white px-3 text-sm font-normal">{firstTimerStages.map((stage) => <option key={stage} value={stage}>{firstTimerStageLabels[stage]}</option>)}</select></label>
+              <div className="rounded-2xl border border-[#dbe8df] bg-[#f4faf6] p-4">
+                <h3 className="text-sm font-semibold text-[#315e41]">Membership training requirement</h3>
+                <p className="mt-1 text-xs leading-5 text-[#557563]">Record both dates when training is completed. The system will prevent Member status until this requirement is met.</p>
+                <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                  <label className="text-sm font-semibold text-[var(--color-text-secondary)] sm:col-span-2">Training status<select name="membership_training_status" defaultValue={person.membership_training_status} className="mt-2 h-12 w-full rounded-xl border border-[var(--color-border)] bg-white px-3 text-sm font-normal">{membershipTrainingStatuses.map((status) => <option key={status} value={status}>{membershipTrainingStatusLabels[status]}</option>)}</select></label>
+                  <label className="text-sm font-semibold text-[var(--color-text-secondary)]">Started on<input name="membership_training_started_at" type="date" max={lagosDate()} defaultValue={person.membership_training_started_at ?? ""} className="mt-2 h-12 w-full rounded-xl border border-[var(--color-border)] bg-white px-3 text-sm font-normal" /></label>
+                  <label className="text-sm font-semibold text-[var(--color-text-secondary)]">Completed on<input name="membership_training_completed_at" type="date" max={lagosDate()} defaultValue={person.membership_training_completed_at ?? ""} className="mt-2 h-12 w-full rounded-xl border border-[var(--color-border)] bg-white px-3 text-sm font-normal" /></label>
+                  <label className="text-sm font-semibold text-[var(--color-text-secondary)] sm:col-span-2">Training notes <span className="font-normal text-[var(--color-text-muted)]">Optional</span><textarea name="membership_training_notes" maxLength={500} rows={3} defaultValue={person.membership_training_notes ?? ""} placeholder="Class batch, facilitator or relevant completion note" className="mt-2 w-full rounded-xl border border-[var(--color-border)] bg-white px-3 py-3 text-sm font-normal" /></label>
+                </div>
+              </div>
               <label className="block text-sm font-semibold text-[var(--color-text-secondary)]">Next follow-up <span className="font-normal text-[var(--color-text-muted)]">Optional</span><input name="next_followup_at" type="datetime-local" disabled={!person.consent_to_contact} className="mt-2 h-12 w-full rounded-xl border border-[var(--color-border)] px-3 text-sm font-normal disabled:bg-[var(--color-surface-subtle)]" /></label>
               <label className="block text-sm font-semibold text-[var(--color-text-secondary)]">Closure reason <span className="font-normal text-[var(--color-text-muted)]">Required only when closing</span><textarea name="closed_reason" maxLength={500} rows={3} defaultValue={person.closed_reason ?? ""} placeholder="For example: requested no further contact, relocated, or unable to reach" className="mt-2 w-full rounded-xl border border-[var(--color-border)] px-3 py-3 text-sm font-normal" /></label>
               <FormSubmitButton pendingLabel="Saving journey..." className="min-h-12 w-full rounded-xl bg-[var(--color-primary)] px-5 text-sm font-semibold text-white disabled:cursor-wait disabled:opacity-60">Save journey</FormSubmitButton>
