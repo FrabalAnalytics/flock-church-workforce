@@ -5,7 +5,7 @@ import { PageHeader, StatusBadge } from "@/components/workspace-ui";
 import { requireSuperAdmin } from "@/lib/admin";
 import { evaluateEnvironment } from "@/lib/system-health";
 import { createClient } from "@/lib/supabase/server";
-import { sendSystemTestMessage, updateChurchSettings } from "./actions";
+import { sendSystemTestMessage, updateChurchSettings, updateCurrentBranch } from "./actions";
 
 export const metadata = {
   title: "Settings and system health",
@@ -35,6 +35,14 @@ type FailedEvent = {
   error_message: string | null;
   created_at: string;
   workers: { full_name: string } | null;
+};
+
+type BranchOption = {
+  id: string;
+  name: string;
+  code: string;
+  is_hq: boolean;
+  active: boolean;
 };
 
 const timezones = [
@@ -71,10 +79,10 @@ export default async function SettingsPage({
 }: {
   searchParams: Promise<{ message?: string; error?: string }>;
 }) {
-  await requireSuperAdmin();
+  const { profile } = await requireSuperAdmin();
   const params = await searchParams;
   const supabase = await createClient();
-  const [settingsResult, jobResult, failuresResult, firstTimersResult, movementLedgerResult] = await Promise.all([
+  const [settingsResult, jobResult, failuresResult, firstTimersResult, movementLedgerResult, branchesResult] = await Promise.all([
     supabase
       .from("church_settings")
       .select("church_name, timezone, care_message_signature, contact_email, contact_phone, updated_at")
@@ -99,14 +107,23 @@ export default async function SettingsPage({
     supabase
       .from("first_timer_stage_history")
       .select("id", { count: "exact", head: true }),
+    supabase
+      .from("branches")
+      .select("id, name, code, is_hq, active")
+      .eq("church_id", profile.church_id)
+      .order("is_hq", { ascending: false })
+      .order("name"),
   ]);
   const environment = evaluateEnvironment(process.env);
   const settings = settingsResult.data as ChurchSettings | null;
   const lastJob = jobResult.data as JobRun | null;
   const failedEvents = (failuresResult.data ?? []) as unknown as FailedEvent[];
+  const branches = (branchesResult.data ?? []) as BranchOption[];
+  const currentBranch = branches.find((branch) => branch.id === profile.branch_id) ?? null;
   const databaseReady = !settingsResult.error && Boolean(settings);
   const firstTimersReady = !firstTimersResult.error;
   const movementReportsReady = !movementLedgerResult.error;
+  const branchManagementReady = !branchesResult.error && branches.length > 0;
   const coreSystemsReady = databaseReady
     && firstTimersReady
     && movementReportsReady
@@ -150,10 +167,42 @@ export default async function SettingsPage({
         </section>
 
         <section className="rounded-3xl border border-[var(--color-border)] bg-white p-5 shadow-[var(--shadow-sm)] sm:p-7">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--color-primary)]">HQ control</p>
+            <h2 className="mt-2 text-xl font-semibold text-[var(--color-text)]">Current branch context</h2>
+            <p className="mt-2 text-sm leading-6 text-[var(--color-text-secondary)]">Switching branches changes which branch-scoped records the workspace reads and writes for your Super Admin session.</p>
+          </div>
+
+          <form action={updateCurrentBranch} className="mt-6 flex flex-col gap-4">
+            <label className="text-sm font-semibold text-[var(--color-text-secondary)]">
+              Branch
+              <select name="branch_id" defaultValue={profile.branch_id} disabled={!branchManagementReady} className="mt-2 h-12 w-full rounded-xl border border-[var(--color-border)] bg-white px-3 text-sm font-normal disabled:cursor-not-allowed disabled:bg-[#eef1f6]">
+                {branches.map((branch) => (
+                  <option key={branch.id} value={branch.id}>
+                    {branch.name}{branch.is_hq ? " (HQ)" : ""}
+                  </option>
+                ))}
+              </select>
+              <span className="mt-1.5 block text-xs font-normal text-[var(--color-text-muted)]">
+                {currentBranch
+                  ? `${currentBranch.name}${currentBranch.is_hq ? " is the HQ branch." : " is the active branch."}`
+                  : "Select the branch you want this session to manage."}
+              </span>
+            </label>
+
+            <div className="flex flex-wrap items-center gap-3">
+              <FormSubmitButton pendingLabel="Switching branch..." disabled={!branchManagementReady} className="min-h-12 rounded-xl bg-[var(--color-primary-soft)] px-6 text-sm font-semibold text-[var(--color-primary-strong)] disabled:cursor-not-allowed disabled:opacity-50">Switch branch</FormSubmitButton>
+              {!branchManagementReady && <p className="text-xs text-[var(--color-text-muted)]">{branchesResult.error ? "Branch list could not be loaded." : "No branches are available yet."}</p>}
+            </div>
+          </form>
+        </section>
+
+        <section className="rounded-3xl border border-[var(--color-border)] bg-white p-5 shadow-[var(--shadow-sm)] sm:p-7">
           <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--color-primary)]">Configuration</p>
           <h2 className="mt-2 text-xl font-semibold text-[var(--color-text)]">Integration readiness</h2>
           <ul className="mt-3">
             <HealthRow label="Core database" ready={databaseReady} detail={databaseReady ? "Settings tables and access policies are available." : "The latest system-settings migration has not been detected."} />
+            <HealthRow label="Branch control" ready={branchManagementReady} detail={branchManagementReady ? `${branches.length} branch${branches.length === 1 ? "" : "es"} available for HQ switching.` : "Apply the branch migration or load branch data before switching sessions."} />
             <HealthRow label="First Timers journey" ready={firstTimersReady} detail={firstTimersReady ? "Registration, follow-up, return visits, and membership-training fields are available." : "Apply the latest First Timers and membership-training migrations."} />
             <HealthRow label="Movement analysis" ready={movementReportsReady} detail={movementReportsReady ? "The immutable stage-history ledger is available for leadership reports." : "Apply the first-timer stage-history migration before using movement reports."} />
             <HealthRow label="Managed invitations" {...environment.invitations} />

@@ -15,6 +15,33 @@ function destination(type: "message" | "error", message: string) {
   return `/app/settings?${type}=${encodeURIComponent(message)}`;
 }
 
+export async function updateCurrentBranch(formData: FormData) {
+  const { user, profile } = await requireSuperAdmin();
+  const branchId = value(formData, "branch_id");
+  if (!branchId) redirect(destination("error", "Select a valid branch."));
+
+  const supabase = await createClient();
+  const { data: branch, error } = await supabase
+    .from("branches")
+    .select("id, name, active, church_id")
+    .eq("id", branchId)
+    .eq("church_id", profile.church_id)
+    .maybeSingle();
+
+  if (error) redirect(destination("error", error.message));
+  if (!branch) redirect(destination("error", "Select a valid branch."));
+  if (!branch.active) redirect(destination("error", "That branch is inactive."));
+
+  const { error: updateError } = await supabase
+    .from("profiles")
+    .update({ branch_id: branch.id })
+    .eq("id", user.id);
+  if (updateError) redirect(destination("error", updateError.message));
+
+  revalidatePath("/app", "layout");
+  redirect(destination("message", `Workspace switched to ${branch.name}.`));
+}
+
 export async function updateChurchSettings(formData: FormData) {
   const { user } = await requireSuperAdmin();
   const result = validateChurchSettings({
