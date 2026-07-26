@@ -9,7 +9,7 @@ export const metadata = { title: "User access", description: "Manage Flock user 
 import { requireSuperAdmin } from "@/lib/admin";
 import { createClient } from "@/lib/supabase/server";
 
-const labels = { pending: "Pending", super_admin: "Super Admin", church_leader: "Church Leader", department_head: "Department Head", first_timer_coordinator: "First Timers Coordinator" };
+const labels = { pending: "Pending", super_admin: "Super Admin", workspace_owner: "Workspace Owner", church_leader: "Church Leader", department_head: "Department Head", first_timer_coordinator: "First Timers Coordinator" };
 
 type UserSearchParams = { message?: string; error?: string; q?: string; role?: string; department?: string };
 
@@ -26,12 +26,13 @@ export default async function UsersPage({ searchParams }: { searchParams: Promis
     supabase.from("departments").select("id, name").order("name"),
   ]);
 
-  const pendingCount = allUsers?.filter((user) => user.role === "pending").length ?? 0;
-  const departmentHeadCount = allUsers?.filter((user) => user.role === "department_head").length ?? 0;
-  const leaderCount = allUsers?.filter((user) => user.role === "church_leader" || user.role === "super_admin").length ?? 0;
+  const managedUsers = (allUsers ?? []).filter((user) => user.role !== "workspace_owner");
+  const pendingCount = managedUsers.filter((user) => user.role === "pending").length;
+  const departmentHeadCount = managedUsers.filter((user) => user.role === "department_head").length;
+  const leaderCount = managedUsers.filter((user) => user.role === "church_leader" || user.role === "super_admin").length;
   const departmentNames = new Map(departments?.map((department) => [department.id, department.name]));
   const normalizedSearch = params.q?.trim().toLowerCase();
-  const users = allUsers?.filter((user) => {
+  const users = managedUsers.filter((user) => {
     const matchesSearch = !normalizedSearch || user.full_name.toLowerCase().includes(normalizedSearch) || user.email?.toLowerCase().includes(normalizedSearch);
     const matchesRole = !params.role || user.role === params.role;
     const matchesDepartment = !params.department || user.department_id === params.department;
@@ -55,7 +56,7 @@ export default async function UsersPage({ searchParams }: { searchParams: Promis
       />
 
       <div className="mt-6 flex flex-wrap gap-2" aria-label="User access summary">
-        <MetricPill value={allUsers?.length ?? 0} label="total accounts" />
+        <MetricPill value={managedUsers.length} label="total accounts" />
         <MetricPill value={leaderCount} label="church leaders and admins" />
         <MetricPill value={departmentHeadCount} label="department heads" />
         {pendingCount > 0 && <Link href="/app/users?role=pending" className="inline-flex"><MetricPill value={pendingCount} label="needs review" tone="warning" /></Link>}
@@ -98,7 +99,7 @@ export default async function UsersPage({ searchParams }: { searchParams: Promis
               </div>
 
               <div>
-                <UserAccessForm id={user.id} fullName={user.full_name} initialRole={user.role as keyof typeof labels} initialDepartmentId={user.department_id} departments={departments ?? []} isCurrentUser={user.id === currentUser.id} returnTo={returnTo} />
+                <UserAccessForm id={user.id} fullName={user.full_name} initialRole={user.role as "pending" | "super_admin" | "church_leader" | "department_head" | "first_timer_coordinator"} initialDepartmentId={user.department_id} departments={departments ?? []} isCurrentUser={user.id === currentUser.id} returnTo={returnTo} />
                 {user.id !== currentUser.id && (["church_leader", "first_timer_coordinator", "super_admin"].includes(user.role)) && (
                   <DeleteUserAccountForm id={user.id} fullName={user.full_name} roleLabel={labels[user.role as keyof typeof labels]} returnTo={returnTo} />
                 )}

@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 export type ProfileRole =
   | "pending"
   | "super_admin"
+  | "workspace_owner"
   | "church_leader"
   | "department_head"
   | "first_timer_coordinator";

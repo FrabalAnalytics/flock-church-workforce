@@ -36,6 +36,7 @@ type TodaySubmission = {
 const roleEyebrows: Record<ProfileRole, string> = {
   pending: "Account",
   super_admin: "Administration",
+  workspace_owner: "Workspace",
   church_leader: "Church oversight",
   department_head: "Department operations",
   first_timer_coordinator: "Newcomer care",
@@ -72,6 +73,9 @@ export default async function WorkspaceOverview({
 }) {
   const { profile } = await requireProfile();
   const params = await searchParams;
+  if (profile.role === "workspace_owner") {
+    redirect("/workspace");
+  }
   const usesLeadershipOverview = ["super_admin", "church_leader"].includes(profile.role);
   if (usesLeadershipOverview) {
     const query = new URLSearchParams();

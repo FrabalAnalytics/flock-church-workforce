@@ -65,8 +65,18 @@ export async function signIn(formData: FormData) {
     );
   }
 
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", authResult.data.user.id)
+    .maybeSingle();
+
   revalidatePath("/", "layout");
-  redirect(next.startsWith("/") && !next.startsWith("//") ? next : "/app");
+  const safeNext = next.startsWith("/") && !next.startsWith("//") ? next : "/app";
+  if (safeNext === "/app" && profile?.role === "workspace_owner") {
+    redirect("/workspace");
+  }
+  redirect(safeNext);
 }
 
 export async function signUp(formData: FormData) {

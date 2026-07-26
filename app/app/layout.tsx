@@ -9,6 +9,7 @@ import { createClient } from "@/lib/supabase/server";
 
 const roleLabels = {
   super_admin: "Super Admin",
+  workspace_owner: "Workspace Owner",
   church_leader: "Church Leader",
   department_head: "Department Head",
   first_timer_coordinator: "First Timers Coordinator",
@@ -19,6 +20,7 @@ export const metadata: Metadata = { title: "Workspace", robots: { index: false, 
 export default async function WorkspaceLayout({ children }: { children: React.ReactNode }) {
   const { profile } = await requireProfile();
   if (profile.role === "pending") redirect("/pending");
+  if (profile.role === "workspace_owner") redirect("/workspace");
 
   let departmentName: string | null = null;
   let branchName: string | null = null;
