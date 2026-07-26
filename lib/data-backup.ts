@@ -1,7 +1,11 @@
-export const BACKUP_FORMAT_VERSION = 1;
+export const BACKUP_FORMAT_VERSION = 2;
 
 export const BACKUP_TABLES = [
   "church_settings",
+  "churches",
+  "branches",
+  "church_settings_by_church",
+  "branch_settings",
   "departments",
   "profiles",
   "workers",

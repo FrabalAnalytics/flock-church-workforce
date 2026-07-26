@@ -16,10 +16,19 @@ export default async function WorkspaceLayout({ children }: { children: React.Re
   if (profile.role === "pending") redirect("/pending");
 
   let departmentName: string | null = null;
+  let branchName: string | null = null;
   if (profile.department_id) {
     const supabase = await createClient();
-    const { data } = await supabase.from("departments").select("name").eq("id", profile.department_id).single();
-    departmentName = data?.name ?? null;
+    const [{ data: department }, { data: branch }] = await Promise.all([
+      supabase.from("departments").select("name").eq("id", profile.department_id).single(),
+      supabase.from("branches").select("name, is_hq").eq("id", profile.branch_id).single(),
+    ]);
+    departmentName = department?.name ?? null;
+    branchName = branch?.name ?? null;
+  } else {
+    const supabase = await createClient();
+    const { data: branch } = await supabase.from("branches").select("name, is_hq").eq("id", profile.branch_id).single();
+    branchName = branch?.name ?? null;
   }
 
   const navigation: Record<string, WorkspaceGroup[]> = {
@@ -87,7 +96,7 @@ export default async function WorkspaceLayout({ children }: { children: React.Re
       </aside>
       <section className="min-w-0">
         <header className="sticky top-0 z-30 flex items-center justify-between border-b border-[var(--color-border)] bg-white/95 px-5 py-3.5 backdrop-blur-xl sm:px-8 lg:px-10">
-          <div className="min-w-0 pr-3"><p className="truncate text-sm font-semibold text-[#253252]">{profile.full_name}</p><p className="mt-0.5 truncate text-xs text-[#8993a7]">{departmentName ? `${departmentName} Department` : roleLabels[profile.role]}</p></div>
+          <div className="min-w-0 pr-3"><p className="truncate text-sm font-semibold text-[#253252]">{profile.full_name}</p><p className="mt-0.5 truncate text-xs text-[#8993a7]">{departmentName ? `${branchName ? `${branchName} · ` : ""}${departmentName} Department` : branchName ?? roleLabels[profile.role]}</p></div>
           <div className="flex shrink-0 items-center gap-3 lg:hidden">
             <Link href="/privacy" className="text-xs font-semibold text-[#647087]">Privacy</Link>
             <form action={signOut}><button type="submit" className="text-xs font-semibold text-[#647087]">Sign out</button></form>

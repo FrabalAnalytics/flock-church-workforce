@@ -14,6 +14,8 @@ export type Profile = {
   full_name: string;
   phone_number: string | null;
   role: ProfileRole;
+  church_id: string;
+  branch_id: string;
   department_id: string | null;
 };
 
@@ -30,7 +32,7 @@ export const getCurrentProfile = cache(async () => {
   const supabase = await createClient();
   const { data } = await supabase
     .from("profiles")
-    .select("id, full_name, phone_number, role, department_id")
+    .select("id, full_name, phone_number, role, church_id, branch_id, department_id")
     .eq("id", user.id)
     .single();
 
