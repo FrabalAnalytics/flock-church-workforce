@@ -78,7 +78,7 @@ export default async function ChurchAttendancePage({
     .select("id, minister_id, service_notes, adult_male_count, adult_female_count, children_count, new_members_male_count, new_members_female_count, new_converts_male_count, new_converts_female_count, total_count, submitted_at, updated_at, ministers(id, title, full_name, active), services!inner(id, service_date, service_type)")
     .gte("services.service_date", from)
     .lte("services.service_date", to)
-    .order("service_date", { referencedTable: "services", ascending: false })
+    .order("service_date", { referencedTable: "services", ascending: true })
     .limit(500);
   if (params.service && serviceTypes.includes(params.service)) query = query.eq("services.service_type", params.service);
 
@@ -95,17 +95,24 @@ export default async function ChurchAttendancePage({
   const newConverts = newConvertsMale + newConvertsFemale;
   const total = adultMale + adultFemale + children;
   const average = rows.length ? Math.round(total / rows.length) : 0;
-  const trendPoints: TrendPoint[] = [...rows].reverse().map((row) => ({
+  const serviceRows = rows
+    .filter((row) => Boolean(row.services))
+    .sort((a, b) => {
+      const dateOrder = a.services!.service_date.localeCompare(b.services!.service_date);
+      if (dateOrder !== 0) return dateOrder;
+      return a.services!.service_type.localeCompare(b.services!.service_type);
+    });
+  const trendPoints: TrendPoint[] = serviceRows.map((row) => ({
     label: row.services ? displayDate(row.services.service_date, true) : "Service",
     value: row.total_count,
     detail: `${row.services?.service_type ?? "Service"} on ${row.services ? displayDate(row.services.service_date) : "unknown date"}: ${row.total_count} attendees`,
   }));
-  const newMemberTrendPoints: TrendPoint[] = [...rows].reverse().map((row) => ({
+  const newMemberTrendPoints: TrendPoint[] = serviceRows.map((row) => ({
     label: row.services ? displayDate(row.services.service_date, true) : "Service",
     value: row.new_members_male_count + row.new_members_female_count,
     detail: `${row.services?.service_type ?? "Service"}: ${row.new_members_male_count + row.new_members_female_count} new members`,
   }));
-  const newConvertTrendPoints: TrendPoint[] = [...rows].reverse().map((row) => ({
+  const newConvertTrendPoints: TrendPoint[] = serviceRows.map((row) => ({
     label: row.services ? displayDate(row.services.service_date, true) : "Service",
     value: row.new_converts_male_count + row.new_converts_female_count,
     detail: `${row.services?.service_type ?? "Service"}: ${row.new_converts_male_count + row.new_converts_female_count} new converts`,

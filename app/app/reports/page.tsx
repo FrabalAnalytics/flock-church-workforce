@@ -55,7 +55,7 @@ export default async function ReportsPage({
     .select("id, roster_count, present_count, absent_count, submitted_at, departments(id, name), services!inner(id, service_date, service_type)")
     .gte("services.service_date", from)
     .lte("services.service_date", to)
-    .order("service_date", { referencedTable: "services", ascending: false })
+    .order("service_date", { referencedTable: "services", ascending: true })
     .limit(1000);
 
   if (params.department) query = query.eq("department_id", params.department);
